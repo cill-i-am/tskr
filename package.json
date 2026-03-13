@@ -2,21 +2,25 @@
   "name": "start-monorepo",
   "version": "0.0.1",
   "private": true,
-  "packageManager": "pnpm@10.32.1",
   "scripts": {
     "build": "turbo build",
+    "check": "pnpm exec ultracite check",
     "dev": "turbo dev",
-    "lint": "turbo lint",
-    "format": "turbo format",
+    "fix": "pnpm exec ultracite fix && pnpm exec oxfmt --write .",
+    "format": "pnpm fix",
+    "lint": "pnpm check",
     "typecheck": "turbo typecheck"
   },
   "devDependencies": {
-    "prettier": "^3.8.1",
-    "prettier-plugin-tailwindcss": "^0.7.2",
+    "@biomejs/biome": "^2.4.5",
+    "oxfmt": "^0.40.0",
+    "oxlint": "^1.55.0",
     "turbo": "^2.8.8",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "ultracite": "^7.3.0"
   },
   "engines": {
     "node": ">=20"
-  }
+  },
+  "packageManager": "pnpm@10.32.1"
 }

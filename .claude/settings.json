@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "enabledMcpjsonServers": ["shadcn"],
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -lc 'cd \"${CLAUDE_PROJECT_DIR:-.}\" && if command -v pnpm >/dev/null 2>&1 && [ -f package.json ] && pnpm exec ultracite --version >/dev/null 2>&1; then pnpm exec ultracite fix; fi'"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,61 @@
+# Ultracite Rules
+
+These instructions are the project-local AI rules for Codex and OpenCode, and the shared source for other agent-specific files in this repo.
+
+## Purpose
+
+- Keep all code compatible with the root Ultracite setup: Oxlint `core` plus `react`, and Oxfmt at the repo root.
+- Prefer changes that pass automated linting and formatting without follow-up hand-tuning.
+- Keep edits minimal, local, and consistent with the existing monorepo structure.
+
+## Required Workflow
+
+- After editing code or config, run `pnpm exec ultracite fix` from the repository root once dependencies are installed.
+- If you touch multiple files, prefer one coherent change over repeated stylistic churn.
+- Do not add new local lint or format tools when the root Ultracite config already covers the need.
+- Preserve existing behavior unless the task explicitly changes behavior.
+
+## Formatting Standards
+
+- Use double quotes in JavaScript and TypeScript.
+- Omit semicolons.
+- Keep `trailingComma` at `"es5"`.
+- Keep `printWidth` at `80` and `tabWidth` at `2`.
+- Keep `endOfLine` at `"lf"`.
+- Do not manually reorder imports in ways that conflict with Oxfmt.
+- Do not manually reorder Tailwind classes in ways that conflict with Oxfmt.
+
+## Import Rules
+
+- Treat `@workspace/` imports as internal workspace imports.
+- Let Oxfmt own import ordering.
+- Prefer existing workspace aliases over long relative traversals when both are already supported.
+- Avoid unnecessary import splitting or grouping churn unless the task requires it.
+
+## Tailwind Rules
+
+- Use Oxfmt Tailwind sorting with the v4 stylesheet at `packages/ui/src/styles/globals.css` once the formatter is installed.
+- Treat `cn`, `cva`, and `clsx` as Tailwind-aware helper functions.
+- Keep class strings readable; do not preserve bespoke ordering that the formatter will rewrite.
+
+## Linting Expectations
+
+- Write code that is compatible with Ultracite Oxlint `core` and `react` presets.
+- Prefer clear, direct React and TypeScript code over clever patterns that trigger avoidable lint noise.
+- Keep accessibility in mind for JSX changes.
+- Avoid introducing dead code, duplicate imports, or formatting-only edits unrelated to the task.
+
+## Monorepo Guidance
+
+- Root tooling is authoritative for shared linting and formatting.
+- Keep package-specific config additions justified and minimal.
+- Respect the `apps/*` and `packages/*` workspace layout.
+- Preserve repo-wide conventions before introducing package-local exceptions.
+
+## AI Integration Notes
+
+- OpenCode: `opencode.json` includes this file through the `instructions` field.
+- Codex: project-local committed support uses this `AGENTS.md` file.
+- Claude Code: committed project-local instructions live in `.claude/CLAUDE.md`; hook and MCP approval live in `.claude/settings.json` and `.mcp.json`. The hook is intentionally no-op until dependencies are installed and `pnpm exec ultracite` is available.
+- GitHub Copilot: committed project-local instructions live in `.github/copilot-instructions.md`.
+- `.mcp.json` exists only to preserve the existing `shadcn` MCP server for Claude Code. Ultracite is configured through committed instruction files, not through MCP.

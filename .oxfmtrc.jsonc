@@ -1,0 +1,16 @@
+{
+  "ignorePatterns": [".agents/**", "apps/web/src/routeTree.gen.ts"],
+  "semi": false,
+  "singleQuote": false,
+  "trailingComma": "es5",
+  "printWidth": 80,
+  "tabWidth": 2,
+  "endOfLine": "lf",
+  "sortImports": {
+    "internalPattern": ["@workspace/"],
+  },
+  "sortTailwindcss": {
+    "stylesheet": "packages/ui/src/styles/globals.css",
+    "functions": ["cn", "cva", "clsx"],
+  },
+}
