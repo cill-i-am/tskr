@@ -1,5 +1,17 @@
 {
-  "ignorePatterns": [".agents/**", "apps/web/src/routeTree.gen.ts"],
+  "ignorePatterns": [
+    ".agents/**",
+    "apps/web/src/routeTree.gen.ts",
+    "node_modules/**",
+    ".pnpm-store/**",
+    ".turbo/**",
+    "coverage/**",
+    "dist/**",
+    ".output/**",
+    ".nitro/**",
+    ".tanstack/**",
+    ".vinxi/**"
+  ],
   "semi": false,
   "singleQuote": false,
   "trailingComma": "es5",
