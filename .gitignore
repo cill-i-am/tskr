@@ -15,6 +15,7 @@ coverage
 
 # Turbo
 .turbo
+.worktrees
 
 # Vercel
 .vercel
