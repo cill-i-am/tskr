@@ -1,0 +1,10 @@
+{
+  "packages": [
+    "react",
+    "react-dom",
+    "@tanstack/react-router",
+    "@tanstack/react-start",
+    "zod",
+    "@base-ui/react"
+  ]
+}

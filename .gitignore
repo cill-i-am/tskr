@@ -26,6 +26,9 @@ dist
 .nitro
 .tanstack
 .vinxi
+.opensrc/
+.opensrc-backup/
+opensrc/
 
 # Debug
 npm-debug.log*

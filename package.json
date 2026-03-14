@@ -3,16 +3,20 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
+    "bootstrap": "pnpm install && node scripts/sync-opensrc.mjs --soft-fail",
     "build": "turbo build",
     "check": "pnpm exec ultracite check",
     "dev": "turbo dev",
     "fix": "pnpm exec ultracite fix && pnpm exec oxfmt --write .",
     "format": "pnpm fix",
     "lint": "pnpm check",
+    "opensrc:sync": "node scripts/sync-opensrc.mjs",
+    "test:opensrc": "node --test scripts/lib/opensrc-sync.test.mjs",
     "typecheck": "turbo typecheck"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.5",
+    "opensrc": "0.6.0",
     "oxfmt": "^0.40.0",
     "oxlint": "^1.55.0",
     "turbo": "^2.8.8",

@@ -52,6 +52,15 @@ These instructions are the project-local AI rules for Codex and OpenCode, and th
 - Respect the `apps/*` and `packages/*` workspace layout.
 - Preserve repo-wide conventions before introducing package-local exceptions.
 
+## Local Source Mirrors
+
+- Local dependency source mirrors live in `.opensrc/`.
+- Use `pnpm bootstrap` for onboarding and `pnpm opensrc:sync` to refresh only the local mirrors.
+- Check `.opensrc/sources.json` first and treat it as the authoritative index.
+- Use the `path` field from `.opensrc/sources.json` instead of guessing folder names.
+- Read the local mirror before using Context7 or other remote package lookup tools.
+- Only use remote package lookup when the package is missing from `.opensrc/` or the local source is insufficient.
+
 ## AI Integration Notes
 
 - OpenCode: `opencode.json` includes this file through the `instructions` field.
