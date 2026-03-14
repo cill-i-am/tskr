@@ -10,7 +10,7 @@
     ".output/**",
     ".nitro/**",
     ".tanstack/**",
-    ".vinxi/**"
+    ".vinxi/**",
   ],
   "semi": false,
   "singleQuote": false,

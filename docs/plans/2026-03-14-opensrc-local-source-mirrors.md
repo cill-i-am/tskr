@@ -15,6 +15,7 @@
 ### Task 1: Add the curated manifest and root repo plumbing
 
 **Files:**
+
 - Create: `opensrc.packages.json`
 - Modify: `.gitignore`
 - Modify: `package.json`
@@ -111,6 +112,7 @@ git commit -m "chore: add opensrc mirror configuration"
 ### Task 2: Build the sync engine, CLI wrapper, and tests
 
 **Files:**
+
 - Create: `scripts/lib/opensrc-sync.mjs`
 - Create: `scripts/lib/opensrc-sync.test.mjs`
 - Create: `scripts/sync-opensrc.mjs`
@@ -122,7 +124,14 @@ Create `scripts/lib/opensrc-sync.test.mjs` with focused `node:test` cases that c
 
 ```js
 import assert from "node:assert/strict"
-import { mkdtemp, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises"
+import {
+  mkdtemp,
+  mkdir,
+  readFile,
+  rename,
+  rm,
+  writeFile,
+} from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
 import test from "node:test"
@@ -152,7 +161,20 @@ test("validateSourcesIndex rejects missing configured packages", async () => {
   await mkdir(path.join(rootDir, "opensrc"), { recursive: true })
   await writeFile(
     path.join(rootDir, "opensrc", "sources.json"),
-    JSON.stringify({ packages: [{ name: "react", path: "repos/github.com/facebook/react", registry: "npm", version: "19.2.4" }] }, null, 2)
+    JSON.stringify(
+      {
+        packages: [
+          {
+            name: "react",
+            path: "repos/github.com/facebook/react",
+            registry: "npm",
+            version: "19.2.4",
+          },
+        ],
+      },
+      null,
+      2
+    )
   )
 
   await assert.rejects(
@@ -168,7 +190,13 @@ test("validateSourcesIndex requires name, version, registry, and path for mirror
   await mkdir(path.join(rootDir, "opensrc"), { recursive: true })
   await writeFile(
     path.join(rootDir, "opensrc", "sources.json"),
-    JSON.stringify({ packages: [{ name: "react", path: "repos/github.com/facebook/react" }] }, null, 2)
+    JSON.stringify(
+      {
+        packages: [{ name: "react", path: "repos/github.com/facebook/react" }],
+      },
+      null,
+      2
+    )
   )
 
   await assert.rejects(
@@ -181,14 +209,26 @@ test("validateSourcesIndex requires name, version, registry, and path for mirror
 
 test("runOpensrc forwards the curated packages, root cwd, and --modify=false", async () => {
   const calls = []
-  await runOpensrc("/repo/root", ["react", "zod"], async (command, args, options) => {
-    calls.push({ command, args, options })
-  })
+  await runOpensrc(
+    "/repo/root",
+    ["react", "zod"],
+    async (command, args, options) => {
+      calls.push({ command, args, options })
+    }
+  )
 
   assert.deepEqual(calls, [
     {
       command: "pnpm",
-      args: ["exec", "opensrc", "react", "zod", "--modify=false", "--cwd", "/repo/root"],
+      args: [
+        "exec",
+        "opensrc",
+        "react",
+        "zod",
+        "--modify=false",
+        "--cwd",
+        "/repo/root",
+      ],
       options: { cwd: "/repo/root" },
     },
   ])
@@ -206,7 +246,9 @@ test("runOpensrc remains non-interactive for strict and onboarding flows", async
   for (const call of calls) {
     assert.equal(call.command, "pnpm")
     assert.ok(call.args.includes("--modify=false"))
-    assert.ok(!call.args.some((arg) => arg === "--modify" || arg === "--interactive"))
+    assert.ok(
+      !call.args.some((arg) => arg === "--modify" || arg === "--interactive")
+    )
     assert.deepEqual(call.options, { cwd: "/repo/root" })
   }
 })
@@ -226,7 +268,10 @@ test("createChildProcessRunner uses inherited stdio for non-interactive automati
     }
   }
 
-  const runner = createChildProcessRunner({ info() {}, warn() {}, error() {} }, fakeSpawn)
+  const runner = createChildProcessRunner(
+    { info() {}, warn() {}, error() {} },
+    fakeSpawn
+  )
   await runner("pnpm", ["exec", "opensrc", "react"], { cwd: "/repo/root" })
 
   assert.equal(receivedOptions.stdio, "inherit")
@@ -277,12 +322,27 @@ test("syncOpensrc restores the previous mirror and exits 0 in soft-fail mode whe
       await mkdir(path.join(rootDir, "opensrc"), { recursive: true })
       await writeFile(
         path.join(rootDir, "opensrc", "sources.json"),
-        JSON.stringify({ packages: [{ name: "react", version: "19.2.4", registry: "npm", path: "repos/github.com/facebook/react" }] }, null, 2)
+        JSON.stringify(
+          {
+            packages: [
+              {
+                name: "react",
+                version: "19.2.4",
+                registry: "npm",
+                path: "repos/github.com/facebook/react",
+              },
+            ],
+          },
+          null,
+          2
+        )
       )
     },
     logger: {
       info() {},
-      warn(message) { warnings.push(message) },
+      warn(message) {
+        warnings.push(message)
+      },
       error() {},
     },
   })
@@ -298,7 +358,9 @@ test("syncOpensrc restores the previous mirror and exits 0 in soft-fail mode whe
 })
 
 test("syncOpensrc restores the previous mirror and exits 1 in strict mode when validation fails", async () => {
-  const rootDir = await mkdtemp(path.join(os.tmpdir(), "opensrc-strict-validation-"))
+  const rootDir = await mkdtemp(
+    path.join(os.tmpdir(), "opensrc-strict-validation-")
+  )
   await writeFile(
     path.join(rootDir, "opensrc.packages.json"),
     JSON.stringify({ packages: ["react", "zod"] }, null, 2)
@@ -313,7 +375,20 @@ test("syncOpensrc restores the previous mirror and exits 1 in strict mode when v
       await mkdir(path.join(rootDir, "opensrc"), { recursive: true })
       await writeFile(
         path.join(rootDir, "opensrc", "sources.json"),
-        JSON.stringify({ packages: [{ name: "react", version: "19.2.4", registry: "npm", path: "repos/github.com/facebook/react" }] }, null, 2)
+        JSON.stringify(
+          {
+            packages: [
+              {
+                name: "react",
+                version: "19.2.4",
+                registry: "npm",
+                path: "repos/github.com/facebook/react",
+              },
+            ],
+          },
+          null,
+          2
+        )
       )
     },
     logger: { info() {}, warn() {}, error() {} },
@@ -346,13 +421,18 @@ test("syncOpensrc restores the previous mirror and warns in soft-fail mode when 
     },
     logger: {
       info() {},
-      warn(message) { warnings.push(message) },
+      warn(message) {
+        warnings.push(message)
+      },
       error() {},
     },
   })
 
   assert.equal(exitCode, 0)
-  assert.match(warnings.join("\n"), /opensrc sync skipped: simulated fetch failure/)
+  assert.match(
+    warnings.join("\n"),
+    /opensrc sync skipped: simulated fetch failure/
+  )
   assert.equal(
     await readFile(path.join(rootDir, ".opensrc", "sentinel.txt"), "utf8"),
     "keep me"
@@ -362,7 +442,9 @@ test("syncOpensrc restores the previous mirror and warns in soft-fail mode when 
 })
 
 test("syncOpensrc restores the previous mirror and exits 1 in strict mode when promotion fails", async () => {
-  const rootDir = await mkdtemp(path.join(os.tmpdir(), "opensrc-promotion-fail-"))
+  const rootDir = await mkdtemp(
+    path.join(os.tmpdir(), "opensrc-promotion-fail-")
+  )
   await writeFile(
     path.join(rootDir, "opensrc.packages.json"),
     JSON.stringify({ packages: ["react"] }, null, 2)
@@ -380,7 +462,20 @@ test("syncOpensrc restores the previous mirror and exits 1 in strict mode when p
       await mkdir(path.join(rootDir, "opensrc"), { recursive: true })
       await writeFile(
         path.join(rootDir, "opensrc", "sources.json"),
-        JSON.stringify({ packages: [{ name: "react", version: "19.2.4", registry: "npm", path: "repos/github.com/facebook/react" }] }, null, 2)
+        JSON.stringify(
+          {
+            packages: [
+              {
+                name: "react",
+                version: "19.2.4",
+                registry: "npm",
+                path: "repos/github.com/facebook/react",
+              },
+            ],
+          },
+          null,
+          2
+        )
       )
     },
     renameImpl: async (...args) => {
@@ -404,7 +499,9 @@ test("syncOpensrc restores the previous mirror and exits 1 in strict mode when p
 })
 
 test("syncOpensrc restores the previous mirror and warns in soft-fail mode when promotion fails", async () => {
-  const rootDir = await mkdtemp(path.join(os.tmpdir(), "opensrc-promotion-soft-fail-"))
+  const rootDir = await mkdtemp(
+    path.join(os.tmpdir(), "opensrc-promotion-soft-fail-")
+  )
   await writeFile(
     path.join(rootDir, "opensrc.packages.json"),
     JSON.stringify({ packages: ["react"] }, null, 2)
@@ -423,7 +520,20 @@ test("syncOpensrc restores the previous mirror and warns in soft-fail mode when 
       await mkdir(path.join(rootDir, "opensrc"), { recursive: true })
       await writeFile(
         path.join(rootDir, "opensrc", "sources.json"),
-        JSON.stringify({ packages: [{ name: "react", version: "19.2.4", registry: "npm", path: "repos/github.com/facebook/react" }] }, null, 2)
+        JSON.stringify(
+          {
+            packages: [
+              {
+                name: "react",
+                version: "19.2.4",
+                registry: "npm",
+                path: "repos/github.com/facebook/react",
+              },
+            ],
+          },
+          null,
+          2
+        )
       )
     },
     renameImpl: async (...args) => {
@@ -436,13 +546,18 @@ test("syncOpensrc restores the previous mirror and warns in soft-fail mode when 
     },
     logger: {
       info() {},
-      warn(message) { warnings.push(message) },
+      warn(message) {
+        warnings.push(message)
+      },
       error() {},
     },
   })
 
   assert.equal(exitCode, 0)
-  assert.match(warnings.join("\n"), /opensrc sync skipped: simulated promotion failure/)
+  assert.match(
+    warnings.join("\n"),
+    /opensrc sync skipped: simulated promotion failure/
+  )
   assert.equal(
     await readFile(path.join(rootDir, ".opensrc", "sentinel.txt"), "utf8"),
     "keep me"
@@ -467,8 +582,12 @@ test("syncOpensrc surfaces a clear missing-CLI error message", async () => {
     },
     logger: {
       info() {},
-      warn(message) { messages.push(message) },
-      error(message) { messages.push(message) },
+      warn(message) {
+        messages.push(message)
+      },
+      error(message) {
+        messages.push(message)
+      },
     },
   })
 
@@ -497,8 +616,12 @@ test("syncOpensrc warns and exits 0 in soft-fail mode when opensrc is unavailabl
     },
     logger: {
       info() {},
-      warn(message) { messages.push(message) },
-      error(message) { messages.push(message) },
+      warn(message) {
+        messages.push(message)
+      },
+      error(message) {
+        messages.push(message)
+      },
     },
   })
 
@@ -540,12 +663,18 @@ export async function loadConfiguredPackages(rootDir) {
   const packages = manifest.packages
 
   if (!Array.isArray(packages) || packages.length === 0) {
-    throw new Error("opensrc.packages.json must contain a non-empty packages array")
+    throw new Error(
+      "opensrc.packages.json must contain a non-empty packages array"
+    )
   }
 
-  const invalid = packages.find((entry) => typeof entry !== "string" || entry.length === 0)
+  const invalid = packages.find(
+    (entry) => typeof entry !== "string" || entry.length === 0
+  )
   if (invalid) {
-    throw new Error("opensrc.packages.json packages entries must be non-empty strings")
+    throw new Error(
+      "opensrc.packages.json packages entries must be non-empty strings"
+    )
   }
 
   return [...new Set(packages)]
@@ -573,7 +702,9 @@ export async function validateSourcesIndex(rootDir, configuredPackages) {
       entry.registry.length === 0 ||
       entry.path.length === 0
     ) {
-      throw new Error(`Invalid mirrored package entry: ${JSON.stringify(entry)}`)
+      throw new Error(
+        `Invalid mirrored package entry: ${JSON.stringify(entry)}`
+      )
     }
   }
 
@@ -590,14 +721,11 @@ async function pathExists(targetPath) {
 }
 
 export async function runOpensrc(rootDir, packages, runCommand) {
-  await runCommand("pnpm", [
-    "exec",
-    "opensrc",
-    ...packages,
-    "--modify=false",
-    "--cwd",
-    rootDir,
-  ], { cwd: rootDir })
+  await runCommand(
+    "pnpm",
+    ["exec", "opensrc", ...packages, "--modify=false", "--cwd", rootDir],
+    { cwd: rootDir }
+  )
 }
 
 export function createChildProcessRunner(logger, spawnImpl = spawn) {
@@ -622,7 +750,13 @@ export function createChildProcessRunner(logger, spawnImpl = spawn) {
   }
 }
 
-export async function syncOpensrc({ rootDir, softFail = false, runCommand, logger = console, renameImpl = rename }) {
+export async function syncOpensrc({
+  rootDir,
+  softFail = false,
+  runCommand,
+  logger = console,
+  renameImpl = rename,
+}) {
   const configuredPackages = await loadConfiguredPackages(rootDir)
   const transientDir = path.join(rootDir, TRANSIENT_DIR)
   const targetDir = path.join(rootDir, TARGET_DIR)
@@ -642,7 +776,9 @@ export async function syncOpensrc({ rootDir, softFail = false, runCommand, logge
     await validateSourcesIndex(rootDir, configuredPackages)
     await renameImpl(transientDir, targetDir)
     await rm(backupDir, { recursive: true, force: true })
-    logger.info(`Mirrored ${configuredPackages.length} packages into ${TARGET_DIR}/`)
+    logger.info(
+      `Mirrored ${configuredPackages.length} packages into ${TARGET_DIR}/`
+    )
     return 0
   } catch (error) {
     await rm(transientDir, { recursive: true, force: true })
@@ -726,6 +862,7 @@ git commit -m "feat: add opensrc sync workflow"
 ### Task 3: Document the workflow for humans and agents
 
 **Files:**
+
 - Modify: `AGENTS.md`
 - Modify: `README.md`
 
@@ -757,7 +894,7 @@ Append a small section to `AGENTS.md` near the AI guidance content:
 
 Add a short section to `README.md` that documents the onboarding and maintenance commands:
 
-```md
+````md
 ## Local dependency source mirrors
 
 Run the onboarding command from a fresh clone:
@@ -765,6 +902,7 @@ Run the onboarding command from a fresh clone:
 ```bash
 pnpm setup
 ```
+````
 
 That command installs dependencies and then mirrors the curated package list into `.opensrc/` in soft-fail mode.
 
@@ -775,7 +913,8 @@ pnpm opensrc:sync
 ```
 
 Use `.opensrc/sources.json` as the index of what is available locally.
-```
+
+````
 
 - [ ] **Step 4: Re-run the documentation checks**
 
@@ -787,11 +926,12 @@ Expected: PASS.
 ```bash
 git add AGENTS.md README.md
 git commit -m "docs: add opensrc mirror guidance"
-```
+````
 
 ### Task 4: Run the end-to-end verification suite
 
 **Files:**
+
 - Verify only: `.opensrc/` local output
 
 - [ ] **Step 1: Reset to a clean verification starting point**

@@ -4,5 +4,9 @@
     "./node_modules/ultracite/config/oxlint/core/.oxlintrc.json",
     "./node_modules/ultracite/config/oxlint/react/.oxlintrc.json"
   ],
-  "ignorePatterns": [".agents/**", "apps/web/src/routeTree.gen.ts"]
+  "ignorePatterns": [
+    ".agents/**",
+    ".claude/skills/**",
+    "apps/web/src/routeTree.gen.ts"
+  ]
 }
