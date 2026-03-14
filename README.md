@@ -2,6 +2,65 @@
 
 This is a TanStack Start monorepo template with shadcn/ui.
 
+## Local development URLs
+
+This repo uses [Portless](https://github.com/vercel-labs/portless) for app dev
+URLs so each app gets a stable local hostname instead of a fixed port.
+
+Install Portless globally:
+
+```bash
+npm install -g portless
+```
+
+Enable HTTPS once on your machine:
+
+```bash
+portless proxy start --https
+```
+
+Then start the web app from the repo root:
+
+```bash
+pnpm dev:web
+```
+
+The main checkout runs at:
+
+```text
+https://web.tskr.localhost:1355
+```
+
+Linked git worktrees get the branch name as a prefix automatically:
+
+```text
+https://<branch>.web.tskr.localhost:1355
+```
+
+Useful commands:
+
+```bash
+portless list
+PORTLESS=0 pnpm --filter web run dev
+```
+
+- `portless list` shows the active route registrations.
+- `PORTLESS=0 ...` bypasses Portless and runs the app directly.
+- Portless is a global prerequisite for this repo, not a workspace dependency.
+- This workflow is tested with `portless@0.4.1+` on macOS and Linux.
+
+If Safari cannot resolve the hostname, run:
+
+```bash
+sudo portless hosts sync
+```
+
+If HTTPS trust fails, fix the Portless proxy/certificate setup first before
+debugging the app itself.
+
+If you later add Vite proxy rules between local apps, set `changeOrigin: true`
+to avoid Portless proxy loops.
+
 ## Code quality commands
 
 Use the root Ultracite workflow for linting and formatting:
