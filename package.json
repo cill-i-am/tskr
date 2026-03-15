@@ -15,7 +15,7 @@
     "lint": "pnpm check",
     "opensrc:sync": "node scripts/sync-opensrc.mjs",
     "precheck": "pnpm exec ultracite check package.json turbo.json tsconfig.json .oxlintrc.json opencode.json scripts",
-    "test:opensrc": "node --test scripts/lib/opensrc-sync.test.mjs",
+    "test:opensrc": "node --test scripts/lib/opensrc-sync.test.mjs scripts/lib/opensrc-package-coverage.test.mjs",
     "test:ui-propagation": "node --test scripts/lib/ui-propagation.test.mjs",
     "verify:ui-propagation": "node scripts/verify-ui-propagation.mjs",
     "typecheck": "turbo run typecheck"
