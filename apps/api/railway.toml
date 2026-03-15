@@ -1,0 +1,15 @@
+[build]
+builder = "RAILPACK"
+buildCommand = "pnpm exec turbo run build --filter=api"
+watchPatterns = [
+  "/apps/api/**",
+  "/package.json",
+  "/pnpm-lock.yaml",
+  "/pnpm-workspace.yaml",
+  "/turbo.json",
+  "/tsconfig.json",
+]
+
+[deploy]
+startCommand = "pnpm --filter api start"
+healthcheckPath = "/up"
