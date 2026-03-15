@@ -25,6 +25,9 @@
     "dev": {
       "cache": false
     },
+    "db:ensure": {
+      "cache": false
+    },
     "web#dev": {
       "cache": false,
       "persistent": true,
