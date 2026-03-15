@@ -4,6 +4,8 @@ import test from "node:test"
 import {
   buildComposeArgs,
   buildComposeEnv,
+  deriveHealthTimeoutMs,
+  deriveHealthcheckWindowMs,
   formatCommandFailure,
 } from "./local-postgres.mjs"
 
@@ -65,4 +67,13 @@ test("buildComposeEnv maps config into compose environment variables", () => {
   assert.equal(env.POSTGRES_IMAGE, "postgres:16-alpine")
   assert.equal(env.POSTGRES_PASSWORD, "postgres")
   assert.equal(env.POSTGRES_USER, "postgres")
+})
+
+test("deriveHealthTimeoutMs stays above the compose healthcheck window", () => {
+  const windowMs = deriveHealthcheckWindowMs()
+  const timeoutMs = deriveHealthTimeoutMs()
+
+  assert.ok(timeoutMs > windowMs)
+  assert.equal(windowMs, 62_000)
+  assert.equal(timeoutMs, 77_000)
 })

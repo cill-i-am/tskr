@@ -5,7 +5,6 @@ export const DEFAULT_POSTGRES_USER = "postgres"
 export const DEFAULT_POSTGRES_PASSWORD = "postgres"
 export const DEFAULT_POSTGRES_DATABASE = "app"
 export const DEFAULT_POSTGRES_IMAGE = "postgres:16-alpine"
-export const DEFAULT_POSTGRES_SCHEMA = "public"
 export const DEFAULT_PORT_MIN = 20000
 export const DEFAULT_PORT_MAX = 29999
 
@@ -53,7 +52,6 @@ export const deriveWorktreeDbConfig = (
     host = DEFAULT_POSTGRES_HOST,
     image = DEFAULT_POSTGRES_IMAGE,
     password = DEFAULT_POSTGRES_PASSWORD,
-    schema = DEFAULT_POSTGRES_SCHEMA,
     user = DEFAULT_POSTGRES_USER,
   } = {}
 ) => {
@@ -66,14 +64,13 @@ export const deriveWorktreeDbConfig = (
     canonicalPath: identity.canonicalPath,
     containerName: `${identity.projectName}-db`,
     database,
-    databaseUrl: `postgresql://${encodedUser}:${encodedPassword}@${host}:${port}/${database}?schema=${schema}`,
+    databaseUrl: `postgresql://${encodedUser}:${encodedPassword}@${host}:${port}/${database}`,
     hashHex: identity.hashHex,
     host,
     image,
     password,
     port,
     projectName: identity.projectName,
-    schema,
     user,
   }
 }

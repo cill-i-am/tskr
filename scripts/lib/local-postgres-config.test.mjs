@@ -48,7 +48,7 @@ test("deriveWorktreeDbConfig returns defaults and DATABASE_URL", () => {
   assert.equal(config.image, DEFAULT_POSTGRES_IMAGE)
   assert.match(
     config.databaseUrl,
-    /^postgresql:\/\/postgres:[\w-]+@127\.0\.0\.1:\d+\/app\?schema=public$/
+    /^postgresql:\/\/postgres:[\w-]+@127\.0\.0\.1:\d+\/app$/
   )
   assert.match(config.projectName, /^tskr-postgres-[a-f0-9]{10}$/)
   assert.match(config.containerName, /^tskr-postgres-[a-f0-9]{10}-db$/)

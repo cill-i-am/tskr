@@ -12,8 +12,24 @@ const DEFAULT_COMPOSE_FILE = join(
   DEFAULT_REPO_ROOT,
   "infra/postgres/compose.dev.yml"
 )
-const DEFAULT_HEALTH_TIMEOUT_MS = 60_000
+const DEFAULT_HEALTHCHECK_INTERVAL_MS = 2_000
+const DEFAULT_HEALTHCHECK_RETRIES = 30
+const DEFAULT_HEALTHCHECK_START_PERIOD_MS = 2_000
+const DEFAULT_HEALTH_TIMEOUT_BUFFER_MS = 15_000
 const DEFAULT_HEALTH_INTERVAL_MS = 1_000
+export const deriveHealthcheckWindowMs = ({
+  intervalMs = DEFAULT_HEALTHCHECK_INTERVAL_MS,
+  retries = DEFAULT_HEALTHCHECK_RETRIES,
+  startPeriodMs = DEFAULT_HEALTHCHECK_START_PERIOD_MS,
+} = {}) => startPeriodMs + intervalMs * retries
+export const deriveHealthTimeoutMs = ({
+  bufferMs = DEFAULT_HEALTH_TIMEOUT_BUFFER_MS,
+  intervalMs = DEFAULT_HEALTHCHECK_INTERVAL_MS,
+  retries = DEFAULT_HEALTHCHECK_RETRIES,
+  startPeriodMs = DEFAULT_HEALTHCHECK_START_PERIOD_MS,
+} = {}) =>
+  deriveHealthcheckWindowMs({ intervalMs, retries, startPeriodMs }) + bufferMs
+const DEFAULT_HEALTH_TIMEOUT_MS = deriveHealthTimeoutMs()
 
 const runCommand = async (command, args, options = {}) => {
   const child = spawn(command, args, {
@@ -155,8 +171,16 @@ export const waitForLocalPostgresHealthy = async (
         return
       }
 
+      if (status === "unhealthy") {
+        throw new Error(
+          `Local Postgres reported "unhealthy". Run "pnpm db:logs" for diagnostics (container: ${config.containerName}).`
+        )
+      }
+
       if (status === "dead" || status === "exited") {
-        throw new Error(`Local Postgres container entered status "${status}"`)
+        throw new Error(
+          `Local Postgres container entered status "${status}". Run "pnpm db:logs" for diagnostics (container: ${config.containerName}).`
+        )
       }
     }
 
@@ -164,7 +188,7 @@ export const waitForLocalPostgresHealthy = async (
   }
 
   throw new Error(
-    `Timed out waiting for Postgres health (${Math.round(timeoutMs / 1000)}s)`
+    `Timed out waiting for Postgres health (${Math.round(timeoutMs / 1000)}s). Run "pnpm db:logs" for diagnostics (container: ${config.containerName}).`
   )
 }
 
