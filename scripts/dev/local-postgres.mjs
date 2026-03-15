@@ -1,6 +1,6 @@
 import {
   downLocalPostgres,
-  ensureLocalPostgres,
+  ensureLocalPostgresReady,
   getLocalDatabaseUrl,
   resetLocalPostgres,
   streamLocalPostgresLogs,
@@ -10,7 +10,7 @@ const command = process.argv[2] ?? "ensure"
 
 const run = async () => {
   if (command === "ensure") {
-    const config = await ensureLocalPostgres()
+    const config = await ensureLocalPostgresReady()
 
     console.log(`Local Postgres ready on ${config.host}:${config.port}`)
     console.log(`DATABASE_URL=${config.databaseUrl}`)

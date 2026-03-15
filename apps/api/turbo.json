@@ -4,6 +4,7 @@
     "dev": {
       "cache": false,
       "dependsOn": ["db:ensure"],
+      "env": ["PORT"],
       "persistent": true
     }
   }

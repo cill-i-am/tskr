@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import test from "node:test"
 
 import {
+  FORWARDED_SIGNALS,
   buildLocalPostgresChildEnv,
   parseLauncherCommandArgs,
 } from "./local-postgres-launcher.mjs"
@@ -35,6 +36,21 @@ test("parseLauncherCommandArgs throws when no command is provided", () => {
   )
 })
 
+test('parseLauncherCommandArgs requires "--" separator', () => {
+  assert.throws(
+    () =>
+      parseLauncherCommandArgs([
+        "node",
+        "scripts/dev/local-postgres-launcher.mjs",
+        "tsx",
+        "watch",
+      ]),
+    new Error(
+      'Expected a child command after "--". Example: node scripts/dev/local-postgres-launcher.mjs -- tsx watch src/index.ts'
+    )
+  )
+})
+
 test("buildLocalPostgresChildEnv adds DATABASE_URL to the child environment", () => {
   const env = buildLocalPostgresChildEnv({
     baseEnv: {
@@ -48,4 +64,8 @@ test("buildLocalPostgresChildEnv adds DATABASE_URL to the child environment", ()
     env.DATABASE_URL,
     "postgresql://postgres:postgres@127.0.0.1:25432/app"
   )
+})
+
+test("FORWARDED_SIGNALS defines forwarded process signals", () => {
+  assert.deepEqual(FORWARDED_SIGNALS, ["SIGINT", "SIGTERM", "SIGHUP"])
 })

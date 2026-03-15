@@ -5,8 +5,11 @@ export const LAUNCHER_USAGE =
 
 export const parseLauncherCommandArgs = (argvInput = argv) => {
   const separatorIndex = argvInput.indexOf("--")
-  const commandTokens =
-    separatorIndex === -1 ? argvInput.slice(2) : argvInput.slice(separatorIndex + 1)
+  if (separatorIndex === -1) {
+    throw new Error(LAUNCHER_USAGE)
+  }
+
+  const commandTokens = argvInput.slice(separatorIndex + 1)
   const [command, ...args] = commandTokens
 
   if (typeof command !== "string" || command.length === 0) {
@@ -20,3 +23,5 @@ export const buildLocalPostgresChildEnv = ({ baseEnv, databaseUrl }) => ({
   ...baseEnv,
   DATABASE_URL: databaseUrl,
 })
+
+export const FORWARDED_SIGNALS = ["SIGINT", "SIGTERM", "SIGHUP"]

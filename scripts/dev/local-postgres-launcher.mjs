@@ -1,14 +1,15 @@
 import { spawn } from "node:child_process"
 
-import { ensureLocalPostgres } from "../lib/local-postgres.mjs"
+import { ensureLocalPostgresReady } from "../lib/local-postgres.mjs"
 import {
+  FORWARDED_SIGNALS,
   buildLocalPostgresChildEnv,
   parseLauncherCommandArgs,
 } from "../lib/local-postgres-launcher.mjs"
 
 const run = async () => {
   const { args, command } = parseLauncherCommandArgs()
-  const config = await ensureLocalPostgres()
+  const config = await ensureLocalPostgresReady()
   const child = spawn(command, args, {
     env: buildLocalPostgresChildEnv({
       baseEnv: process.env,
@@ -17,16 +18,37 @@ const run = async () => {
     stdio: "inherit",
   })
 
-  const exitCode = await new Promise((resolve, reject) => {
+  const signalHandlers = FORWARDED_SIGNALS.map((signal) => {
+    const handler = () => {
+      if (!child.killed) {
+        child.kill(signal)
+      }
+    }
+
+    process.on(signal, handler)
+
+    return { handler, signal }
+  })
+
+  const childResult = await new Promise((resolve, reject) => {
     child.on("error", (error) => {
       reject(error)
     })
-    child.on("close", (code) => {
-      resolve(code ?? 1)
+    child.on("close", (code, signal) => {
+      resolve({ code, signal })
     })
   })
 
-  process.exitCode = exitCode
+  for (const { handler, signal } of signalHandlers) {
+    process.off(signal, handler)
+  }
+
+  if (typeof childResult.signal === "string") {
+    process.kill(process.pid, childResult.signal)
+    return
+  }
+
+  process.exitCode = childResult.code ?? 1
 }
 
 run().catch((error) => {

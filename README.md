@@ -101,7 +101,10 @@ ports are:
 - `api`: `http://localhost:3001`
 - `auth`: `http://localhost:3002`
 
-`api` and `auth` still respect `process.env.PORT` if you override it.
+`api` and `auth` respect `process.env.PORT` (including in Turbo-driven `pnpm dev`
+via package `turbo.json` env passthrough). Because `PORT` is shared, setting it
+while running both services at once will make them contend for the same port.
+Use filtered dev commands when overriding a single service port.
 
 To run one backend app directly:
 

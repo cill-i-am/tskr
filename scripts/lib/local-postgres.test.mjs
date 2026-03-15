@@ -7,6 +7,7 @@ import {
   deriveHealthTimeoutMs,
   deriveHealthcheckWindowMs,
   formatCommandFailure,
+  isHealthyContainerStatus,
 } from "./local-postgres.mjs"
 
 test("buildComposeArgs builds a docker compose argv with project name", () => {
@@ -76,4 +77,10 @@ test("deriveHealthTimeoutMs stays above the compose healthcheck window", () => {
   assert.ok(timeoutMs > windowMs)
   assert.equal(windowMs, 62_000)
   assert.equal(timeoutMs, 77_000)
+})
+
+test("isHealthyContainerStatus only accepts healthy", () => {
+  assert.equal(isHealthyContainerStatus("healthy"), true)
+  assert.equal(isHealthyContainerStatus("running"), false)
+  assert.equal(isHealthyContainerStatus("missing"), false)
 })

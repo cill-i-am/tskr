@@ -152,6 +152,33 @@ const getContainerStatus = async (containerId) => {
   return result.stdout.trim()
 }
 
+export const isHealthyContainerStatus = (status) => status === "healthy"
+
+const getLocalPostgresStatus = async ({ composeFile, config }) => {
+  const containerId = await getComposeContainerId({ composeFile, config })
+
+  if (containerId.length === 0) {
+    return "missing"
+  }
+
+  return getContainerStatus(containerId)
+}
+
+export const isLocalPostgresHealthy = async ({
+  composeFile = DEFAULT_COMPOSE_FILE,
+  repoRoot = DEFAULT_REPO_ROOT,
+} = {}) => {
+  const config = await resolveLocalPostgresConfig(repoRoot)
+
+  try {
+    const status = await getLocalPostgresStatus({ composeFile, config })
+
+    return isHealthyContainerStatus(status)
+  } catch {
+    return false
+  }
+}
+
 export const waitForLocalPostgresHealthy = async (
   { composeFile = DEFAULT_COMPOSE_FILE, config },
   {
@@ -214,6 +241,20 @@ export const ensureLocalPostgres = async ({
   await waitForLocalPostgresHealthy({ composeFile, config })
 
   return config
+}
+
+export const ensureLocalPostgresReady = async ({
+  composeFile = DEFAULT_COMPOSE_FILE,
+  repoRoot = DEFAULT_REPO_ROOT,
+} = {}) => {
+  const config = await resolveLocalPostgresConfig(repoRoot)
+  const healthy = await isLocalPostgresHealthy({ composeFile, repoRoot })
+
+  if (healthy) {
+    return config
+  }
+
+  return ensureLocalPostgres({ composeFile, repoRoot })
 }
 
 export const downLocalPostgres = async ({
