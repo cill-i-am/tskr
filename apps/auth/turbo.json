@@ -1,0 +1,10 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "dev": {
+      "cache": false,
+      "dependsOn": ["db:ensure"],
+      "persistent": true
+    }
+  }
+}

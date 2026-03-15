@@ -82,6 +82,46 @@ pass.
 
 `pnpm ultracite doctor` currently passes in this repo with `@biomejs/biome` installed, but its remaining warnings are expected for this migration: there is no `biome.json(c)` and no `eslint.config.*` because the repo uses Oxfmt and Oxlint directly at the root.
 
+## Local API/Auth + Postgres workflow
+
+`api` and `auth` now use the shared local Postgres launcher. Their dev flows
+ensure Docker Postgres is up and pass the computed per-worktree `DATABASE_URL`
+into the app process.
+
+From the repo root:
+
+```bash
+pnpm dev
+```
+
+This runs the workspace dev tasks through Turbo and starts all apps. Default app
+ports are:
+
+- `web`: Portless-managed URL (`https://web.tskr.localhost:1355`)
+- `api`: `http://localhost:3001`
+- `auth`: `http://localhost:3002`
+
+`api` and `auth` still respect `process.env.PORT` if you override it.
+
+To run one backend app directly:
+
+```bash
+pnpm --filter api run dev
+pnpm --filter auth run dev
+```
+
+Useful local database helpers:
+
+```bash
+pnpm db:ensure
+pnpm db:url
+pnpm db:logs
+pnpm db:reset
+pnpm db:down
+pnpm --filter api run db:ensure
+pnpm --filter auth run db:ensure
+```
+
 ## Local source mirrors
 
 - Run `pnpm bootstrap` to install workspace dependencies and any local project prerequisites.
