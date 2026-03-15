@@ -8,6 +8,7 @@
     "dev": "portless web.tskr vite dev",
     "build": "vite build",
     "preview": "vite preview",
+    "start": "node .output/server/index.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
