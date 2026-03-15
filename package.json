@@ -5,13 +5,14 @@
   "scripts": {
     "bootstrap": "pnpm install && node scripts/sync-opensrc.mjs --soft-fail",
     "build": "turbo run build",
-    "check": "pnpm exec ultracite check",
+    "check": "turbo run check",
     "dev": "turbo run dev",
     "dev:web": "turbo run dev --filter=web",
     "fix": "pnpm exec ultracite fix && pnpm exec oxfmt --write .",
     "format": "pnpm fix",
     "lint": "pnpm check",
     "opensrc:sync": "node scripts/sync-opensrc.mjs",
+    "precheck": "pnpm exec ultracite check package.json turbo.json tsconfig.json .oxlintrc.json opencode.json scripts",
     "test:opensrc": "node --test scripts/lib/opensrc-sync.test.mjs",
     "typecheck": "turbo run typecheck"
   },

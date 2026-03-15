@@ -10,6 +10,7 @@
     "./hooks/*": "./src/hooks/*.ts"
   },
   "scripts": {
+    "check": "pnpm exec ultracite check .",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

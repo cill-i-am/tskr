@@ -61,17 +61,24 @@ debugging the app itself.
 If you later add Vite proxy rules between local apps, set `changeOrigin: true`
 to avoid Portless proxy loops.
 
-## Code quality commands
+## Root workflow
 
-Use the root Ultracite workflow for linting and formatting:
+Run workspace checks from the repo root:
 
 ```bash
 pnpm check
+pnpm typecheck
+pnpm build
 pnpm fix
-pnpm ultracite doctor
 ```
 
-`pnpm fix` runs Ultracite first and then a final Oxfmt write pass so the command stays idempotent even when Oxlint autofixes leave formatting behind. The root Oxfmt config also owns import ordering and Tailwind class sorting for the repo. Generated router output in `apps/web/src/routeTree.gen.ts` and the local `.agents/` skill content are intentionally excluded from the root lint/format pass.
+Package-level checks run through Turbo from these root commands. `pnpm fix`
+still runs Ultracite first and then a final Oxfmt write pass so the command
+stays idempotent even when Oxlint autofixes leave formatting behind. The root
+Oxfmt config also owns import ordering and Tailwind class sorting for the repo.
+Generated router output in `apps/web/src/routeTree.gen.ts` and the local
+`.agents/` skill content are intentionally excluded from the root lint/format
+pass.
 
 `pnpm ultracite doctor` currently passes in this repo with `@biomejs/biome` installed, but its remaining warnings are expected for this migration: there is no `biome.json(c)` and no `eslint.config.*` because the repo uses Oxfmt and Oxlint directly at the root.
 
@@ -96,8 +103,13 @@ This will place the ui components in the `packages/ui/src/components` directory.
 
 ## Using components
 
+`@workspace/ui` is currently consumed as shared source instead of a built
+package.
+
 To use the components in your app, import them from the `ui` package.
 
 ```tsx
 import { Button } from "@workspace/ui/components/button"
 ```
+
+The intended direction is a real built package with a stable package boundary.
