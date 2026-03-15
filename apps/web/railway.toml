@@ -1,0 +1,16 @@
+[build]
+builder = "RAILPACK"
+buildCommand = "pnpm exec turbo run build --filter=web"
+watchPatterns = [
+  "/apps/web/**",
+  "/packages/ui/**",
+  "/package.json",
+  "/pnpm-lock.yaml",
+  "/pnpm-workspace.yaml",
+  "/turbo.json",
+  "/tsconfig.json",
+]
+
+[deploy]
+startCommand = "pnpm --filter web start"
+healthcheckPath = "/up"
