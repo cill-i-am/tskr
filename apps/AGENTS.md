@@ -5,7 +5,8 @@ applications under `apps/*`.
 
 ## Scope
 
-- `apps/*` contains end-user applications and app-specific runtime surfaces.
+- `apps/*` contains deployable applications and app-specific runtime surfaces,
+  including user-facing apps and service backends.
 - App-local runtime, deployment, environment, and hosting rules belong at the
   owning app boundary, not in shared packages.
 
