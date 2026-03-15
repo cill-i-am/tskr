@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process"
+import { once } from "node:events"
 import { realpath } from "node:fs/promises"
 import { dirname, join } from "node:path"
 import { setTimeout as delay } from "node:timers/promises"
@@ -12,11 +13,11 @@ const DEFAULT_COMPOSE_FILE = join(
   DEFAULT_REPO_ROOT,
   "infra/postgres/compose.dev.yml"
 )
-const DEFAULT_HEALTHCHECK_INTERVAL_MS = 2_000
+const DEFAULT_HEALTHCHECK_INTERVAL_MS = 2000
 const DEFAULT_HEALTHCHECK_RETRIES = 30
-const DEFAULT_HEALTHCHECK_START_PERIOD_MS = 2_000
+const DEFAULT_HEALTHCHECK_START_PERIOD_MS = 2000
 const DEFAULT_HEALTH_TIMEOUT_BUFFER_MS = 15_000
-const DEFAULT_HEALTH_INTERVAL_MS = 1_000
+const DEFAULT_HEALTH_INTERVAL_MS = 1000
 export const deriveHealthcheckWindowMs = ({
   intervalMs = DEFAULT_HEALTHCHECK_INTERVAL_MS,
   retries = DEFAULT_HEALTHCHECK_RETRIES,
@@ -49,16 +50,14 @@ const runCommand = async (command, args, options = {}) => {
     stderr += chunk
   })
 
-  const exitCode = await new Promise((resolve, reject) => {
-    child.on("error", (error) => {
-      reject(error)
-    })
-    child.on("close", (code) => {
-      resolve(code ?? 1)
-    })
-  })
+  const result = await Promise.race([
+    once(child, "close").then(([code]) => code ?? 1),
+    once(child, "error").then(([error]) => {
+      throw error
+    }),
+  ])
 
-  return { code: exitCode, stderr, stdout }
+  return { code: result, stderr, stdout }
 }
 
 export const buildComposeArgs = (composeFile, projectName, args = []) => [
@@ -100,7 +99,8 @@ export const assertDockerAvailable = async () => {
     dockerVersionResult = await runCommand("docker", ["--version"])
   } catch (error) {
     throw new Error(
-      `Docker CLI is required for local Postgres. Install Docker and retry. (${error.message})`
+      `Docker CLI is required for local Postgres. Install Docker and retry. (${error.message})`,
+      { cause: error }
     )
   }
 

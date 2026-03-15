@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "check": "git -C ../.. ls-files -- apps/auth | xargs pnpm --dir ../.. exec ultracite check",
-    "db:ensure": "node ../../scripts/dev/local-postgres.mjs ensure",
-    "dev": "node ../../scripts/dev/local-postgres-launcher.mjs -- tsx watch src/index.ts",
+    "db:ensure": "node ../../scripts/local-postgres.mjs ensure",
+    "dev": "node ../../scripts/local-postgres-launcher.mjs -- tsx watch src/index.ts",
     "build": "tsc --project tsconfig.json",
     "start": "node dist/index.js",
     "test": "vitest run --globals src/app.test.ts",

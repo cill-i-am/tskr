@@ -1,11 +1,12 @@
 import { spawn } from "node:child_process"
+import { once } from "node:events"
 
-import { ensureLocalPostgresReady } from "../lib/local-postgres.mjs"
 import {
   FORWARDED_SIGNALS,
   buildLocalPostgresChildEnv,
   parseLauncherCommandArgs,
-} from "../lib/local-postgres-launcher.mjs"
+} from "./lib/local-postgres-launcher.mjs"
+import { ensureLocalPostgresReady } from "./lib/local-postgres.mjs"
 
 const run = async () => {
   const { args, command } = parseLauncherCommandArgs()
@@ -30,28 +31,32 @@ const run = async () => {
     return { handler, signal }
   })
 
-  const childResult = await new Promise((resolve, reject) => {
-    child.on("error", (error) => {
-      reject(error)
-    })
-    child.on("close", (code, signal) => {
-      resolve({ code, signal })
-    })
-  })
+  const result = await Promise.race([
+    once(child, "close").then(([code, signal]) => ({
+      code: code ?? 1,
+      signal,
+    })),
+    once(child, "error").then(([error]) => {
+      throw error
+    }),
+  ])
 
   for (const { handler, signal } of signalHandlers) {
     process.off(signal, handler)
   }
 
-  if (typeof childResult.signal === "string") {
-    process.kill(process.pid, childResult.signal)
+  if (typeof result.signal === "string") {
+    process.kill(process.pid, result.signal)
+
     return
   }
 
-  process.exitCode = childResult.code ?? 1
+  process.exitCode = result.code
 }
 
-run().catch((error) => {
+try {
+  await run()
+} catch (error) {
   console.error(error.message)
   process.exitCode = 1
-})
+}

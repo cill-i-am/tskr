@@ -4,7 +4,7 @@ import {
   getLocalDatabaseUrl,
   resetLocalPostgres,
   streamLocalPostgresLogs,
-} from "../lib/local-postgres.mjs"
+} from "./lib/local-postgres.mjs"
 
 const command = process.argv[2] ?? "ensure"
 
@@ -53,7 +53,9 @@ const run = async () => {
   )
 }
 
-run().catch((error) => {
+try {
+  await run()
+} catch (error) {
   console.error(error.message)
   process.exitCode = 1
-})
+}

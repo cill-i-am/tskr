@@ -5,8 +5,8 @@ export const DEFAULT_POSTGRES_USER = "postgres"
 export const DEFAULT_POSTGRES_PASSWORD = "postgres"
 export const DEFAULT_POSTGRES_DATABASE = "app"
 export const DEFAULT_POSTGRES_IMAGE = "postgres:16-alpine"
-export const DEFAULT_PORT_MIN = 20000
-export const DEFAULT_PORT_MAX = 29999
+export const DEFAULT_PORT_MIN = 20_000
+export const DEFAULT_PORT_MAX = 29_999
 
 export const deriveWorktreeIdentity = (canonicalPath) => {
   if (typeof canonicalPath !== "string" || canonicalPath.trim().length === 0) {

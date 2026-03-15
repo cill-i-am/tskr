@@ -24,7 +24,9 @@ test("deriveWorktreeIdentity is deterministic for canonical paths", () => {
 
 test("deriveWorktreeIdentity differentiates two worktree paths", () => {
   const main = deriveWorktreeIdentity("/Users/example/repo")
-  const worktree = deriveWorktreeIdentity("/Users/example/repo/.worktrees/feature")
+  const worktree = deriveWorktreeIdentity(
+    "/Users/example/repo/.worktrees/feature"
+  )
 
   assert.notEqual(main.hashHex, worktree.hashHex)
   assert.notEqual(main.projectName, worktree.projectName)
@@ -34,8 +36,8 @@ test("deriveDeterministicPort returns a stable port in the supported range", () 
   const port = deriveDeterministicPort("9f011f3b7ad12e")
 
   assert.equal(deriveDeterministicPort("9f011f3b7ad12e"), port)
-  assert.ok(port >= 20000)
-  assert.ok(port <= 29999)
+  assert.ok(port >= 20_000)
+  assert.ok(port <= 29_999)
 })
 
 test("deriveWorktreeDbConfig returns defaults and DATABASE_URL", () => {

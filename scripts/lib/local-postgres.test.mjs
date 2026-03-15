@@ -36,10 +36,7 @@ test("formatCommandFailure includes command and output when present", () => {
     stdout: "details",
   })
 
-  assert.equal(
-    message,
-    "Command failed: docker compose up\nboom\ndetails"
-  )
+  assert.equal(message, "Command failed: docker compose up\nboom\ndetails")
 })
 
 test("formatCommandFailure omits output suffix when output is empty", () => {
@@ -58,7 +55,7 @@ test("buildComposeEnv maps config into compose environment variables", () => {
     database: "app",
     image: "postgres:16-alpine",
     password: "postgres",
-    port: 25432,
+    port: 25_432,
     user: "postgres",
   })
 
