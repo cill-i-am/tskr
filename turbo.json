@@ -13,21 +13,22 @@
     "//#fix": {
       "cache": false
     },
-    "transit": {
-      "dependsOn": ["^transit"]
-    },
-    "web#build": {
-      "dependsOn": ["transit"],
+    "build": {
+      "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/tsconfig.json", ".env*"],
-      "outputs": [".output/**", "node_modules/.nitro/**"]
+      "outputs": ["dist/**", ".output/**", "node_modules/.nitro/**"]
     },
     "typecheck": {
       "dependsOn": ["^typecheck"],
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/tsconfig.json"]
     },
     "dev": {
+      "cache": false
+    },
+    "web#dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "with": ["@workspace/ui#dev"]
     }
   }
 }

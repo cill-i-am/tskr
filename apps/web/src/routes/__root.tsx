@@ -1,6 +1,6 @@
 import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router"
 
-import appCss from "@workspace/ui/globals.css?url"
+import appCss from "@/styles/app.css?url"
 
 const RootDocument = ({ children }: { children: React.ReactNode }) => (
   <html lang="en">

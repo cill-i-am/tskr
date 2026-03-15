@@ -1,0 +1,5 @@
+@import "tailwindcss";
+@import "./fonts.css";
+@import "@workspace/ui/globals.css";
+
+@source "../**/*.{ts,tsx}";

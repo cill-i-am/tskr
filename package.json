@@ -14,6 +14,8 @@
     "opensrc:sync": "node scripts/sync-opensrc.mjs",
     "precheck": "pnpm exec ultracite check package.json turbo.json tsconfig.json .oxlintrc.json opencode.json scripts",
     "test:opensrc": "node --test scripts/lib/opensrc-sync.test.mjs",
+    "test:ui-propagation": "node --test scripts/lib/ui-propagation.test.mjs",
+    "verify:ui-propagation": "node scripts/verify-ui-propagation.mjs",
     "typecheck": "turbo run typecheck"
   },
   "devDependencies": {
@@ -21,6 +23,7 @@
     "opensrc": "0.6.0",
     "oxfmt": "^0.40.0",
     "oxlint": "^1.55.0",
+    "playwright-core": "^1.58.2",
     "turbo": "^2.8.8",
     "typescript": "5.9.3",
     "ultracite": "^7.3.0"
