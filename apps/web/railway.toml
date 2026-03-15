@@ -3,9 +3,6 @@ buildCommand = "pnpm exec turbo run build --filter=web"
 watchPatterns = [
   "/apps/web/**",
   "/packages/ui/**",
-  "/apps/web/package.json",
-  "/packages/ui/package.json",
-  "/apps/web/vite.config.ts",
   "/package.json",
   "/pnpm-lock.yaml",
   "/pnpm-workspace.yaml",
