@@ -32,6 +32,10 @@ Ask:
 
 If not, the node probably does not deserve its own intent file.
 
+The inverse also matters: if a subtree clearly has a different role but no local
+node exists yet, infer that missing node instead of pretending the root is
+sufficient.
+
 ## Nearest Common Ancestor Placement
 
 Shared intent belongs at the lowest directory that still covers everything it
@@ -46,6 +50,23 @@ Use nearest-common-ancestor reasoning:
   root unless the entire app truly shares it
 
 This keeps parent nodes broad and local nodes specific.
+
+## Semantic Collection Nodes
+
+Some directories deserve an intermediate node because the collection itself has
+stable meaning.
+
+Examples:
+
+- `apps/` can own rules for deployable products, runtime configuration, and
+  environment-specific concerns
+- `packages/` can own rules for reusable workspace libraries, public APIs, and
+  shared infrastructure
+
+These nodes are justified when they clarify a real semantic category, even if
+the collection currently contains only one child. Do not create them just to
+mirror the folder tree. Create them when the collection role itself is useful
+guidance.
 
 ## Parent And Child Relationship
 
@@ -105,6 +126,8 @@ Use these heuristics when editing instruction trees:
   rules
 - nested `AGENTS.md` should exist only when a subtree has materially different
   constraints
+- collection-level `AGENTS.md` can be worthwhile when a directory like `apps/`
+  or `packages/` represents a stable semantic category
 - colocated `CLAUDE.md` should usually be a symlink to the matching
   `AGENTS.md`
 - legacy mirrors should survive only if a tool still requires them
@@ -118,6 +141,8 @@ Given:
 repo/
   AGENTS.md
   apps/
+    AGENTS.md
+    CLAUDE.md -> AGENTS.md
     web/
       AGENTS.md
       CLAUDE.md -> AGENTS.md
@@ -125,12 +150,21 @@ repo/
         features/
           tasks/
             AGENTS.md
+  packages/
+    AGENTS.md
+    CLAUDE.md -> AGENTS.md
+    ui/
+      AGENTS.md
+      CLAUDE.md -> AGENTS.md
 ```
 
 Interpret it like this:
 
 - `repo/AGENTS.md` owns repo-wide rules
+- `apps/AGENTS.md` owns rules common to deployable applications
 - `apps/web/AGENTS.md` owns app-specific behavior, deployment, and runtime rules
+- `packages/AGENTS.md` owns rules common to reusable workspace packages
+- `packages/ui/AGENTS.md` owns package-specific UI library build and export rules
 - `apps/web/src/features/tasks/AGENTS.md` owns rules unique to the tasks slice
 
 If `tasks` rules were copied into both the root and app nodes, move them down to

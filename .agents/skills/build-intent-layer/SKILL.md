@@ -35,6 +35,8 @@ If the repo shape or placement logic is unclear, read
 - `AGENTS.md` is the source of truth for shared intent at a given scope.
 - Place intent at the nearest common ancestor of the code and directories it
   governs.
+- Infer missing child nodes when a subtree has distinct local semantics, even if
+  no instruction file exists there yet.
 - Move narrower intent downward instead of restating it at the root.
 - Prefer local refinement over duplicated restatement.
 - Put `CLAUDE.md` beside the matching `AGENTS.md`.
@@ -68,6 +70,10 @@ For each instruction file, answer:
 If a node cannot be tied to a clear scope, treat that as a placement smell and
 fix the topology before adding more prose.
 
+Do not limit yourself to normalizing existing files. If the repo clearly has a
+deployable app, shared package, feature slice, or stable collection like
+`apps/` or `packages/`, infer the missing canonical nodes and create them.
+
 ### 3. Choose canonical nodes with nearest-common-ancestor reasoning
 
 Use the lowest directory that still covers every consumer that needs the same
@@ -76,11 +82,19 @@ intent.
 Examples:
 
 - repo-wide tooling and monorepo rules belong at the repository root
+- collection-level rules for deployable applications can belong under `apps/`
+- collection-level rules for reusable packages can belong under `packages/`
 - app-specific deployment rules belong under that app
+- package-specific build or export rules belong under that package
 - feature-specific guardrails belong inside the feature subtree
 
 If two sibling areas share a rule, move it up to their nearest common ancestor.
 If only one area needs a rule, move it down.
+
+A collection node is justified when the directory represents a stable semantic
+category, not just when it already has multiple children. For example, `apps/`
+can own "deployable app" guidance and `packages/` can own "reusable shared
+package" guidance even if each currently has one child.
 
 ### 4. Apply the topology
 
@@ -95,6 +109,12 @@ Edit in this order:
 
 Keep local `AGENTS.md` files additive and scoped. They should refine their
 parent node, not copy it verbatim.
+
+When you create inferred nodes, write only the local semantic delta:
+
+- collection nodes explain the role of the subtree
+- leaf app nodes explain runtime, deploy, and framework constraints
+- leaf package nodes explain build, export, and reuse constraints
 
 ### 5. Re-home unique intent before deleting mirrors
 
