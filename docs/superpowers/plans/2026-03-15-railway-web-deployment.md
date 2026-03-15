@@ -15,6 +15,7 @@
 ### Task 1: Add a package-level `start` script for `web`
 
 **Files:**
+
 - Modify: `apps/web/package.json`
 - Verify against: `apps/web/.output/server/index.mjs`
 
@@ -60,6 +61,7 @@ git commit -m "chore: add web runtime entrypoint"
 ### Task 2: Add a TanStack Start server route for `/up`
 
 **Files:**
+
 - Create: `apps/web/src/routes/up.ts`
 - Generated output: `apps/web/src/routeTree.gen.ts`
 - Reference: `apps/web/src/routes/index.tsx`
@@ -137,6 +139,7 @@ git commit -m "feat: add web healthcheck route"
 ### Task 3: Verify the exact build and runtime flow Railway will use
 
 **Files:**
+
 - Verify: `apps/web/package.json`
 - Verify: `apps/web/src/routes/up.ts`
 

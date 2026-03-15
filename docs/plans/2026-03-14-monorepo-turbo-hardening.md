@@ -15,6 +15,7 @@
 ### Task 1: Replace root-only quality workflow with package-owned Turbo tasks
 
 **Files:**
+
 - Modify: `package.json`
 - Modify: `turbo.json`
 - Modify: `apps/web/package.json`
@@ -74,10 +75,12 @@ Update scripts so Turbo owns the graph and packages own their tasks:
   - keep `//#fix` only if you still need a documented root-only pseudo-task; otherwise remove it and let `fix` stay outside Turbo entirely
 
 Recommended package-local `check` shape for this repo:
+
 - `apps/web`: `pnpm exec ultracite check .`
 - `packages/ui`: `pnpm exec ultracite check .`
 
 Keep the current deferred UI-package model intact:
+
 - do not add a `packages/ui` build task yet
 - do not remove the `@workspace/ui/*` TS path alias yet
 
@@ -92,6 +95,7 @@ pnpm check
 ```
 
 Expected:
+
 - package-level `check` scripts run successfully
 - root `pnpm check` delegates through Turbo and succeeds
 
@@ -105,6 +109,7 @@ git commit -m "chore: move workspace checks into turbo"
 ### Task 2: Align Turbo task definitions with current package reality
 
 **Files:**
+
 - Modify: `turbo.json`
 - Test: Turbo dry-run or summarized graph inspection
 
@@ -117,6 +122,7 @@ pnpm turbo run build --dry=json
 ```
 
 Expected today:
+
 - `build` is modeled with `^build`
 - `packages/ui` contributes no actual build task even though `web` depends on it
 
@@ -142,6 +148,7 @@ Adjust `turbo.json` so the graph matches the current repo state:
 - Keep the change small and explicitly temporary, because the next task will convert `@workspace/ui` into a built package
 
 Add a short comment in the plan execution notes or docs if needed:
+
 - current build graph is intentionally transitional until `@workspace/ui` becomes a built package
 
 - [ ] **Step 4: Run test to verify it passes**
@@ -154,6 +161,7 @@ pnpm build
 ```
 
 Expected:
+
 - dry-run output reflects the intended current graph
 - actual build still succeeds for the repo as currently structured
 
@@ -169,12 +177,14 @@ git commit -m "chore: align turbo build graph with current packages"
 ### Task 3: Add focused global cache invalidation for shared root config
 
 **Files:**
+
 - Modify: `turbo.json`
 - Test: Turbo dry-run/hash input inspection
 
 - [ ] **Step 1: Write the failing test**
 
 Use the current config as the failing state:
+
 - `turbo.json` does not declare root config files as `globalDependencies`
 
 Verification command:
@@ -228,12 +238,14 @@ git commit -m "chore: track shared root config in turbo hashes"
 ### Task 4: Correct build outputs for the current app build
 
 **Files:**
+
 - Modify: `turbo.json`
 - Test: actual build output verification
 
 - [ ] **Step 1: Write the failing test**
 
 Capture the current mismatch:
+
 - root Turbo `build.outputs` only includes `.output/**`
 - repo `.gitignore` suggests the app may also emit `.tanstack`, `.nitro`, or `.vinxi`
 
@@ -262,6 +274,7 @@ Expected: identify the actual output directories used by the current TanStack St
 
 Update `turbo.json` `build.outputs` to match what the current app really writes.
 Prefer exact directories, for example:
+
 - `.output/**`
 - `.tanstack/**`
 - `.nitro/**`
@@ -280,6 +293,7 @@ pnpm turbo run build --dry=json
 ```
 
 Expected:
+
 - build succeeds
 - declared outputs match observed outputs closely enough for reliable caching
 
@@ -295,6 +309,7 @@ git commit -m "chore: fix turbo build output caching"
 ### Task 5: Make workspace tsconfigs extend the root base config
 
 **Files:**
+
 - Modify: `tsconfig.json`
 - Modify: `apps/web/tsconfig.json`
 - Modify: `packages/ui/tsconfig.json`
@@ -303,6 +318,7 @@ git commit -m "chore: fix turbo build output caching"
 - [ ] **Step 1: Write the failing test**
 
 Use duplication as the failing condition:
+
 - both workspace tsconfigs repeat root settings instead of extending the shared base
 
 Behavioral verification commands:
@@ -380,12 +396,14 @@ git commit -m "chore: share typescript config across workspaces"
 ### Task 6: Fix app config-file coverage in the web tsconfig
 
 **Files:**
+
 - Modify: `apps/web/tsconfig.json`
 - Test: app typecheck
 
 - [ ] **Step 1: Write the failing test**
 
 Use the wrong include entry as the failing condition:
+
 - `apps/web/tsconfig.json` includes `vite.config.js`, but the repo uses `vite.config.ts`
 
 Verification command:
@@ -409,6 +427,7 @@ Expected: passes before the fix.
 - [ ] **Step 3: Write minimal implementation**
 
 Update `apps/web/tsconfig.json` `include` entries:
+
 - replace `vite.config.js` with `vite.config.ts`
 - remove obviously stale config includes if they no longer exist, such as `eslint.config.js` or `prettier.config.js`, unless there is a deliberate reason to keep JS config coverage enabled
 
@@ -436,6 +455,7 @@ git commit -m "chore: fix web tsconfig config-file includes"
 ### Task 7: Document the temporary transitional state and next step
 
 **Files:**
+
 - Modify: `README.md`
 - Test: doc content review
 
@@ -448,6 +468,7 @@ rg "Turbo|check|typecheck|@workspace/ui|built package" README.md
 ```
 
 Expected today:
+
 - README documents dev and Ultracite basics
 - README does not explain the current temporary source-consumption state or the planned `@workspace/ui` built-package follow-up
 
@@ -497,6 +518,7 @@ git commit -m "docs: document monorepo hardening workflow"
 ### Task 8: Run end-to-end verification for the hardening pass
 
 **Files:**
+
 - Modify: none expected, unless fixes are required from verification
 
 - [ ] **Step 1: Run repository fix command**
@@ -520,6 +542,7 @@ pnpm build
 ```
 
 Expected:
+
 - all commands pass
 - Turbo runs package-owned tasks
 - current build outputs are cached correctly
@@ -536,6 +559,7 @@ pnpm turbo run build --dry=json
 ```
 
 Expected:
+
 - graph matches package ownership
 - no misleading root-only check task remains
 - build graph is intentionally transitional, not accidentally inconsistent

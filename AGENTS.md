@@ -52,6 +52,20 @@ These instructions are the project-local AI rules for Codex and OpenCode, and th
 - Respect the `apps/*` and `packages/*` workspace layout.
 - Preserve repo-wide conventions before introducing package-local exceptions.
 
+## Architecture Rules
+
+- Organize product code by domain and feature slice, not by horizontal technical layers.
+- Design features so a full vertical slice can be delivered in one pass, including UI, auth concerns, API behavior, and persistence or integration touchpoints when needed.
+- Treat a feature slice as the product capability it delivers, not as a single process boundary. A slice may span `web`, `auth`, and `api` when the behavior requires it.
+- Prefer matching domain and slice names across apps so a capability can be traced end-to-end, for example `tasks/create-task` across `apps/web`, `apps/auth`, and `apps/api`.
+- Keep framework entrypoints thin. Route files, handlers, and transport adapters should delegate into slice-owned logic quickly instead of accumulating business rules.
+- Auth is a first-class layer. Identity, session, membership, permissions, and authorization checks should be modeled deliberately, not scattered across UI and handlers.
+- Keep domain rules in one clear home and expose them through explicit interfaces or contracts instead of reimplementing them in multiple layers.
+- Shared packages in `packages/*` are for true cross-cutting infrastructure such as design system, tooling, or stable shared contracts. Do not move feature logic there just because multiple apps need it.
+- Extract feature code into a shared package only after there is a real second consumer or a clear platform boundary that justifies it.
+- Not every feature needs code in every app. A slice should span only the layers it actually requires.
+- Follow the detailed architecture guidance in `docs/architecture/domain-driven-feature-slices.md`.
+
 ## Local Source Mirrors
 
 - Local dependency source mirrors live in `.opensrc/`.
