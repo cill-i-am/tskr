@@ -1,0 +1,15 @@
+[build]
+builder = "RAILPACK"
+buildCommand = "pnpm exec turbo run build --filter=auth"
+watchPatterns = [
+  "/apps/auth/**",
+  "/package.json",
+  "/pnpm-lock.yaml",
+  "/pnpm-workspace.yaml",
+  "/turbo.json",
+  "/tsconfig.json",
+]
+
+[deploy]
+startCommand = "pnpm --filter auth start"
+healthcheckPath = "/up"
