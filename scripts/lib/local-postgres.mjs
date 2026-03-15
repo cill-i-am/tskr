@@ -45,7 +45,7 @@ const runCommand = async (command, args, options = {}) => {
   return { code: exitCode, stderr, stdout }
 }
 
-const buildComposeArgs = (composeFile, projectName, args = []) => [
+export const buildComposeArgs = (composeFile, projectName, args = []) => [
   "compose",
   "-f",
   composeFile,
@@ -54,7 +54,7 @@ const buildComposeArgs = (composeFile, projectName, args = []) => [
   ...args,
 ]
 
-const formatCommandFailure = (command, args, result) => {
+export const formatCommandFailure = (command, args, result) => {
   const output = `${result.stderr ?? ""}\n${result.stdout ?? ""}`.trim()
   const suffix = output.length > 0 ? `\n${output}` : ""
 
@@ -98,7 +98,7 @@ export const assertDockerAvailable = async () => {
   }
 }
 
-const composeEnv = (config) => ({
+export const buildComposeEnv = (config) => ({
   ...process.env,
   POSTGRES_CONTAINER_NAME: config.containerName,
   POSTGRES_DB: config.database,
@@ -115,7 +115,7 @@ const getComposeContainerId = async ({ composeFile, config }) => {
     "postgres",
   ])
   const result = await runCommand("docker", args, {
-    env: composeEnv(config),
+    env: buildComposeEnv(config),
   })
 
   assertCommandSucceeded("docker", args, result)
@@ -182,7 +182,7 @@ export const ensureLocalPostgres = async ({
     "postgres",
   ])
   const result = await runCommand("docker", args, {
-    env: composeEnv(config),
+    env: buildComposeEnv(config),
     stdio: "inherit",
   })
 
@@ -205,7 +205,7 @@ export const downLocalPostgres = async ({
     "--remove-orphans",
   ])
   const result = await runCommand("docker", args, {
-    env: composeEnv(config),
+    env: buildComposeEnv(config),
     stdio: "inherit",
   })
 
@@ -228,7 +228,7 @@ export const resetLocalPostgres = async ({
     "--volumes",
   ])
   const downResult = await runCommand("docker", downArgs, {
-    env: composeEnv(config),
+    env: buildComposeEnv(config),
     stdio: "inherit",
   })
   assertCommandSucceeded("docker", downArgs, downResult)
@@ -239,7 +239,7 @@ export const resetLocalPostgres = async ({
     "postgres",
   ])
   const upResult = await runCommand("docker", upArgs, {
-    env: composeEnv(config),
+    env: buildComposeEnv(config),
     stdio: "inherit",
   })
   assertCommandSucceeded("docker", upArgs, upResult)
@@ -265,7 +265,7 @@ export const streamLocalPostgresLogs = async ({
     "postgres",
   ])
   const result = await runCommand("docker", args, {
-    env: composeEnv(config),
+    env: buildComposeEnv(config),
     stdio: "inherit",
   })
 
