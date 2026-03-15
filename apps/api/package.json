@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "check": "git -C ../.. ls-files -- apps/api | xargs pnpm --dir ../.. exec ultracite check",
-    "dev": "tsx watch src/index.ts",
+    "dev": "portless --name api.tskr tsx watch src/index.ts",
     "build": "tsc --project tsconfig.json",
     "start": "node dist/index.js",
     "test": "vitest run --globals src/app.test.ts",
