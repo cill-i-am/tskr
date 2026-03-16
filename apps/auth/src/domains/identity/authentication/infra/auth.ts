@@ -1,11 +1,12 @@
 import { betterAuth } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 
+import { authDatabaseSchema } from "@workspace/db"
+
 import { resolveDefaultCookieAttributes } from "./cookie-attributes.js"
 import { database } from "./database.js"
 import { createAuthenticationEmailService } from "./email-service.js"
 import { parseAuthenticationEnv } from "./env.js"
-import * as schema from "./schema.js"
 
 const authenticationEnv = parseAuthenticationEnv()
 const authenticationEmailService =
@@ -26,7 +27,7 @@ const auth = betterAuth({
   baseURL: authenticationEnv.betterAuthUrl,
   database: drizzleAdapter(database, {
     provider: "pg",
-    schema,
+    schema: authDatabaseSchema,
   }),
   emailAndPassword: {
     autoSignIn: true,

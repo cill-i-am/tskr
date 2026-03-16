@@ -16,7 +16,6 @@ type EmailProvider = "console" | "resend"
 interface AuthenticationEnv {
   betterAuthSecret: string
   betterAuthUrl: string
-  databaseUrl: string
   emailFrom: string
   emailProvider: EmailProvider
   emailReplyTo?: string
@@ -106,7 +105,6 @@ const parseAuthenticationEnv = (): AuthenticationEnv => {
         ? requireValue(process.env.BETTER_AUTH_SECRET, "BETTER_AUTH_SECRET")
         : DEFAULT_DEV_SECRET),
     betterAuthUrl: process.env.BETTER_AUTH_URL ?? resolveDefaultAuthUrl(),
-    databaseUrl: requireValue(process.env.DATABASE_URL, "DATABASE_URL"),
     emailFrom: requireValue(process.env.EMAIL_FROM, "EMAIL_FROM"),
     emailProvider,
     emailReplyTo: process.env.EMAIL_REPLY_TO,

@@ -1,12 +1,5 @@
-import { drizzle } from "drizzle-orm/node-postgres"
-import { Pool } from "pg"
+import { authDatabaseSchema, createDatabase } from "@workspace/db"
 
-import { parseAuthenticationEnv } from "./env.js"
-
-const authenticationEnv = parseAuthenticationEnv()
-const pool = new Pool({
-  connectionString: authenticationEnv.databaseUrl,
-})
-const database = drizzle(pool)
+const { db: database, pool } = createDatabase({ schema: authDatabaseSchema })
 
 export { database, pool }

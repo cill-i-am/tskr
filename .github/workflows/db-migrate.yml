@@ -1,0 +1,55 @@
+name: DB Migrate
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/db-migrate.yml
+      - package.json
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - turbo.json
+      - tsconfig.json
+      - packages/db/**
+
+concurrency:
+  group: production-db-migrate
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Apply shared database migrations
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version: 22.18.0
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Assert database secret is configured
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "Missing GitHub Actions secret: DATABASE_URL" >&2
+            exit 1
+          fi
+
+      - name: Run shared Drizzle migrations
+        run: pnpm --filter @workspace/db db:migrate

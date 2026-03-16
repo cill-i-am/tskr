@@ -50,10 +50,6 @@ vi.mock("./database.js", () => ({
   database: "database",
 }))
 
-vi.mock("./schema.js", () => ({
-  user: "schema",
-}))
-
 vi.mock("./email-service.js", () => ({
   createAuthenticationEmailService: createAuthenticationEmailServiceMock,
 }))
@@ -62,7 +58,6 @@ vi.mock("./env.js", () => ({
   parseAuthenticationEnv: () => ({
     betterAuthSecret: "test-secret",
     betterAuthUrl: "http://localhost:3002",
-    databaseUrl: "postgres://postgres:postgres@localhost:5432/tskr",
     emailFrom: "TSKR <noreply@tskr.app>",
     emailProvider: "console",
     emailReplyTo: "support@tskr.app",
@@ -116,7 +111,6 @@ describe("auth config", () => {
     expect(createAuthenticationEmailServiceMock).toHaveBeenCalledWith({
       betterAuthSecret: "test-secret",
       betterAuthUrl: "http://localhost:3002",
-      databaseUrl: "postgres://postgres:postgres@localhost:5432/tskr",
       emailFrom: "TSKR <noreply@tskr.app>",
       emailProvider: "console",
       emailReplyTo: "support@tskr.app",

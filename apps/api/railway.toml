@@ -3,6 +3,7 @@ builder = "RAILPACK"
 buildCommand = "pnpm exec turbo run build --filter=api"
 watchPatterns = [
   "/apps/api/**",
+  "/packages/db/**",
   "/package.json",
   "/pnpm-lock.yaml",
   "/pnpm-workspace.yaml",

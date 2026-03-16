@@ -1,5 +1,6 @@
 import { hc } from "hono/client"
-import { Pool } from "pg"
+
+import { createPgPool } from "@workspace/db"
 
 import type { AppType } from "./app.js"
 
@@ -38,15 +39,7 @@ process.env.WEB_BASE_URL ??= "http://localhost:3000"
 const { app } = await import("./app.js")
 const { upResponse } = await import("./domains/system/healthcheck/index.js")
 
-const { DATABASE_URL } = process.env
-
-if (!DATABASE_URL) {
-  throw new Error("DATABASE_URL must be set for auth integration tests")
-}
-
-const pool = new Pool({
-  connectionString: DATABASE_URL,
-})
+const pool = createPgPool()
 
 const requestJson = async (path: string, init?: RequestInit) => {
   const response = await app.request(path, init)
@@ -62,7 +55,7 @@ const requestJson = async (path: string, init?: RequestInit) => {
 const truncateAuthTables = async () => {
   try {
     await pool.query(
-      `TRUNCATE TABLE "session", account, verification, "user" RESTART IDENTITY CASCADE`
+      'TRUNCATE TABLE "auth"."session", "auth"."account", "auth"."verification", "auth"."user" RESTART IDENTITY CASCADE'
     )
   } catch (error) {
     const databaseError = error as { code?: string }
@@ -79,7 +72,7 @@ const findLatestResetToken = async () => {
       identifier: string
     }>(
       `SELECT identifier
-       FROM verification
+       FROM "auth"."verification"
        WHERE identifier LIKE 'reset-password:%'
        ORDER BY expires_at DESC
        LIMIT 1`
@@ -103,7 +96,7 @@ const countUsersByEmail = async (email: string) => {
   try {
     const result = await pool.query<{ count: string }>(
       `SELECT COUNT(*)::text AS count
-       FROM "user"
+       FROM "auth"."user"
        WHERE email = $1`,
       [email]
     )

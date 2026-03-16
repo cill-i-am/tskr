@@ -83,6 +83,7 @@ These instructions are the project-local AI rules for Codex and OpenCode, and th
 - GitHub Copilot and Cursor: read the canonical `AGENTS.md` instruction nodes directly, so no separate mirror file is maintained for them.
 - Narrower subtree intent lives in `apps/AGENTS.md`, `apps/web/AGENTS.md`,
   `apps/api/AGENTS.md`, `apps/auth/AGENTS.md`, `packages/AGENTS.md`,
-  `packages/ui/AGENTS.md`, and `packages/email/AGENTS.md`; when working in
-  those areas, follow the closest matching node in addition to this root file.
+  `packages/db/AGENTS.md`, `packages/email/AGENTS.md`, and
+  `packages/ui/AGENTS.md`; when working in those areas, follow the closest
+  matching node in addition to this root file.
 - `.mcp.json` exists only to preserve the existing `shadcn` MCP server for Claude Code. Ultracite is configured through committed instruction files, not through MCP.

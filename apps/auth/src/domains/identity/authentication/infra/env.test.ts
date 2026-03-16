@@ -36,7 +36,6 @@ describe(parseAuthenticationEnv, () => {
         BETTER_AUTH_TRUSTED_ORIGINS:
           "https://web.example.com, http://localhost:3000",
         BETTER_AUTH_URL: undefined,
-        DATABASE_URL: "postgres://postgres:postgres@localhost:5432/tskr",
         EMAIL_FROM: "TSKR <noreply@tskr.app>",
         EMAIL_PROVIDER: undefined,
         EMAIL_REPLY_TO: undefined,
@@ -49,7 +48,6 @@ describe(parseAuthenticationEnv, () => {
         expect(parseAuthenticationEnv()).toStrictEqual({
           betterAuthSecret: "dev-secret-dev-secret-dev-secret-dev-secret",
           betterAuthUrl: "https://auth.tskr.localhost:1355",
-          databaseUrl: "postgres://postgres:postgres@localhost:5432/tskr",
           emailFrom: "TSKR <noreply@tskr.app>",
           emailProvider: "console",
           emailReplyTo: undefined,
@@ -69,7 +67,6 @@ describe(parseAuthenticationEnv, () => {
     await withEnvironment(
       {
         BETTER_AUTH_SECRET: undefined,
-        DATABASE_URL: "postgres://postgres:postgres@localhost:5432/tskr",
         EMAIL_FROM: "TSKR <noreply@tskr.app>",
         EMAIL_PROVIDER: "console",
         WEB_BASE_URL: undefined,
@@ -90,7 +87,6 @@ describe(parseAuthenticationEnv, () => {
         BETTER_AUTH_SECRET: "test-secret",
         BETTER_AUTH_TRUSTED_ORIGINS: undefined,
         BETTER_AUTH_URL: undefined,
-        DATABASE_URL: "postgres://postgres:postgres@localhost:5432/tskr",
         EMAIL_FROM: "TSKR <noreply@tskr.app>",
         EMAIL_PROVIDER: undefined,
         EMAIL_REPLY_TO: undefined,
@@ -103,7 +99,6 @@ describe(parseAuthenticationEnv, () => {
         expect(parseAuthenticationEnv()).toStrictEqual({
           betterAuthSecret: "test-secret",
           betterAuthUrl: "http://localhost:3002",
-          databaseUrl: "postgres://postgres:postgres@localhost:5432/tskr",
           emailFrom: "TSKR <noreply@tskr.app>",
           emailProvider: "console",
           emailReplyTo: undefined,
@@ -124,7 +119,6 @@ describe(parseAuthenticationEnv, () => {
     await withEnvironment(
       {
         BETTER_AUTH_SECRET: "test-secret",
-        DATABASE_URL: "postgres://postgres:postgres@localhost:5432/tskr",
         EMAIL_FROM: "TSKR <noreply@tskr.app>",
         EMAIL_PROVIDER: undefined,
         RESEND_API_KEY: undefined,
@@ -144,7 +138,6 @@ describe(parseAuthenticationEnv, () => {
     await withEnvironment(
       {
         BETTER_AUTH_SECRET: "test-secret",
-        DATABASE_URL: "postgres://postgres:postgres@localhost:5432/tskr",
         EMAIL_FROM: "TSKR <noreply@tskr.app>",
         EMAIL_PROVIDER: undefined,
         EMAIL_REPLY_TO: "support@tskr.app",
@@ -169,7 +162,6 @@ describe(parseAuthenticationEnv, () => {
     await withEnvironment(
       {
         BETTER_AUTH_SECRET: "test-secret",
-        DATABASE_URL: "postgres://postgres:postgres@localhost:5432/tskr",
         EMAIL_FROM: undefined,
         EMAIL_PROVIDER: "console",
         WEB_BASE_URL: undefined,
@@ -186,7 +178,6 @@ describe(parseAuthenticationEnv, () => {
     await withEnvironment(
       {
         BETTER_AUTH_SECRET: "test-secret",
-        DATABASE_URL: "postgres://postgres:postgres@localhost:5432/tskr",
         EMAIL_FROM: "TSKR <noreply@tskr.app>",
         EMAIL_PROVIDER: "console",
         WEB_BASE_URL: "https://app.example.com",

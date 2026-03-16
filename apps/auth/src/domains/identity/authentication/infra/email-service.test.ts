@@ -27,7 +27,6 @@ describe("createAuthenticationEmailService", () => {
     const result = createAuthenticationEmailService({
       betterAuthSecret: "test-secret",
       betterAuthUrl: "http://localhost:3002",
-      databaseUrl: "postgres://postgres:postgres@localhost:5432/tskr",
       emailFrom: "TSKR <noreply@tskr.app>",
       emailProvider: "console",
       emailReplyTo: "support@tskr.app",
@@ -52,7 +51,6 @@ describe("createAuthenticationEmailService", () => {
     createAuthenticationEmailService({
       betterAuthSecret: "test-secret",
       betterAuthUrl: "http://localhost:3002",
-      databaseUrl: "postgres://postgres:postgres@localhost:5432/tskr",
       emailFrom: "TSKR <noreply@tskr.app>",
       emailProvider: "resend",
       emailReplyTo: "support@tskr.app",
@@ -79,7 +77,6 @@ describe("createAuthenticationEmailService", () => {
       createAuthenticationEmailService({
         betterAuthSecret: "test-secret",
         betterAuthUrl: "http://localhost:3002",
-        databaseUrl: "postgres://postgres:postgres@localhost:5432/tskr",
         emailFrom: "TSKR <noreply@tskr.app>",
         emailProvider: "resend",
         emailReplyTo: "support@tskr.app",

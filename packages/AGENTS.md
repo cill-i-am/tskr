@@ -15,6 +15,9 @@ workspace packages under `packages/*`.
 - Keep public APIs explicit and intentional.
 - Put cross-cutting infrastructure here only when it has a real shared consumer
   or stable platform boundary.
+- Shared database platforms, schema ownership, and migration history belong
+  under `packages/*` when more than one app consumes the same Postgres
+  database.
 - Avoid pulling app-specific workflows, screens, or feature behavior into
   `packages/*`.
 - Push narrower build, export, or design-system rules down into the owning
