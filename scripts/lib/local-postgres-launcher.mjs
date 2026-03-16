@@ -1,0 +1,27 @@
+import { argv } from "node:process"
+
+export const LAUNCHER_USAGE =
+  'Expected a child command after "--". Example: node scripts/local-postgres-launcher.mjs -- tsx watch src/index.ts'
+
+export const parseLauncherCommandArgs = (argvInput = argv) => {
+  const separatorIndex = argvInput.indexOf("--")
+  if (separatorIndex === -1) {
+    throw new Error(LAUNCHER_USAGE)
+  }
+
+  const commandTokens = argvInput.slice(separatorIndex + 1)
+  const [command, ...args] = commandTokens
+
+  if (typeof command !== "string" || command.length === 0) {
+    throw new Error(LAUNCHER_USAGE)
+  }
+
+  return { args, command }
+}
+
+export const buildLocalPostgresChildEnv = ({ baseEnv, databaseUrl }) => ({
+  ...baseEnv,
+  DATABASE_URL: databaseUrl,
+})
+
+export const FORWARDED_SIGNALS = ["SIGINT", "SIGTERM", "SIGHUP"]
