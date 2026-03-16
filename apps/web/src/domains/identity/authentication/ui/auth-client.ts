@@ -3,6 +3,7 @@ import { createAuthClient } from "better-auth/react"
 interface ResolveAuthBaseUrlOptions {
   authBaseUrl?: string | undefined
   hostname?: string | undefined
+  runtimeAuthBaseUrl?: string | undefined
 }
 
 const resolveAuthBaseUrl = ({
@@ -10,7 +11,14 @@ const resolveAuthBaseUrl = ({
   hostname = typeof window === "undefined"
     ? undefined
     : window.location.hostname,
+  runtimeAuthBaseUrl = typeof document === "undefined"
+    ? undefined
+    : document.documentElement.dataset.authBaseUrl,
 }: ResolveAuthBaseUrlOptions = {}) => {
+  if (runtimeAuthBaseUrl) {
+    return runtimeAuthBaseUrl
+  }
+
   if (authBaseUrl) {
     return authBaseUrl
   }

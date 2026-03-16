@@ -2,8 +2,24 @@ import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router"
 
 import appCss from "@/styles/app.css?url"
 
+const resolveRuntimeAuthBaseUrl = () => {
+  if (typeof document !== "undefined") {
+    return document.documentElement.dataset.authBaseUrl
+  }
+
+  if (process.env.VITE_AUTH_BASE_URL) {
+    return process.env.VITE_AUTH_BASE_URL
+  }
+
+  if (process.env.RAILWAY_SERVICE_AUTH_URL) {
+    return `https://${process.env.RAILWAY_SERVICE_AUTH_URL}`
+  }
+
+  return
+}
+
 const RootDocument = ({ children }: { children: React.ReactNode }) => (
-  <html lang="en">
+  <html data-auth-base-url={resolveRuntimeAuthBaseUrl()} lang="en">
     <head>
       <HeadContent />
     </head>

@@ -2,6 +2,16 @@
 import { resolveAuthBaseUrl } from "./auth-client"
 
 describe(resolveAuthBaseUrl, () => {
+  it("prefers the runtime auth base url embedded in the document", () => {
+    expect(
+      resolveAuthBaseUrl({
+        authBaseUrl: undefined,
+        hostname: "web-production-65874.up.railway.app",
+        runtimeAuthBaseUrl: "https://auth-production-6a1e.up.railway.app",
+      })
+    ).toBe("https://auth-production-6a1e.up.railway.app")
+  })
+
   it("prefers the explicit auth base url env var", () => {
     expect(
       resolveAuthBaseUrl({
