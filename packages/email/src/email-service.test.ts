@@ -20,7 +20,7 @@ test("renders password reset subject, html, and text", async () => {
     },
   })
 
-  const result = await service.sendPasswordReset({
+  const result = await service.sendPasswordResetEmail({
     resetUrl: "https://app.tskr.test/reset-password?token=abc123",
     to: "ada@example.com",
   })
@@ -56,7 +56,7 @@ test("renders verification subject, html, and text", async () => {
     },
   })
 
-  const result = await service.sendEmailVerification({
+  const result = await service.sendEmailVerificationEmail({
     to: "grace@example.com",
     verificationUrl: "https://app.tskr.test/verify-email?token=v-123",
   })
@@ -93,7 +93,7 @@ test("renders existing-user sign-up notice subject, html, and text", async () =>
     },
   })
 
-  const result = await service.sendExistingUserSignUpNotice({
+  const result = await service.sendExistingUserSignupNotice({
     signInUrl: "https://app.tskr.test/sign-in",
     to: "linus@example.com",
   })

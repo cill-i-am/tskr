@@ -47,9 +47,9 @@ const noticeInput: ExistingUserSignUpNoticeEmailInput = {
   signInUrl: "https://app.tskr.test/sign-in",
 }
 
-void service.sendPasswordReset(resetInput)
-void service.sendEmailVerification(verifyInput)
-void service.sendExistingUserSignUpNotice(noticeInput)
+void service.sendPasswordResetEmail(resetInput)
+void service.sendEmailVerificationEmail(verifyInput)
+void service.sendExistingUserSignupNotice(noticeInput)
 
 const consoleConfig: ConsoleTransportConfig = {
   logger: console,

@@ -18,13 +18,15 @@ type EmailServiceConfig = {
 }
 
 type EmailService = {
-  sendEmailVerification(
+  sendEmailVerificationEmail(
     input: EmailVerificationEmailInput
   ): Promise<EmailSendResult>
-  sendExistingUserSignUpNotice(
+  sendExistingUserSignupNotice(
     input: ExistingUserSignUpNoticeEmailInput
   ): Promise<EmailSendResult>
-  sendPasswordReset(input: PasswordResetEmailInput): Promise<EmailSendResult>
+  sendPasswordResetEmail(
+    input: PasswordResetEmailInput
+  ): Promise<EmailSendResult>
 }
 
 const createEmailService = (config: EmailServiceConfig): EmailService => {
@@ -49,21 +51,21 @@ const createEmailService = (config: EmailServiceConfig): EmailService => {
     })
 
   return {
-    sendPasswordReset: async ({ resetUrl, to }) => {
+    sendPasswordResetEmail: async ({ resetUrl, to }) => {
       const template = createPasswordResetTemplate({
         appName: config.appName,
         resetUrl,
       })
       return sendTransactionalEmail({ ...template, to })
     },
-    sendEmailVerification: async ({ to, verificationUrl }) => {
+    sendEmailVerificationEmail: async ({ to, verificationUrl }) => {
       const template = createEmailVerificationTemplate({
         appName: config.appName,
         verificationUrl,
       })
       return sendTransactionalEmail({ ...template, to })
     },
-    sendExistingUserSignUpNotice: async ({ signInUrl, to }) => {
+    sendExistingUserSignupNotice: async ({ signInUrl, to }) => {
       const template = createExistingUserSignUpNoticeTemplate({
         appName: config.appName,
         signInUrl,

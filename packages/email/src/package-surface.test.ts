@@ -5,6 +5,7 @@ import test from "node:test"
 import { fileURLToPath } from "node:url"
 
 import * as emailPackage from "./index.ts"
+import { createEmailService } from "./index.ts"
 
 test("root export surface is explicit and provider-agnostic", () => {
   assert.deepEqual(Object.keys(emailPackage).sort(), [
@@ -26,4 +27,22 @@ test("package.json export map points to built root entrypoint", async () => {
     types: "./dist/index.d.ts",
     import: "./dist/index.js",
   })
+})
+
+test("email service exposes the spec'd auth method names", () => {
+  const service = createEmailService({
+    appName: "tskr",
+    from: "TSKR <noreply@tskr.app>",
+    transport: {
+      async send() {
+        return { id: "mock-1" }
+      },
+    },
+  })
+
+  assert.deepEqual(Object.keys(service).sort(), [
+    "sendEmailVerificationEmail",
+    "sendExistingUserSignupNotice",
+    "sendPasswordResetEmail",
+  ])
 })
