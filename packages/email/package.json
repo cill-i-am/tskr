@@ -15,10 +15,10 @@
   },
   "scripts": {
     "build": "tsdown",
-    "check": "pnpm exec ultracite check package.json src tsconfig.json tsdown.config.ts turbo.json",
+    "check": "pnpm exec ultracite check package.json src tsconfig.json tsconfig.contract.json tsdown.config.ts turbo.json",
     "dev": "sh -c 'case \"$1\" in --) shift;; esac; exec tsdown --watch \"$@\"' sh",
     "test": "node --experimental-strip-types --test src/**/*.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc --project tsconfig.contract.json --noEmit"
   },
   "dependencies": {},
   "devDependencies": {
