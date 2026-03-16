@@ -20,7 +20,7 @@ const {
   })),
 }))
 
-vi.mock("./domains/identity/authentication/infra/email-service.js", () => ({
+vi.mock<typeof import('./domains/identity/authentication/infra/email-service.js')>(import('./domains/identity/authentication/infra/email-service.js'), () => ({
   createAuthenticationEmailService: () => ({
     sendEmailVerificationEmail: sendEmailVerificationEmailMock,
     sendExistingUserSignupNotice: sendExistingUserSignupNoticeMock,
@@ -190,7 +190,7 @@ describe("auth app", () => {
         name: "Ada Lovelace",
       },
     })
-    expect(sendEmailVerificationEmailMock).toHaveBeenCalledOnce()
+    expect(sendEmailVerificationEmailMock).toHaveBeenCalledTimes(1)
 
     const verificationEmailInput = sendEmailVerificationEmailMock.mock.calls
       .at(0)
@@ -246,18 +246,21 @@ describe("auth app", () => {
 
     sendExistingUserSignupNoticeMock.mockClear()
 
-    const duplicateSignUpResponse = await requestJson("/api/auth/sign-up/email", {
-      body: JSON.stringify({
-        callbackURL: "http://localhost:3000/login",
-        email: "ada@example.com",
-        name: "Ada Byron",
-        password: "password-1234",
-      }),
-      headers: {
-        "content-type": "application/json",
-      },
-      method: "POST",
-    })
+    const duplicateSignUpResponse = await requestJson(
+      "/api/auth/sign-up/email",
+      {
+        body: JSON.stringify({
+          callbackURL: "http://localhost:3000/login",
+          email: "ada@example.com",
+          name: "Ada Byron",
+          password: "password-1234",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      }
+    )
 
     expect(sendExistingUserSignupNoticeMock).toHaveBeenCalledWith({
       signInUrl: "http://localhost:3000/login",
@@ -307,7 +310,7 @@ describe("auth app", () => {
     const resetToken = await findLatestResetToken()
 
     expect(resetToken).toBeTruthy()
-    expect(sendPasswordResetEmailMock).toHaveBeenCalledOnce()
+    expect(sendPasswordResetEmailMock).toHaveBeenCalledTimes(1)
     if (!resetToken) {
       throw new Error("Expected a reset token to be stored")
     }

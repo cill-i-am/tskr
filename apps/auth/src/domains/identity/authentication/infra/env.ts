@@ -82,7 +82,7 @@ const resolveResendApiKey = (
   value: string | undefined
 ) => {
   if (provider !== "resend") {
-    return undefined
+    return
   }
 
   if (!value) {
@@ -108,7 +108,10 @@ const parseAuthenticationEnv = (): AuthenticationEnv => {
     emailFrom: requireValue(process.env.EMAIL_FROM, "EMAIL_FROM"),
     emailProvider,
     emailReplyTo: process.env.EMAIL_REPLY_TO,
-    resendApiKey: resolveResendApiKey(emailProvider, process.env.RESEND_API_KEY),
+    resendApiKey: resolveResendApiKey(
+      emailProvider,
+      process.env.RESEND_API_KEY
+    ),
     trustedOrigins: unique([
       ...resolveDefaultTrustedOrigins(),
       ...splitCsv(process.env.BETTER_AUTH_TRUSTED_ORIGINS),

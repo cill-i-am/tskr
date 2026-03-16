@@ -33,8 +33,8 @@ const config: EmailServiceConfig = {
 const service: EmailService = createEmailService(config)
 
 const resetInput: PasswordResetEmailInput = {
-  to: "ada@example.com",
   resetUrl: "https://app.tskr.test/reset-password?token=abc123",
+  to: "ada@example.com",
 }
 
 const verifyInput: EmailVerificationEmailInput = {
@@ -43,8 +43,8 @@ const verifyInput: EmailVerificationEmailInput = {
 }
 
 const noticeInput: ExistingUserSignUpNoticeEmailInput = {
-  to: "linus@example.com",
   signInUrl: "https://app.tskr.test/sign-in",
+  to: "linus@example.com",
 }
 
 void service.sendPasswordResetEmail(resetInput)

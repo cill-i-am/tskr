@@ -34,27 +34,27 @@ const {
   }
 })
 
-vi.mock("better-auth", () => ({
+vi.mock<typeof import('better-auth')>(import('better-auth'), () => ({
   betterAuth: betterAuthMock,
 }))
 
-vi.mock("better-auth/adapters/drizzle", () => ({
+vi.mock<typeof import('better-auth/adapters/drizzle')>(import('better-auth/adapters/drizzle'), () => ({
   drizzleAdapter: drizzleAdapterMock,
 }))
 
-vi.mock("./cookie-attributes.js", () => ({
+vi.mock<typeof import('./cookie-attributes.js')>(import('./cookie-attributes.js'), () => ({
   resolveDefaultCookieAttributes: resolveDefaultCookieAttributesMock,
 }))
 
-vi.mock("./database.js", () => ({
+vi.mock<typeof import('./database.js')>(import('./database.js'), () => ({
   database: "database",
 }))
 
-vi.mock("./email-service.js", () => ({
+vi.mock<typeof import('./email-service.js')>(import('./email-service.js'), () => ({
   createAuthenticationEmailService: createAuthenticationEmailServiceMock,
 }))
 
-vi.mock("./env.js", () => ({
+vi.mock<typeof import('./env.js')>(import('./env.js'), () => ({
   parseAuthenticationEnv: () => ({
     betterAuthSecret: "test-secret",
     betterAuthUrl: "http://localhost:3002",
@@ -62,17 +62,15 @@ vi.mock("./env.js", () => ({
     emailProvider: "console",
     emailReplyTo: "support@tskr.app",
     resendApiKey: undefined,
-    webBaseUrl: "https://app.example.com",
     trustedOrigins: ["http://localhost:3000"],
+    webBaseUrl: "https://app.example.com",
   }),
 }))
 
-type AuthConfiguration = {
+interface AuthConfiguration {
   emailAndPassword: {
     autoSignIn: boolean
-    onExistingUserSignUp: (input: {
-      user: { email: string }
-    }) => unknown
+    onExistingUserSignUp: (input: { user: { email: string } }) => unknown
     requireEmailVerification: boolean
     sendResetPassword: (input: {
       url: string
@@ -115,13 +113,13 @@ describe("auth config", () => {
       emailProvider: "console",
       emailReplyTo: "support@tskr.app",
       resendApiKey: undefined,
-      webBaseUrl: "https://app.example.com",
       trustedOrigins: ["http://localhost:3000"],
+      webBaseUrl: "https://app.example.com",
     })
 
-    expect(config.emailAndPassword.autoSignIn).toBe(true)
-    expect(config.emailAndPassword.requireEmailVerification).toBe(false)
-    expect(config.emailVerification.sendOnSignUp).toBe(true)
+    expect(config.emailAndPassword.autoSignIn).toBeTruthy()
+    expect(config.emailAndPassword.requireEmailVerification).toBeFalsy()
+    expect(config.emailVerification.sendOnSignUp).toBeTruthy()
 
     config.emailAndPassword.sendResetPassword({
       url: "http://localhost:3000/reset-password?token=reset-token",
@@ -162,7 +160,7 @@ describe("auth config", () => {
   it("logs password reset delivery errors without surfacing them", async () => {
     const consoleErrorMock = vi
       .spyOn(console, "error")
-      .mockImplementation(() => undefined)
+      .mockReturnValue(undefined)
     sendPasswordResetEmailMock.mockRejectedValueOnce(new Error("reset failed"))
 
     try {
@@ -192,7 +190,7 @@ describe("auth config", () => {
   it("logs delivery errors from fire-and-forget email hooks", async () => {
     const consoleErrorMock = vi
       .spyOn(console, "error")
-      .mockImplementation(() => undefined)
+      .mockReturnValue(undefined)
     sendEmailVerificationEmailMock.mockRejectedValueOnce(
       new Error("verification failed")
     )

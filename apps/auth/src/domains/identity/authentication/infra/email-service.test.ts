@@ -8,7 +8,7 @@ const {
   createResendTransportMock: vi.fn(() => "resend-transport"),
 }))
 
-vi.mock("@workspace/email", () => ({
+vi.mock<typeof import('@workspace/email')>(import('@workspace/email'), () => ({
   createConsoleTransport: createConsoleTransportMock,
   createEmailService: createEmailServiceMock,
   createResendTransport: createResendTransportMock,
@@ -16,7 +16,7 @@ vi.mock("@workspace/email", () => ({
 
 import { createAuthenticationEmailService } from "./email-service.js"
 
-describe("createAuthenticationEmailService", () => {
+describe(createAuthenticationEmailService, () => {
   beforeEach(() => {
     createConsoleTransportMock.mockClear()
     createEmailServiceMock.mockClear()
@@ -35,7 +35,7 @@ describe("createAuthenticationEmailService", () => {
       webBaseUrl: "http://localhost:3000",
     })
 
-    expect(createConsoleTransportMock).toHaveBeenCalledOnce()
+    expect(createConsoleTransportMock).toHaveBeenCalledTimes(1)
     expect(createResendTransportMock).not.toHaveBeenCalled()
     expect(createEmailServiceMock).toHaveBeenCalledWith({
       appName: "tskr",

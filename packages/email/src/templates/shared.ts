@@ -1,4 +1,4 @@
-type EmailTemplateContent = {
+interface EmailTemplateContent {
   html: string
   subject: string
   text: string
@@ -9,7 +9,7 @@ const escapeHtml = (value: string): string =>
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
-    .replaceAll("\"", "&quot;")
+    .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;")
 
 export { escapeHtml }

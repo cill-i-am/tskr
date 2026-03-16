@@ -1,6 +1,7 @@
-import { escapeHtml, type EmailTemplateContent } from "./shared.ts"
+import { escapeHtml } from './shared.ts';
+import type { EmailTemplateContent } from './shared.ts';
 
-type ExistingUserSignUpNoticeTemplateInput = {
+interface ExistingUserSignUpNoticeTemplateInput {
   appName: string
   signInUrl: string
   supportEmail?: string
@@ -23,12 +24,12 @@ const createExistingUserSignUpNoticeTemplate = ({
     : "<p>If this wasn't you, you can safely ignore this email.</p>"
 
   return {
-    subject: `Someone tried to sign up with this email on ${appName}`,
     html: [
       `<p>An account already exists for this email on ${safeAppName}.</p>`,
       `<p><a href="${safeSignInUrl}">Sign in</a></p>`,
       supportHtml,
     ].join(""),
+    subject: `Someone tried to sign up with this email on ${appName}`,
     text: [
       `An account already exists for this email on ${appName}.`,
       `Sign in: ${signInUrl}`,
