@@ -4,10 +4,12 @@ import type {
   EmailVerificationEmailInput,
   ExistingUserSignUpNoticeEmailInput,
   PasswordResetEmailInput,
+  SignupVerificationOtpEmailInput,
 } from "./contracts.ts"
 import { createEmailVerificationTemplate } from "./templates/email-verification.ts"
 import { createExistingUserSignUpNoticeTemplate } from "./templates/existing-user-sign-up-notice.ts"
 import { createPasswordResetTemplate } from "./templates/password-reset.ts"
+import { createSignupVerificationOtpTemplate } from "./templates/signup-verification-otp.ts"
 
 type EmailServiceConfig = {
   appName: string
@@ -26,6 +28,9 @@ type EmailService = {
   ): Promise<EmailSendResult>
   sendPasswordResetEmail(
     input: PasswordResetEmailInput
+  ): Promise<EmailSendResult>
+  sendSignupVerificationOtpEmail(
+    input: SignupVerificationOtpEmailInput
   ): Promise<EmailSendResult>
 }
 
@@ -63,6 +68,10 @@ const createEmailService = (config: EmailServiceConfig): EmailService => {
         appName: config.appName,
         verificationUrl,
       })
+      return sendTransactionalEmail({ ...template, to })
+    },
+    sendSignupVerificationOtpEmail: async ({ code, to }) => {
+      const template = createSignupVerificationOtpTemplate({ code })
       return sendTransactionalEmail({ ...template, to })
     },
     sendExistingUserSignupNotice: async ({ signInUrl, to }) => {

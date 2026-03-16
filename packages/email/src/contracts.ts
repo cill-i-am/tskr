@@ -22,6 +22,11 @@ type PasswordResetEmailInput = {
   to: string
 }
 
+type SignupVerificationOtpEmailInput = {
+  code: string
+  to: string
+}
+
 type EmailVerificationEmailInput = {
   to: string
   verificationUrl: string
@@ -40,4 +45,5 @@ export type {
   EmailVerificationEmailInput,
   ExistingUserSignUpNoticeEmailInput,
   PasswordResetEmailInput,
+  SignupVerificationOtpEmailInput,
 }

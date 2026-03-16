@@ -78,6 +78,44 @@ test("renders verification subject, html, and text", async () => {
   )
 })
 
+test("renders signup verification OTP subject, html, and text", async () => {
+  const messages: unknown[] = []
+  const service = createEmailService({
+    appName: "tskr",
+    from: "TSKR <noreply@tskr.app>",
+    replyTo: "support@tskr.app",
+    transport: {
+      async send(message) {
+        messages.push(message)
+        return { id: "mock-otp" }
+      },
+    },
+  })
+
+  const code = "123456"
+  const result = await service.sendSignupVerificationOtpEmail({
+    code,
+    to: "ada@example.com",
+  })
+
+  assert.deepEqual(result, { id: "mock-otp" })
+  assert.equal(messages.length, 1)
+  const message = asObject(messages[0])
+  assert.equal(message.from, "TSKR <noreply@tskr.app>")
+  assert.equal(message.replyTo, "support@tskr.app")
+  assert.equal(message.to, "ada@example.com")
+  assert.equal(message.subject, "Your tskr verification code")
+  assert.match(
+    String(message.text),
+    /Your one-time sign-up verification code is/u
+  )
+  assert.match(String(message.text), /123456/u)
+  assert.match(String(message.text), /expires in 5 minutes/u)
+  assert.match(String(message.html), /<strong>123456<\/strong>/u)
+  assert.match(String(message.html), /Your one-time sign-up verification code/u)
+  assert.match(String(message.html), /expires in 5 minutes/u)
+})
+
 test("renders existing-user sign-up notice subject, html, and text", async () => {
   const messages: unknown[] = []
   const service = createEmailService({

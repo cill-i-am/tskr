@@ -25,7 +25,7 @@ test("package.json export map points to built root entrypoint", async () => {
 
   assert.deepEqual(packageJson.exports["."], {
     types: "./dist/index.d.ts",
-    import: "./dist/index.js",
+    import: "./dist/index.mjs",
   })
 })
 
@@ -44,5 +44,6 @@ test("email service exposes the spec'd auth method names", () => {
     "sendEmailVerificationEmail",
     "sendExistingUserSignupNotice",
     "sendPasswordResetEmail",
+    "sendSignupVerificationOtpEmail",
   ])
 })
