@@ -11,5 +11,6 @@ watchPatterns = [
 ]
 
 [deploy]
+preDeployCommand = "pnpm --filter auth db:migrate"
 startCommand = "pnpm --filter auth start"
 healthcheckPath = "/up"
