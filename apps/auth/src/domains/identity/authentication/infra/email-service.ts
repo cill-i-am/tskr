@@ -6,7 +6,12 @@ import {
 
 import type { AuthenticationEnv } from "./env.js"
 
-const createAuthenticationEmailService = (environment: AuthenticationEnv) => {
+type AuthenticationEmailEnv = Pick<
+  AuthenticationEnv,
+  "emailFrom" | "emailProvider" | "emailReplyTo" | "resendApiKey"
+>
+
+const createAuthenticationEmailService = (environment: AuthenticationEmailEnv) => {
   const transport =
     environment.emailProvider === "resend"
       ? createResendTransport({
@@ -32,3 +37,4 @@ const requireResendApiKey = (apiKey: string | undefined) => {
 }
 
 export { createAuthenticationEmailService }
+export type { AuthenticationEmailEnv }

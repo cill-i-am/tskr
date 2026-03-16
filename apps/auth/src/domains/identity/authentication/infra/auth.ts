@@ -32,6 +32,7 @@ const auth = betterAuth({
     autoSignIn: true,
     enabled: true,
     onExistingUserSignUp: ({ user }) => {
+      // Keep notification delivery off the critical auth path.
       void authenticationEmailService
         .sendExistingUserSignupNotice({
           signInUrl: existingUserSignInUrl,
@@ -50,6 +51,7 @@ const auth = betterAuth({
     },
     requireEmailVerification: false,
     sendResetPassword: ({ url, user }) => {
+      // Better Auth treats reset delivery as a generic background side effect.
       void authenticationEmailService
         .sendPasswordResetEmail({
           resetUrl: url,
@@ -70,6 +72,7 @@ const auth = betterAuth({
   emailVerification: {
     sendOnSignUp: true,
     sendVerificationEmail: ({ url, user }) => {
+      // Verification email delivery should not change signup success semantics.
       void authenticationEmailService
         .sendEmailVerificationEmail({
           to: user.email,

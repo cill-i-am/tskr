@@ -99,6 +99,27 @@ const findLatestResetToken = async () => {
   }
 }
 
+const countUsersByEmail = async (email: string) => {
+  try {
+    const result = await pool.query<{ count: string }>(
+      `SELECT COUNT(*)::text AS count
+       FROM "user"
+       WHERE email = $1`,
+      [email]
+    )
+
+    return Number(result.rows.at(0)?.count ?? "0")
+  } catch (error) {
+    const databaseError = error as { code?: string }
+
+    if (databaseError.code === "42P01") {
+      return 0
+    }
+
+    throw error
+  }
+}
+
 describe("auth app", () => {
   beforeEach(() => {
     sendEmailVerificationEmailMock.mockClear()
@@ -227,7 +248,7 @@ describe("auth app", () => {
 
     sendExistingUserSignupNoticeMock.mockClear()
 
-    await requestJson("/api/auth/sign-up/email", {
+    const duplicateSignUpResponse = await requestJson("/api/auth/sign-up/email", {
       body: JSON.stringify({
         email: "ada@example.com",
         name: "Ada Byron",
@@ -239,10 +260,12 @@ describe("auth app", () => {
       method: "POST",
     })
 
+    expect(duplicateSignUpResponse.response.status).toBe(200)
     expect(sendExistingUserSignupNoticeMock).toHaveBeenCalledWith({
       signInUrl: "http://localhost:3000/login",
       to: "ada@example.com",
     })
+    await expect(countUsersByEmail("ada@example.com")).resolves.toBe(1)
   })
 
   it("issues a password reset token", async () => {
