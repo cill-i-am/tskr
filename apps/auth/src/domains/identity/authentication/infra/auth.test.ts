@@ -129,7 +129,7 @@ describe("auth config", () => {
     expect(config.emailAndPassword.requireEmailVerification).toBe(false)
     expect(config.emailVerification.sendOnSignUp).toBe(true)
 
-    await config.emailAndPassword.sendResetPassword({
+    config.emailAndPassword.sendResetPassword({
       url: "http://localhost:3000/reset-password?token=reset-token",
       user: {
         email: "grace@example.com",
@@ -165,7 +165,7 @@ describe("auth config", () => {
     })
   })
 
-  it("logs and rethrows password reset delivery errors", async () => {
+  it("logs password reset delivery errors without surfacing them", async () => {
     const consoleErrorMock = vi
       .spyOn(console, "error")
       .mockImplementation(() => undefined)
@@ -173,15 +173,15 @@ describe("auth config", () => {
 
     try {
       const config = await loadAuthConfiguration()
+      config.emailAndPassword.sendResetPassword({
+        url: "http://localhost:3000/reset-password?token=reset-token",
+        user: {
+          email: "grace@example.com",
+        },
+      })
 
-      await expect(
-        config.emailAndPassword.sendResetPassword({
-          url: "http://localhost:3000/reset-password?token=reset-token",
-          user: {
-            email: "grace@example.com",
-          },
-        })
-      ).rejects.toThrow("reset failed")
+      await Promise.resolve()
+      await Promise.resolve()
 
       expect(consoleErrorMock).toHaveBeenCalledWith(
         "[auth:email] failed to send password reset email",

@@ -49,23 +49,22 @@ const auth = betterAuth({
         })
     },
     requireEmailVerification: false,
-    sendResetPassword: async ({ url, user }) => {
-      try {
-        await authenticationEmailService.sendPasswordResetEmail({
+    sendResetPassword: ({ url, user }) => {
+      void authenticationEmailService
+        .sendPasswordResetEmail({
           resetUrl: url,
           to: user.email,
         })
-      } catch (error) {
-        logEmailDeliveryFailure(
-          "[auth:email] failed to send password reset email",
-          {
-            error,
-            recipient: user.email,
-            resetUrl: url,
-          }
-        )
-        throw error
-      }
+        .catch((error) => {
+          logEmailDeliveryFailure(
+            "[auth:email] failed to send password reset email",
+            {
+              error,
+              recipient: user.email,
+              resetUrl: url,
+            }
+          )
+        })
     },
   },
   emailVerification: {

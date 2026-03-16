@@ -175,6 +175,21 @@ describe("auth app", () => {
         name: "Ada Lovelace",
       },
     })
+    expect(sendEmailVerificationEmailMock).toHaveBeenCalledOnce()
+
+    const verificationEmailInput = sendEmailVerificationEmailMock.mock.calls
+      .at(0)
+      ?.at(0) as
+      | {
+          to: string
+          verificationUrl: string
+        }
+      | undefined
+
+    expect(verificationEmailInput?.to).toBe("ada@example.com")
+    expect(verificationEmailInput?.verificationUrl).toContain(
+      "/api/auth/verify-email"
+    )
 
     const signInResponse = await requestJson("/api/auth/sign-in/email", {
       body: JSON.stringify({
