@@ -1,4 +1,8 @@
-const resolveDefaultCookieAttributes = (betterAuthUrl: string) => ({
+const resolveDefaultCookieAttributes = (
+  betterAuthUrl: string
+): {
+  sameSite: "none" | "lax"
+} => ({
   sameSite: betterAuthUrl.startsWith("https://") ? "none" : "lax",
 })
 
