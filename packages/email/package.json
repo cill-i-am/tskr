@@ -2,15 +2,15 @@
   "name": "@workspace/email",
   "version": "0.0.0",
   "private": true,
-  "type": "module",
   "files": [
     "dist"
   ],
-  "types": "./dist/index.d.ts",
+  "type": "module",
+  "types": "./dist/index.d.mts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
     }
   },
   "scripts": {

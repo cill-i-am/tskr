@@ -41,6 +41,7 @@ describe("createAuthenticationEmailService", () => {
       appName: "tskr",
       from: "TSKR <noreply@tskr.app>",
       replyTo: "support@tskr.app",
+      signupVerificationOtpExpiryText: "5 minutes",
       supportEmail: "support@tskr.app",
       transport: "console-transport",
     })
@@ -67,6 +68,7 @@ describe("createAuthenticationEmailService", () => {
       appName: "tskr",
       from: "TSKR <noreply@tskr.app>",
       replyTo: "support@tskr.app",
+      signupVerificationOtpExpiryText: "5 minutes",
       supportEmail: "support@tskr.app",
       transport: "resend-transport",
     })
