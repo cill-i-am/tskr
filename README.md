@@ -151,6 +151,7 @@ Required in Railway for `auth`:
 - `BETTER_AUTH_SECRET=<generated secret>`
 - `BETTER_AUTH_URL=<public auth service URL>`
 - `BETTER_AUTH_TRUSTED_ORIGINS=<comma-separated allowed browser origins>`
+- `WEB_BASE_URL=<public web app URL used in auth-generated sign-in links>`
 - `EMAIL_FROM=<display name and sender, e.g. TSKR <noreply@your-domain>>`
 - `EMAIL_PROVIDER=resend` (recommended in production; defaults to `resend` in production when unset)
 - `RESEND_API_KEY=<resend api key>` (required whenever `EMAIL_PROVIDER` resolves to `resend`)
@@ -164,6 +165,7 @@ Useful local defaults:
 
 - `BETTER_AUTH_URL=https://auth.tskr.localhost:1355`
 - `BETTER_AUTH_TRUSTED_ORIGINS=https://web.tskr.localhost:1355,http://localhost:3000,http://localhost:5173`
+- `WEB_BASE_URL=https://web.tskr.localhost:1355` (or `http://localhost:3000` with `PORTLESS=0`)
 - `EMAIL_FROM=TSKR <noreply@localhost>`
 - `EMAIL_PROVIDER=console` (default outside production)
 - `EMAIL_REPLY_TO=support@localhost` (optional)

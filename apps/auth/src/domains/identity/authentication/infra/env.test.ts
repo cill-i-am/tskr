@@ -41,6 +41,7 @@ describe(parseAuthenticationEnv, () => {
         EMAIL_PROVIDER: undefined,
         EMAIL_REPLY_TO: undefined,
         RESEND_API_KEY: undefined,
+        WEB_BASE_URL: undefined,
         NODE_ENV: "test",
         PORTLESS: "1",
       },
@@ -53,6 +54,7 @@ describe(parseAuthenticationEnv, () => {
           emailProvider: "console",
           emailReplyTo: undefined,
           resendApiKey: undefined,
+          webBaseUrl: "https://web.tskr.localhost:1355",
           trustedOrigins: [
             "https://web.tskr.localhost:1355",
             "https://web.example.com",
@@ -70,6 +72,8 @@ describe(parseAuthenticationEnv, () => {
         DATABASE_URL: "postgres://postgres:postgres@localhost:5432/tskr",
         EMAIL_FROM: "TSKR <noreply@tskr.app>",
         EMAIL_PROVIDER: "console",
+        WEB_BASE_URL: undefined,
+        PORTLESS: "1",
         NODE_ENV: "production",
       },
       () => {
@@ -91,6 +95,7 @@ describe(parseAuthenticationEnv, () => {
         EMAIL_PROVIDER: undefined,
         EMAIL_REPLY_TO: undefined,
         RESEND_API_KEY: undefined,
+        WEB_BASE_URL: undefined,
         NODE_ENV: "test",
         PORTLESS: "0",
       },
@@ -103,6 +108,7 @@ describe(parseAuthenticationEnv, () => {
           emailProvider: "console",
           emailReplyTo: undefined,
           resendApiKey: undefined,
+          webBaseUrl: "http://localhost:3000",
           trustedOrigins: [
             "https://web.tskr.localhost:1355",
             "http://localhost:3002",
@@ -122,6 +128,8 @@ describe(parseAuthenticationEnv, () => {
         EMAIL_FROM: "TSKR <noreply@tskr.app>",
         EMAIL_PROVIDER: undefined,
         RESEND_API_KEY: undefined,
+        WEB_BASE_URL: undefined,
+        PORTLESS: "1",
         NODE_ENV: "production",
       },
       () => {
@@ -141,6 +149,8 @@ describe(parseAuthenticationEnv, () => {
         EMAIL_PROVIDER: undefined,
         EMAIL_REPLY_TO: "support@tskr.app",
         RESEND_API_KEY: "resend_test_123",
+        WEB_BASE_URL: undefined,
+        PORTLESS: "1",
         NODE_ENV: "production",
       },
       () => {
@@ -149,6 +159,7 @@ describe(parseAuthenticationEnv, () => {
           emailProvider: "resend",
           emailReplyTo: "support@tskr.app",
           resendApiKey: "resend_test_123",
+          webBaseUrl: "https://web.tskr.localhost:1355",
         })
       }
     )
@@ -161,10 +172,31 @@ describe(parseAuthenticationEnv, () => {
         DATABASE_URL: "postgres://postgres:postgres@localhost:5432/tskr",
         EMAIL_FROM: undefined,
         EMAIL_PROVIDER: "console",
+        WEB_BASE_URL: undefined,
+        PORTLESS: "1",
         NODE_ENV: "test",
       },
       () => {
         expect(() => parseAuthenticationEnv()).toThrow("EMAIL_FROM must be set")
+      }
+    )
+  })
+
+  it("uses WEB_BASE_URL when explicitly set", async () => {
+    await withEnvironment(
+      {
+        BETTER_AUTH_SECRET: "test-secret",
+        DATABASE_URL: "postgres://postgres:postgres@localhost:5432/tskr",
+        EMAIL_FROM: "TSKR <noreply@tskr.app>",
+        EMAIL_PROVIDER: "console",
+        WEB_BASE_URL: "https://app.example.com",
+        PORTLESS: "0",
+        NODE_ENV: "test",
+      },
+      () => {
+        expect(parseAuthenticationEnv().webBaseUrl).toBe(
+          "https://app.example.com"
+        )
       }
     )
   })

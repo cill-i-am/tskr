@@ -2,8 +2,9 @@ const DEFAULT_AUTH_PORT = 3002
 const DEFAULT_PORTLESS_AUTH_URL = "https://auth.tskr.localhost:1355"
 const DEFAULT_PORTLESS_WEB_URL = "https://web.tskr.localhost:1355"
 const DEFAULT_DIRECT_AUTH_URL = `http://localhost:${DEFAULT_AUTH_PORT}`
+const DEFAULT_DIRECT_WEB_URL = "http://localhost:3000"
 const DEFAULT_DIRECT_WEB_URLS = [
-  "http://localhost:3000",
+  DEFAULT_DIRECT_WEB_URL,
   "http://localhost:5173",
 ]
 const DEFAULT_DEV_SECRET = "dev-secret-dev-secret-dev-secret-dev-secret"
@@ -21,6 +22,7 @@ interface AuthenticationEnv {
   emailReplyTo?: string
   resendApiKey?: string
   trustedOrigins: string[]
+  webBaseUrl: string
 }
 
 const unique = (values: string[]) => [...new Set(values)]
@@ -44,6 +46,11 @@ const resolveDefaultTrustedOrigins = () => {
 
   return unique([DEFAULT_PORTLESS_WEB_URL, ...directOrigins])
 }
+
+const resolveDefaultWebBaseUrl = () =>
+  process.env.PORTLESS === "0"
+    ? DEFAULT_DIRECT_WEB_URL
+    : DEFAULT_PORTLESS_WEB_URL
 
 const requireValue = (value: string | undefined, name: string) => {
   if (!value) {
@@ -108,6 +115,7 @@ const parseAuthenticationEnv = (): AuthenticationEnv => {
       ...resolveDefaultTrustedOrigins(),
       ...splitCsv(process.env.BETTER_AUTH_TRUSTED_ORIGINS),
     ]),
+    webBaseUrl: process.env.WEB_BASE_URL ?? resolveDefaultWebBaseUrl(),
   }
 }
 

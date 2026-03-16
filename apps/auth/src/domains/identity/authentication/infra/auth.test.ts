@@ -65,9 +65,35 @@ vi.mock("./env.js", () => ({
     emailProvider: "console",
     emailReplyTo: "support@tskr.app",
     resendApiKey: undefined,
+    webBaseUrl: "https://app.example.com",
     trustedOrigins: ["http://localhost:3000"],
   }),
 }))
+
+type AuthConfiguration = {
+  emailAndPassword: {
+    autoSignIn: boolean
+    onExistingUserSignUp: (input: {
+      user: { email: string }
+    }) => unknown
+    requireEmailVerification: boolean
+    sendResetPassword: (input: {
+      url: string
+      user: { email: string }
+    }) => unknown
+  }
+  emailVerification: {
+    sendVerificationEmail: (input: {
+      url: string
+      user: { email: string }
+    }) => unknown
+  }
+}
+
+const loadAuthConfiguration = async (): Promise<AuthConfiguration> => {
+  await import("./auth.js")
+  return betterAuthMock.mock.calls.at(0)?.at(0) as AuthConfiguration
+}
 
 describe("auth config", () => {
   beforeEach(() => {
@@ -82,7 +108,7 @@ describe("auth config", () => {
   })
 
   it("wires email hooks to the auth email service", async () => {
-    await import("./auth.js")
+    const config = await loadAuthConfiguration()
 
     expect(createAuthenticationEmailServiceMock).toHaveBeenCalledWith({
       betterAuthSecret: "test-secret",
@@ -92,28 +118,11 @@ describe("auth config", () => {
       emailProvider: "console",
       emailReplyTo: "support@tskr.app",
       resendApiKey: undefined,
+      webBaseUrl: "https://app.example.com",
       trustedOrigins: ["http://localhost:3000"],
     })
 
-    const config = betterAuthMock.mock.calls.at(0)?.at(0) as {
-      emailAndPassword: {
-        onExistingUserSignUp: (input: {
-          user: { email: string }
-        }) => unknown
-        requireEmailVerification: boolean
-        sendResetPassword: (input: {
-          url: string
-          user: { email: string }
-        }) => unknown
-      }
-      emailVerification: {
-        sendVerificationEmail: (input: {
-          url: string
-          user: { email: string }
-        }) => unknown
-      }
-    }
-
+    expect(config.emailAndPassword.autoSignIn).toBe(false)
     expect(config.emailAndPassword.requireEmailVerification).toBe(false)
 
     config.emailAndPassword.sendResetPassword({
@@ -147,8 +156,71 @@ describe("auth config", () => {
     })
 
     expect(sendExistingUserSignUpNoticeMock).toHaveBeenCalledWith({
-      signInUrl: "http://localhost:3000/login",
+      signInUrl: "https://app.example.com/login",
       to: "grace@example.com",
     })
+  })
+
+  it("logs delivery errors from fire-and-forget email hooks", async () => {
+    const consoleErrorMock = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined)
+    sendPasswordResetMock.mockRejectedValueOnce(new Error("reset failed"))
+    sendEmailVerificationMock.mockRejectedValueOnce(
+      new Error("verification failed")
+    )
+    sendExistingUserSignUpNoticeMock.mockRejectedValueOnce(
+      new Error("existing-user failed")
+    )
+
+    try {
+      const config = await loadAuthConfiguration()
+      config.emailAndPassword.sendResetPassword({
+        url: "http://localhost:3000/reset-password?token=reset-token",
+        user: {
+          email: "grace@example.com",
+        },
+      })
+      config.emailVerification.sendVerificationEmail({
+        url: "http://localhost:3000/verify-email?token=verify-token",
+        user: {
+          email: "grace@example.com",
+        },
+      })
+      config.emailAndPassword.onExistingUserSignUp({
+        user: {
+          email: "grace@example.com",
+        },
+      })
+
+      await Promise.resolve()
+      await Promise.resolve()
+
+      expect(consoleErrorMock).toHaveBeenCalledTimes(3)
+      expect(consoleErrorMock).toHaveBeenCalledWith(
+        "[auth:email] failed to send password reset email",
+        expect.objectContaining({
+          recipient: "grace@example.com",
+          resetUrl: "http://localhost:3000/reset-password?token=reset-token",
+        })
+      )
+      expect(consoleErrorMock).toHaveBeenCalledWith(
+        "[auth:email] failed to send verification email",
+        expect.objectContaining({
+          recipient: "grace@example.com",
+          verificationUrl:
+            "http://localhost:3000/verify-email?token=verify-token",
+        })
+      )
+      expect(consoleErrorMock).toHaveBeenCalledWith(
+        "[auth:email] failed to send existing-user signup notice email",
+        expect.objectContaining({
+          recipient: "grace@example.com",
+          signInUrl: "https://app.example.com/login",
+        })
+      )
+    } finally {
+      consoleErrorMock.mockRestore()
+    }
   })
 })

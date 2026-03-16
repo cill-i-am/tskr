@@ -5,13 +5,15 @@ import { resolveDefaultCookieAttributes } from "./cookie-attributes.js"
 import { database } from "./database.js"
 import { createAuthenticationEmailService } from "./email-service.js"
 import { parseAuthenticationEnv } from "./env.js"
-import type { AuthenticationEnv } from "./env.js"
 import * as schema from "./schema.js"
 
 const authenticationEnv = parseAuthenticationEnv()
 const authenticationEmailService =
   createAuthenticationEmailService(authenticationEnv)
-const existingUserSignInUrl = resolveExistingUserSignInUrl(authenticationEnv)
+const existingUserSignInUrl = new URL(
+  "/login",
+  authenticationEnv.webBaseUrl
+).toString()
 
 const auth = betterAuth({
   advanced: {
@@ -27,40 +29,72 @@ const auth = betterAuth({
     schema,
   }),
   emailAndPassword: {
+    autoSignIn: false,
     enabled: true,
     onExistingUserSignUp: ({ user }) => {
-      void authenticationEmailService.sendExistingUserSignUpNotice({
-        signInUrl: existingUserSignInUrl,
-        to: user.email,
-      })
+      void authenticationEmailService
+        .sendExistingUserSignUpNotice({
+          signInUrl: existingUserSignInUrl,
+          to: user.email,
+        })
+        .catch((error) => {
+          logEmailDeliveryFailure(
+            "[auth:email] failed to send existing-user signup notice email",
+            {
+              error,
+              recipient: user.email,
+              signInUrl: existingUserSignInUrl,
+            }
+          )
+        })
     },
     requireEmailVerification: false,
     sendResetPassword: ({ url, user }) => {
-      void authenticationEmailService.sendPasswordReset({
-        resetUrl: url,
-        to: user.email,
-      })
+      void authenticationEmailService
+        .sendPasswordReset({
+          resetUrl: url,
+          to: user.email,
+        })
+        .catch((error) => {
+          logEmailDeliveryFailure(
+            "[auth:email] failed to send password reset email",
+            {
+              error,
+              recipient: user.email,
+              resetUrl: url,
+            }
+          )
+        })
     },
   },
   emailVerification: {
     sendVerificationEmail: ({ url, user }) => {
-      void authenticationEmailService.sendEmailVerification({
-        to: user.email,
-        verificationUrl: url,
-      })
+      void authenticationEmailService
+        .sendEmailVerification({
+          to: user.email,
+          verificationUrl: url,
+        })
+        .catch((error) => {
+          logEmailDeliveryFailure(
+            "[auth:email] failed to send verification email",
+            {
+              error,
+              recipient: user.email,
+              verificationUrl: url,
+            }
+          )
+        })
     },
   },
   secret: authenticationEnv.betterAuthSecret,
   trustedOrigins: authenticationEnv.trustedOrigins,
 })
 
-function resolveExistingUserSignInUrl(environment: AuthenticationEnv) {
-  const preferredOrigin =
-    environment.trustedOrigins.find((origin) => !origin.includes("localhost")) ??
-    environment.trustedOrigins.at(0) ??
-    environment.betterAuthUrl
-
-  return new URL("/login", preferredOrigin).toString()
+function logEmailDeliveryFailure(
+  message: string,
+  details: Record<string, unknown>
+) {
+  console.error(message, details)
 }
 
 export { auth }

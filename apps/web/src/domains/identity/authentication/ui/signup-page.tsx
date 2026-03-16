@@ -52,10 +52,23 @@ const SignupPage = () => {
         password,
       })
 
+      if (result.error) {
+        setIsSubmitting(false)
+        setError(result.error.message ?? "Unable to create your account.")
+        return
+      }
+
+      const signInResult = await authClient.signIn.email({
+        email,
+        password,
+      })
+
       setIsSubmitting(false)
 
-      if (result.error) {
-        setError(result.error.message ?? "Unable to create your account.")
+      if (signInResult.error) {
+        setError(
+          signInResult.error.message ?? "Unable to sign in after signup."
+        )
         return
       }
 

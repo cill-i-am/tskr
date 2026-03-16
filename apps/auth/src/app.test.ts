@@ -29,6 +29,7 @@ process.env.BETTER_AUTH_URL ??= "http://localhost:3002"
 process.env.BETTER_AUTH_TRUSTED_ORIGINS ??= "http://localhost:3000"
 process.env.EMAIL_FROM ??= "TSKR <noreply@tskr.app>"
 process.env.EMAIL_PROVIDER ??= "console"
+process.env.WEB_BASE_URL ??= "http://localhost:3000"
 
 const { app } = await import("./app.js")
 const { upResponse } = await import("./domains/system/healthcheck/index.js")
