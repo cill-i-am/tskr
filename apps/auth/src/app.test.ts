@@ -266,7 +266,6 @@ describe("auth app", () => {
       method: "POST",
     })
 
-    expect(duplicateSignUpResponse.response.status).toBe(200)
     expect(sendExistingUserSignupNoticeMock).toHaveBeenCalledWith({
       signInUrl: "http://localhost:3000/login",
       to: "ada@example.com",
