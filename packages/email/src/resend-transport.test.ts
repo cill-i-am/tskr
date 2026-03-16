@@ -1,7 +1,8 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
-import { EmailTransportError, createResendTransport } from "./index.ts"
+import { createResendTransport } from "./index.ts"
+import { EmailTransportError } from "./transports/resend.ts"
 
 test("maps transport messages to resend request payload", async () => {
   const requests: Array<{

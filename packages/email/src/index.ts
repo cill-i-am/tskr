@@ -8,7 +8,6 @@ export {
   type ConsoleTransportConfig,
 } from "./transports/console.ts"
 export {
-  EmailTransportError,
   createResendTransport,
   type ResendTransportConfig,
 } from "./transports/resend.ts"
