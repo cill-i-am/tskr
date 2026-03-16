@@ -68,6 +68,7 @@ const auth = betterAuth({
     },
   },
   emailVerification: {
+    sendOnSignUp: true,
     sendVerificationEmail: ({ url, user }) => {
       void authenticationEmailService
         .sendEmailVerificationEmail({

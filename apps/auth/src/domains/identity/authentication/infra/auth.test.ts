@@ -85,6 +85,7 @@ type AuthConfiguration = {
     }) => unknown
   }
   emailVerification: {
+    sendOnSignUp: boolean
     sendVerificationEmail: (input: {
       url: string
       user: { email: string }
@@ -126,6 +127,7 @@ describe("auth config", () => {
 
     expect(config.emailAndPassword.autoSignIn).toBe(false)
     expect(config.emailAndPassword.requireEmailVerification).toBe(false)
+    expect(config.emailVerification.sendOnSignUp).toBe(true)
 
     config.emailAndPassword.sendResetPassword({
       url: "http://localhost:3000/reset-password?token=reset-token",
