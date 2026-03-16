@@ -11,7 +11,6 @@ const DEFAULT_DEV_SECRET = "dev-secret-dev-secret-dev-secret-dev-secret"
 interface AuthenticationEnv {
   betterAuthSecret: string
   betterAuthUrl: string
-  databaseUrl: string
   trustedOrigins: string[]
 }
 
@@ -52,7 +51,6 @@ const parseAuthenticationEnv = (): AuthenticationEnv => ({
       ? requireValue(process.env.BETTER_AUTH_SECRET, "BETTER_AUTH_SECRET")
       : DEFAULT_DEV_SECRET),
   betterAuthUrl: process.env.BETTER_AUTH_URL ?? resolveDefaultAuthUrl(),
-  databaseUrl: requireValue(process.env.DATABASE_URL, "DATABASE_URL"),
   trustedOrigins: unique([
     ...resolveDefaultTrustedOrigins(),
     ...splitCsv(process.env.BETTER_AUTH_TRUSTED_ORIGINS),

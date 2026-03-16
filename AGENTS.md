@@ -82,7 +82,7 @@ These instructions are the project-local AI rules for Codex and OpenCode, and th
 - Claude Code: committed project-local instructions live in the root `CLAUDE.md`, which should stay symlinked to this `AGENTS.md`; hook and MCP approval live in `.claude/settings.json` and `.mcp.json`. The hook is intentionally no-op until dependencies are installed and `pnpm exec ultracite` is available.
 - GitHub Copilot and Cursor: read the canonical `AGENTS.md` instruction nodes directly, so no separate mirror file is maintained for them.
 - Narrower subtree intent lives in `apps/AGENTS.md`, `apps/web/AGENTS.md`,
-  `apps/api/AGENTS.md`, `apps/auth/AGENTS.md`, `packages/AGENTS.md`, and
-  `packages/ui/AGENTS.md`; when working in those areas, follow the closest
-  matching node in addition to this root file.
+  `apps/api/AGENTS.md`, `apps/auth/AGENTS.md`, `packages/AGENTS.md`,
+  `packages/db/AGENTS.md`, and `packages/ui/AGENTS.md`; when working in those
+  areas, follow the closest matching node in addition to this root file.
 - `.mcp.json` exists only to preserve the existing `shadcn` MCP server for Claude Code. Ultracite is configured through committed instruction files, not through MCP.

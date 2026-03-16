@@ -8,6 +8,13 @@
       "when": 1773652380469,
       "tag": "0000_fuzzy_kate_bishop",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1773652380470,
+      "tag": "0001_auth_schemas",
+      "breakpoints": true
     }
   ]
 }

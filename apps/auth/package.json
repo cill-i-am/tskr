@@ -6,25 +6,21 @@
   "scripts": {
     "check": "git -C ../.. ls-files -- apps/auth | xargs pnpm --dir ../.. exec ultracite check",
     "db:ensure": "node ../../scripts/local-postgres.mjs ensure",
-    "db:generate": "node ../../scripts/local-postgres-launcher.mjs -- sh -lc 'pnpm dlx @better-auth/cli@latest generate --config src/auth.ts --output src/domains/identity/authentication/infra/schema.ts --yes && pnpm exec drizzle-kit generate --config drizzle.config.ts'",
-    "db:migrate": "pnpm exec drizzle-kit migrate --config drizzle.config.ts",
+    "db:migrate": "pnpm --filter @workspace/db db:migrate",
     "dev": "portless --name auth.tskr node ../../scripts/local-postgres-launcher.mjs -- tsx watch src/index.ts",
     "build": "tsc --project tsconfig.json",
     "start": "node dist/index.js",
-    "test": "node ../../scripts/local-postgres-launcher.mjs -- sh -lc 'pnpm run db:migrate && vitest run'",
+    "test": "node ../../scripts/local-postgres-launcher.mjs -- sh -lc 'pnpm --filter @workspace/db db:migrate && vitest run'",
     "typecheck": "tsc --project tsconfig.json --noEmit"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.11",
+    "@workspace/db": "workspace:*",
     "better-auth": "^1.5.5",
-    "drizzle-orm": "^0.45.1",
-    "hono": "^4.12.8",
-    "pg": "^8.20.0"
+    "hono": "^4.12.8"
   },
   "devDependencies": {
     "@types/node": "^25.1.0",
-    "@types/pg": "^8.18.0",
-    "drizzle-kit": "^0.31.9",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.0"

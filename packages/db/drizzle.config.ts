@@ -9,6 +9,10 @@ export default defineConfig({
     url: process.env.DATABASE_URL,
   },
   dialect: "postgresql",
+  migrations: {
+    schema: "drizzle",
+    table: "__drizzle_migrations",
+  },
   out: "./drizzle",
-  schema: "./src/domains/identity/authentication/infra/schema.ts",
+  schema: ["./src/schema/auth.ts", "./src/schema/app.ts"],
 })

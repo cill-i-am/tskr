@@ -156,6 +156,10 @@ Required in Railway for `web`:
 
 - `VITE_AUTH_BASE_URL=<public auth service URL>`
 
+Required in GitHub Actions for shared production migrations:
+
+- `DATABASE_URL=<Railway Postgres connection string>`
+
 Useful local defaults:
 
 - `BETTER_AUTH_URL=https://auth.tskr.localhost:1355`
@@ -164,6 +168,21 @@ Useful local defaults:
 
 If running direct local development without Portless, the auth service falls back
 to `http://localhost:3002`.
+
+### Production migrations
+
+Shared schema migrations now live in `@workspace/db` and run outside the app
+services. Use:
+
+```bash
+pnpm db:generate
+pnpm db:migrate
+```
+
+`auth` and `api` both consume the shared package, but neither Railway service
+owns production migrations anymore. The production migration runner is the
+GitHub Actions workflow in `.github/workflows/db-migrate.yml`, which applies the
+single Drizzle migration history against the shared Railway Postgres database.
 
 ## Local source mirrors
 
