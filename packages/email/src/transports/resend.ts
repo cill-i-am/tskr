@@ -67,8 +67,17 @@ const createResendTransport = (config: ResendTransportConfig): EmailTransport =>
         })
       }
 
+      const responseId = resolveResponseId(responseBody)
+      if (!responseId) {
+        throw new EmailTransportError({
+          details: responseBody,
+          message: "Resend response missing email id",
+          status: 502,
+        })
+      }
+
       return {
-        id: resolveResponseId(responseBody),
+        id: responseId,
       }
     },
   }
@@ -91,7 +100,7 @@ const parseResponseBody = async (response: Response): Promise<unknown> => {
   }
 }
 
-const resolveResponseId = (body: unknown): string => {
+const resolveResponseId = (body: unknown): string | null => {
   if (body && typeof body === "object" && "id" in body) {
     const id = body.id
     if (typeof id === "string" && id.length > 0) {
@@ -99,7 +108,7 @@ const resolveResponseId = (body: unknown): string => {
     }
   }
 
-  return `resend:${Date.now()}`
+  return null
 }
 
 const resolveErrorMessage = (body: unknown, fallback: string): string => {

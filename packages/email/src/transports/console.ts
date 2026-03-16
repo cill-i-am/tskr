@@ -11,7 +11,11 @@ const createConsoleTransport = (
 
   return {
     async send(message): Promise<EmailSendResult> {
-      logger.info("[email:console] send", message)
+      logger.info("[email:console] send", {
+        from: message.from,
+        subject: message.subject,
+        to: message.to,
+      })
       return {
         id: `console:${Date.now()}`,
       }

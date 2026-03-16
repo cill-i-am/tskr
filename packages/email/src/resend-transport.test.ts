@@ -77,3 +77,30 @@ test("surfaces resend error details", async () => {
     }
   )
 })
+
+test("throws when resend success response is missing id", async () => {
+  const transport = createResendTransport({
+    apiKey: "resend-key",
+    fetch: async () => {
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+      })
+    },
+  })
+
+  await assert.rejects(
+    () =>
+      transport.send({
+        from: "TSKR <noreply@tskr.app>",
+        html: "<p>Hello</p>",
+        subject: "Hello",
+        text: "Hello",
+        to: "ada@example.com",
+      }),
+    (error: unknown) => {
+      assert.ok(error instanceof EmailTransportError)
+      assert.equal(error.message, "Resend response missing email id")
+      return true
+    }
+  )
+})
