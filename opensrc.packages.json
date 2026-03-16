@@ -5,6 +5,8 @@
     "@tanstack/react-router",
     "@tanstack/react-start",
     "zod",
-    "@base-ui/react"
+    "@base-ui/react",
+    "hono",
+    "@hono/node-server"
   ]
 }

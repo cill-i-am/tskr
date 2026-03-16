@@ -19,22 +19,28 @@ Enable HTTPS once on your machine:
 portless proxy start --https
 ```
 
-Then start the web app from the repo root:
+Then start an app from the repo root:
 
 ```bash
 pnpm dev:web
+pnpm dev:api
+pnpm dev:auth
 ```
 
 The main checkout runs at:
 
 ```text
 https://web.tskr.localhost:1355
+https://api.tskr.localhost:1355
+https://auth.tskr.localhost:1355
 ```
 
 Linked git worktrees get the branch name as a prefix automatically:
 
 ```text
 https://<branch>.web.tskr.localhost:1355
+https://<branch>.api.tskr.localhost:1355
+https://<branch>.auth.tskr.localhost:1355
 ```
 
 Useful commands:
@@ -42,12 +48,16 @@ Useful commands:
 ```bash
 portless list
 PORTLESS=0 pnpm --filter web run dev
+PORTLESS=0 pnpm --filter api run dev
+PORTLESS=0 pnpm --filter auth run dev
 ```
 
 - `portless list` shows the active route registrations.
 - `PORTLESS=0 ...` bypasses Portless and runs the app directly.
+- App scripts use `portless --name <service>.tskr ...` so worktrees inherit
+  a branch-prefixed hostname automatically.
 - Portless is a global prerequisite for this repo, not a workspace dependency.
-- This workflow is tested with `portless@0.4.1+` on macOS and Linux.
+- This workflow is tested with `portless@0.5.2+` on macOS and Linux.
 
 If Safari cannot resolve the hostname, run:
 
@@ -95,16 +105,22 @@ pnpm dev
 ```
 
 This runs the workspace dev tasks through Turbo and starts all apps. Default app
-ports are:
+URLs are:
 
 - `web`: Portless-managed URL (`https://web.tskr.localhost:1355`)
-- `api`: `http://localhost:3001`
-- `auth`: `http://localhost:3002`
+- `api`: Portless-managed URL (`https://api.tskr.localhost:1355`)
+- `auth`: Portless-managed URL (`https://auth.tskr.localhost:1355`)
 
 `api` and `auth` respect `process.env.PORT` (including in Turbo-driven `pnpm dev`
 via package `turbo.json` env passthrough). Because `PORT` is shared, setting it
 while running both services at once will make them contend for the same port.
 Use filtered dev commands when overriding a single service port.
+
+With `PORTLESS=0`, `api` and `auth` bypass Portless and bind directly to their
+default local ports:
+
+- `api`: `http://localhost:3001`
+- `auth`: `http://localhost:3002`
 
 To run one backend app directly:
 

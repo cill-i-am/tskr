@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "check": "git -C ../.. ls-files -- apps/web ':(exclude)apps/web/public/favicon.ico' | xargs pnpm --dir ../.. exec ultracite check",
-    "dev": "portless web.tskr vite dev",
+    "dev": "portless --name web.tskr vite dev",
     "build": "vite build",
     "preview": "vite preview",
     "start": "node .output/server/index.mjs",

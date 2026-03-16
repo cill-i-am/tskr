@@ -12,6 +12,8 @@
     "db:reset": "node scripts/local-postgres.mjs reset",
     "db:url": "node scripts/local-postgres.mjs url",
     "dev": "turbo run dev",
+    "dev:api": "turbo run dev --filter=api",
+    "dev:auth": "turbo run dev --filter=auth",
     "dev:web": "turbo run dev --filter=web",
     "fix": "pnpm exec ultracite fix && pnpm exec oxfmt --write .",
     "format": "pnpm fix",
@@ -19,7 +21,7 @@
     "opensrc:sync": "node scripts/sync-opensrc.mjs",
     "precheck": "pnpm exec ultracite check package.json turbo.json tsconfig.json .oxlintrc.json opencode.json scripts",
     "test:db-infra": "node --test scripts/lib/local-postgres-config.test.mjs scripts/lib/local-postgres.test.mjs scripts/lib/local-postgres-launcher.test.mjs",
-    "test:opensrc": "node --test scripts/lib/opensrc-sync.test.mjs",
+    "test:opensrc": "node --test scripts/lib/opensrc-sync.test.mjs scripts/lib/opensrc-package-coverage.test.mjs",
     "test:ui-propagation": "node --test scripts/lib/ui-propagation.test.mjs",
     "verify:ui-propagation": "node scripts/verify-ui-propagation.mjs",
     "typecheck": "turbo run typecheck"

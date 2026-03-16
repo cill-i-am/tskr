@@ -6,7 +6,7 @@
   "scripts": {
     "check": "git -C ../.. ls-files -- apps/api | xargs pnpm --dir ../.. exec ultracite check",
     "db:ensure": "node ../../scripts/local-postgres.mjs ensure",
-    "dev": "node ../../scripts/local-postgres-launcher.mjs -- tsx watch src/index.ts",
+    "dev": "portless --name api.tskr node ../../scripts/local-postgres-launcher.mjs -- tsx watch src/index.ts",
     "build": "tsc --project tsconfig.json",
     "start": "node dist/index.js",
     "test": "vitest run --globals src/app.test.ts",
