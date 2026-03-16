@@ -170,7 +170,9 @@ describe("authentication pages", () => {
       })
 
       expect(
-        screen.getByText(/the auth service has issued a reset link/i)
+        screen.getByText(
+          /If the account exists, check your email for a reset link/i
+        )
       ).toBeTruthy()
     } finally {
       view.unmount()

@@ -3,10 +3,32 @@ import { Pool } from "pg"
 
 import type { AppType } from "./app.js"
 
+const {
+  sendEmailVerificationMock,
+  sendExistingUserSignUpNoticeMock,
+  sendPasswordResetMock,
+} = vi.hoisted(() => ({
+  sendEmailVerificationMock: vi.fn(async () => ({ id: "test-verification-id" })),
+  sendExistingUserSignUpNoticeMock: vi.fn(async () => ({
+    id: "test-existing-user-id",
+  })),
+  sendPasswordResetMock: vi.fn(async () => ({ id: "test-password-reset-id" })),
+}))
+
+vi.mock("./domains/identity/authentication/infra/email-service.js", () => ({
+  createAuthenticationEmailService: () => ({
+    sendEmailVerification: sendEmailVerificationMock,
+    sendExistingUserSignUpNotice: sendExistingUserSignUpNoticeMock,
+    sendPasswordReset: sendPasswordResetMock,
+  }),
+}))
+
 process.env.BETTER_AUTH_SECRET ??=
   "test-secret-test-secret-test-secret-test-secret"
 process.env.BETTER_AUTH_URL ??= "http://localhost:3002"
 process.env.BETTER_AUTH_TRUSTED_ORIGINS ??= "http://localhost:3000"
+process.env.EMAIL_FROM ??= "TSKR <noreply@tskr.app>"
+process.env.EMAIL_PROVIDER ??= "console"
 
 const { app } = await import("./app.js")
 const { upResponse } = await import("./domains/system/healthcheck/index.js")
@@ -73,6 +95,12 @@ const findLatestResetToken = async () => {
 }
 
 describe("auth app", () => {
+  beforeEach(() => {
+    sendEmailVerificationMock.mockClear()
+    sendExistingUserSignUpNoticeMock.mockClear()
+    sendPasswordResetMock.mockClear()
+  })
+
   it("returns the expected /up healthcheck payload", async () => {
     await truncateAuthTables()
 
@@ -202,6 +230,23 @@ describe("auth app", () => {
     const resetToken = await findLatestResetToken()
 
     expect(resetToken).toBeTruthy()
+    expect(sendPasswordResetMock).toHaveBeenCalledOnce()
+    if (!resetToken) {
+      throw new Error("Expected a reset token to be stored")
+    }
+
+    const emailInput = sendPasswordResetMock.mock.calls.at(0)?.at(0) as
+      | {
+          resetUrl: string
+          to: string
+        }
+      | undefined
+
+    expect(emailInput?.to).toBe("grace@example.com")
+    expect(emailInput?.resetUrl).toContain(
+      "http://localhost:3000/reset-password"
+    )
+    expect(emailInput?.resetUrl).toContain(resetToken)
   })
 
   it("resets the password and rejects the old credential", async () => {

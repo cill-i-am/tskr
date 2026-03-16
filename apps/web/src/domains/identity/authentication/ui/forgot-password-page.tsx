@@ -54,7 +54,7 @@ const ForgotPasswordPage = () => {
       }
 
       setSuccess(
-        "If the account exists, the auth service has issued a reset link. In local development the link is logged by the auth service."
+        "If the account exists, check your email for a reset link."
       )
     }
   )

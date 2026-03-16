@@ -37,6 +37,10 @@ describe(parseAuthenticationEnv, () => {
           "https://web.example.com, http://localhost:3000",
         BETTER_AUTH_URL: undefined,
         DATABASE_URL: "postgres://postgres:postgres@localhost:5432/tskr",
+        EMAIL_FROM: "TSKR <noreply@tskr.app>",
+        EMAIL_PROVIDER: undefined,
+        EMAIL_REPLY_TO: undefined,
+        RESEND_API_KEY: undefined,
         NODE_ENV: "test",
         PORTLESS: "1",
       },
@@ -45,6 +49,10 @@ describe(parseAuthenticationEnv, () => {
           betterAuthSecret: "dev-secret-dev-secret-dev-secret-dev-secret",
           betterAuthUrl: "https://auth.tskr.localhost:1355",
           databaseUrl: "postgres://postgres:postgres@localhost:5432/tskr",
+          emailFrom: "TSKR <noreply@tskr.app>",
+          emailProvider: "console",
+          emailReplyTo: undefined,
+          resendApiKey: undefined,
           trustedOrigins: [
             "https://web.tskr.localhost:1355",
             "https://web.example.com",
@@ -60,6 +68,8 @@ describe(parseAuthenticationEnv, () => {
       {
         BETTER_AUTH_SECRET: undefined,
         DATABASE_URL: "postgres://postgres:postgres@localhost:5432/tskr",
+        EMAIL_FROM: "TSKR <noreply@tskr.app>",
+        EMAIL_PROVIDER: "console",
         NODE_ENV: "production",
       },
       () => {
@@ -77,6 +87,10 @@ describe(parseAuthenticationEnv, () => {
         BETTER_AUTH_TRUSTED_ORIGINS: undefined,
         BETTER_AUTH_URL: undefined,
         DATABASE_URL: "postgres://postgres:postgres@localhost:5432/tskr",
+        EMAIL_FROM: "TSKR <noreply@tskr.app>",
+        EMAIL_PROVIDER: undefined,
+        EMAIL_REPLY_TO: undefined,
+        RESEND_API_KEY: undefined,
         NODE_ENV: "test",
         PORTLESS: "0",
       },
@@ -85,6 +99,10 @@ describe(parseAuthenticationEnv, () => {
           betterAuthSecret: "test-secret",
           betterAuthUrl: "http://localhost:3002",
           databaseUrl: "postgres://postgres:postgres@localhost:5432/tskr",
+          emailFrom: "TSKR <noreply@tskr.app>",
+          emailProvider: "console",
+          emailReplyTo: undefined,
+          resendApiKey: undefined,
           trustedOrigins: [
             "https://web.tskr.localhost:1355",
             "http://localhost:3002",
@@ -92,6 +110,61 @@ describe(parseAuthenticationEnv, () => {
             "http://localhost:5173",
           ],
         })
+      }
+    )
+  })
+
+  it("defaults to resend in production and requires a resend api key", async () => {
+    await withEnvironment(
+      {
+        BETTER_AUTH_SECRET: "test-secret",
+        DATABASE_URL: "postgres://postgres:postgres@localhost:5432/tskr",
+        EMAIL_FROM: "TSKR <noreply@tskr.app>",
+        EMAIL_PROVIDER: undefined,
+        RESEND_API_KEY: undefined,
+        NODE_ENV: "production",
+      },
+      () => {
+        expect(() => parseAuthenticationEnv()).toThrow(
+          "RESEND_API_KEY must be set when EMAIL_PROVIDER is resend"
+        )
+      }
+    )
+  })
+
+  it("accepts resend provider config in production", async () => {
+    await withEnvironment(
+      {
+        BETTER_AUTH_SECRET: "test-secret",
+        DATABASE_URL: "postgres://postgres:postgres@localhost:5432/tskr",
+        EMAIL_FROM: "TSKR <noreply@tskr.app>",
+        EMAIL_PROVIDER: undefined,
+        EMAIL_REPLY_TO: "support@tskr.app",
+        RESEND_API_KEY: "resend_test_123",
+        NODE_ENV: "production",
+      },
+      () => {
+        expect(parseAuthenticationEnv()).toMatchObject({
+          emailFrom: "TSKR <noreply@tskr.app>",
+          emailProvider: "resend",
+          emailReplyTo: "support@tskr.app",
+          resendApiKey: "resend_test_123",
+        })
+      }
+    )
+  })
+
+  it("requires EMAIL_FROM", async () => {
+    await withEnvironment(
+      {
+        BETTER_AUTH_SECRET: "test-secret",
+        DATABASE_URL: "postgres://postgres:postgres@localhost:5432/tskr",
+        EMAIL_FROM: undefined,
+        EMAIL_PROVIDER: "console",
+        NODE_ENV: "test",
+      },
+      () => {
+        expect(() => parseAuthenticationEnv()).toThrow("EMAIL_FROM must be set")
       }
     )
   })
