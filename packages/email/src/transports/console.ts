@@ -13,7 +13,10 @@ const createConsoleTransport = (
     async send(message): Promise<EmailSendResult> {
       logger.info("[email:console] send", {
         from: message.from,
+        html: message.html,
+        replyTo: message.replyTo,
         subject: message.subject,
+        text: message.text,
         to: message.to,
       })
       return {

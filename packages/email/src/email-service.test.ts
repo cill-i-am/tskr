@@ -136,8 +136,11 @@ test("createConsoleTransport returns a transport id", async () => {
   assert.equal(loggedArgs[0], "[email:console] send")
   assert.deepEqual(loggedArgs[1], {
     from: "TSKR <noreply@tskr.app>",
+    html: '<a href="https://app.tskr.test/reset?token=secret-token">Reset</a>',
+    replyTo: undefined,
     subject: "Hello",
+    text: "Reset at https://app.tskr.test/reset?token=secret-token",
     to: "ada@example.com",
   })
-  assert.equal(JSON.stringify(loggedArgs).includes("secret-token"), false)
+  assert.equal(JSON.stringify(loggedArgs).includes("secret-token"), true)
 })
