@@ -14,6 +14,9 @@ applications under `apps/*`.
 
 - Keep app-specific infrastructure, deploy config, and runtime entrypoints with
   the app that owns them.
+- Do not let deployable apps become the canonical owner of shared Postgres
+  schema or migration history; that belongs in a shared platform boundary under
+  `packages/*`.
 - Prefer moving narrower framework or hosting guidance down into the matching
   app-level `AGENTS.md` file.
 - Use `@workspace/*` packages for true shared infrastructure and components

@@ -14,6 +14,9 @@ for the deployable auth application in this subtree.
   slice-owned modules under `src/domains/*`.
 - Treat `apps/auth/railway.toml` as the source of truth for Railway-specific
   build, start, and healthcheck expectations.
+- Keep server-side auth behavior here, but keep shared database schema,
+  migrations, and Drizzle config owned by `@workspace/db` rather than inside
+  the app.
 - Preserve the `/up` response shape to match `apps/web`.
 - Export route contracts intentionally so typed consumers can use this app via
   Hono RPC without redefining endpoint types.
