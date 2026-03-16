@@ -1,7 +1,7 @@
 import { argv } from "node:process"
 
 export const LAUNCHER_USAGE =
-  'Expected a child command after "--". Example: node scripts/dev/local-postgres-launcher.mjs -- tsx watch src/index.ts'
+  'Expected a child command after "--". Example: node scripts/local-postgres-launcher.mjs -- tsx watch src/index.ts'
 
 export const parseLauncherCommandArgs = (argvInput = argv) => {
   const separatorIndex = argvInput.indexOf("--")

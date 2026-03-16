@@ -10,7 +10,7 @@ import {
 test("parseLauncherCommandArgs returns command and args after separator", () => {
   const command = parseLauncherCommandArgs([
     "node",
-    "scripts/dev/local-postgres-launcher.mjs",
+    "scripts/local-postgres-launcher.mjs",
     "--",
     "tsx",
     "watch",
@@ -26,12 +26,9 @@ test("parseLauncherCommandArgs returns command and args after separator", () => 
 test("parseLauncherCommandArgs throws when no command is provided", () => {
   assert.throws(
     () =>
-      parseLauncherCommandArgs([
-        "node",
-        "scripts/dev/local-postgres-launcher.mjs",
-      ]),
+      parseLauncherCommandArgs(["node", "scripts/local-postgres-launcher.mjs"]),
     new Error(
-      'Expected a child command after "--". Example: node scripts/dev/local-postgres-launcher.mjs -- tsx watch src/index.ts'
+      'Expected a child command after "--". Example: node scripts/local-postgres-launcher.mjs -- tsx watch src/index.ts'
     )
   )
 })
@@ -41,12 +38,12 @@ test('parseLauncherCommandArgs requires "--" separator', () => {
     () =>
       parseLauncherCommandArgs([
         "node",
-        "scripts/dev/local-postgres-launcher.mjs",
+        "scripts/local-postgres-launcher.mjs",
         "tsx",
         "watch",
       ]),
     new Error(
-      'Expected a child command after "--". Example: node scripts/dev/local-postgres-launcher.mjs -- tsx watch src/index.ts'
+      'Expected a child command after "--". Example: node scripts/local-postgres-launcher.mjs -- tsx watch src/index.ts'
     )
   )
 })
