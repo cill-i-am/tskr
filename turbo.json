@@ -28,6 +28,12 @@
     "db:ensure": {
       "cache": false
     },
+    "db:generate": {
+      "cache": false
+    },
+    "db:migrate": {
+      "cache": false
+    },
     "web#dev": {
       "cache": false,
       "persistent": true,

@@ -3,6 +3,7 @@ builder = "RAILPACK"
 buildCommand = "pnpm exec turbo run build --filter=auth"
 watchPatterns = [
   "/apps/auth/**",
+  "/packages/db/**",
   "/package.json",
   "/pnpm-lock.yaml",
   "/pnpm-workspace.yaml",
@@ -11,6 +12,5 @@ watchPatterns = [
 ]
 
 [deploy]
-preDeployCommand = "pnpm --filter auth db:migrate"
 startCommand = "pnpm --filter auth start"
 healthcheckPath = "/up"

@@ -3,9 +3,6 @@
   "tasks": {
     "dev": {
       "cache": false,
-      "dependsOn": ["db:ensure"],
-      "with": ["@workspace/db#dev"],
-      "passThroughEnv": ["*"],
       "persistent": true
     }
   }

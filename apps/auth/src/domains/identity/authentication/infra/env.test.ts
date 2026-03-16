@@ -36,7 +36,6 @@ describe(parseAuthenticationEnv, () => {
         BETTER_AUTH_TRUSTED_ORIGINS:
           "https://web.example.com, http://localhost:3000",
         BETTER_AUTH_URL: undefined,
-        DATABASE_URL: "postgres://postgres:postgres@localhost:5432/tskr",
         NODE_ENV: "test",
         PORTLESS: "1",
       },
@@ -44,7 +43,6 @@ describe(parseAuthenticationEnv, () => {
         expect(parseAuthenticationEnv()).toStrictEqual({
           betterAuthSecret: "dev-secret-dev-secret-dev-secret-dev-secret",
           betterAuthUrl: "https://auth.tskr.localhost:1355",
-          databaseUrl: "postgres://postgres:postgres@localhost:5432/tskr",
           trustedOrigins: [
             "https://web.tskr.localhost:1355",
             "https://web.example.com",
@@ -59,7 +57,6 @@ describe(parseAuthenticationEnv, () => {
     await withEnvironment(
       {
         BETTER_AUTH_SECRET: undefined,
-        DATABASE_URL: "postgres://postgres:postgres@localhost:5432/tskr",
         NODE_ENV: "production",
       },
       () => {
@@ -76,7 +73,6 @@ describe(parseAuthenticationEnv, () => {
         BETTER_AUTH_SECRET: "test-secret",
         BETTER_AUTH_TRUSTED_ORIGINS: undefined,
         BETTER_AUTH_URL: undefined,
-        DATABASE_URL: "postgres://postgres:postgres@localhost:5432/tskr",
         NODE_ENV: "test",
         PORTLESS: "0",
       },
@@ -84,7 +80,6 @@ describe(parseAuthenticationEnv, () => {
         expect(parseAuthenticationEnv()).toStrictEqual({
           betterAuthSecret: "test-secret",
           betterAuthUrl: "http://localhost:3002",
-          databaseUrl: "postgres://postgres:postgres@localhost:5432/tskr",
           trustedOrigins: [
             "https://web.tskr.localhost:1355",
             "http://localhost:3002",

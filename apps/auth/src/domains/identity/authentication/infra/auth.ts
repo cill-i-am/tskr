@@ -1,11 +1,12 @@
 import { betterAuth } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 
+import { authDatabaseSchema } from "@workspace/db"
+
 import { resolveDefaultCookieAttributes } from "./cookie-attributes.js"
 import { database } from "./database.js"
 import { parseAuthenticationEnv } from "./env.js"
 import { logPasswordResetLink } from "./password-reset-dev-stub.js"
-import * as schema from "./schema.js"
 
 const authenticationEnv = parseAuthenticationEnv()
 
@@ -20,7 +21,7 @@ const auth = betterAuth({
   baseURL: authenticationEnv.betterAuthUrl,
   database: drizzleAdapter(database, {
     provider: "pg",
-    schema,
+    schema: authDatabaseSchema,
   }),
   emailAndPassword: {
     enabled: true,

@@ -1,6 +1,5 @@
 /* eslint-disable jest/valid-title */
 
-
 import { resolveDefaultCookieAttributes } from "./cookie-attributes.js"
 
 describe(resolveDefaultCookieAttributes, () => {

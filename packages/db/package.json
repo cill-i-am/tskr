@@ -1,0 +1,53 @@
+{
+  "name": "@workspace/db",
+  "version": "0.0.0",
+  "private": true,
+  "files": [
+    "dist",
+    "drizzle"
+  ],
+  "type": "module",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./client": {
+      "types": "./dist/client.d.mts",
+      "import": "./dist/client.mjs"
+    },
+    "./schema": {
+      "types": "./dist/schema/index.d.mts",
+      "import": "./dist/schema/index.mjs"
+    },
+    "./schema/auth": {
+      "types": "./dist/schema/auth.d.mts",
+      "import": "./dist/schema/auth.mjs"
+    },
+    "./schema/app": {
+      "types": "./dist/schema/app.d.mts",
+      "import": "./dist/schema/app.mjs"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "check": "pnpm exec ultracite check drizzle drizzle.config.ts package.json src tsconfig.json tsconfig.lint.json tsdown.config.ts turbo.json",
+    "db:generate": "pnpm exec drizzle-kit generate --config drizzle.config.ts",
+    "db:migrate": "pnpm exec drizzle-kit migrate --config drizzle.config.ts",
+    "dev": "sh -c 'case \"$1\" in --) shift;; esac; exec tsdown --watch \"$@\"' sh",
+    "test": "node --test --experimental-strip-types src/database-url.test.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.1",
+    "pg": "^8.19.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.1.0",
+    "@types/pg": "^8.16.0",
+    "drizzle-kit": "^0.31.9",
+    "tsdown": "^0.21.2",
+    "typescript": "^5.9.3"
+  }
+}
