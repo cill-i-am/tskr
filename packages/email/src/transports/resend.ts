@@ -1,6 +1,6 @@
 import type { EmailSendResult, EmailTransport } from "../contracts.ts"
 
-type ResendTransportConfig = {
+interface ResendTransportConfig {
   apiKey: string
   baseUrl?: string
   fetch?: typeof globalThis.fetch
@@ -26,7 +26,9 @@ class EmailTransportError extends Error {
   }
 }
 
-const createResendTransport = (config: ResendTransportConfig): EmailTransport => {
+const createResendTransport = (
+  config: ResendTransportConfig
+): EmailTransport => {
   const fetchImpl = config.fetch ?? globalThis.fetch
   if (!fetchImpl) {
     throw new Error(
@@ -42,24 +44,27 @@ const createResendTransport = (config: ResendTransportConfig): EmailTransport =>
   return {
     async send(message): Promise<EmailSendResult> {
       const response = await fetchImpl(`${baseUrl}/emails`, {
-        method: "POST",
+        body: JSON.stringify({
+          from: message.from,
+          html: message.html,
+          subject: message.subject,
+          text: message.text,
+          to: Array.isArray(message.to) ? message.to : [message.to],
+          ...(message.replyTo ? { reply_to: message.replyTo } : {}),
+        }),
         headers: {
           Authorization: `Bearer ${config.apiKey}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          from: message.from,
-          to: Array.isArray(message.to) ? message.to : [message.to],
-          subject: message.subject,
-          html: message.html,
-          text: message.text,
-          ...(message.replyTo ? { reply_to: message.replyTo } : {}),
-        }),
+        method: "POST",
       })
 
       const responseBody = await parseResponseBody(response)
       if (!response.ok) {
-        const errorMessage = resolveErrorMessage(responseBody, response.statusText)
+        const errorMessage = resolveErrorMessage(
+          responseBody,
+          response.statusText
+        )
         throw new EmailTransportError({
           details: responseBody,
           message: `Resend request failed (${response.status}): ${errorMessage}`,
@@ -102,7 +107,7 @@ const parseResponseBody = async (response: Response): Promise<unknown> => {
 
 const resolveResponseId = (body: unknown): string | null => {
   if (body && typeof body === "object" && "id" in body) {
-    const id = body.id
+    const { id } = body
     if (typeof id === "string" && id.length > 0) {
       return id
     }
@@ -118,7 +123,10 @@ const resolveErrorMessage = (body: unknown, fallback: string): string => {
 
   if (body && typeof body === "object") {
     const bodyRecord = body as Record<string, unknown>
-    if (typeof bodyRecord.message === "string" && bodyRecord.message.length > 0) {
+    if (
+      typeof bodyRecord.message === "string" &&
+      bodyRecord.message.length > 0
+    ) {
       return bodyRecord.message
     }
 

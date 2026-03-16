@@ -11,7 +11,7 @@ import { createExistingUserSignUpNoticeTemplate } from "./templates/existing-use
 import { createPasswordResetTemplate } from "./templates/password-reset.ts"
 import { createSignupVerificationOtpTemplate } from "./templates/signup-verification-otp.ts"
 
-type EmailServiceConfig = {
+interface EmailServiceConfig {
   appName: string
   from: string
   replyTo?: string
@@ -20,7 +20,7 @@ type EmailServiceConfig = {
   transport: EmailTransport
 }
 
-type EmailService = {
+interface EmailService {
   sendEmailVerificationEmail(
     input: EmailVerificationEmailInput
   ): Promise<EmailSendResult>
@@ -57,25 +57,10 @@ const createEmailService = (config: EmailServiceConfig): EmailService => {
     })
 
   return {
-    sendPasswordResetEmail: async ({ resetUrl, to }) => {
-      const template = createPasswordResetTemplate({
-        appName: config.appName,
-        resetUrl,
-      })
-      return sendTransactionalEmail({ ...template, to })
-    },
     sendEmailVerificationEmail: async ({ to, verificationUrl }) => {
       const template = createEmailVerificationTemplate({
         appName: config.appName,
         verificationUrl,
-      })
-      return sendTransactionalEmail({ ...template, to })
-    },
-    sendSignupVerificationOtpEmail: async ({ code, to }) => {
-      const template = createSignupVerificationOtpTemplate({
-        appName: config.appName,
-        code,
-        expiryText: config.signupVerificationOtpExpiryText,
       })
       return sendTransactionalEmail({ ...template, to })
     },
@@ -84,6 +69,21 @@ const createEmailService = (config: EmailServiceConfig): EmailService => {
         appName: config.appName,
         signInUrl,
         supportEmail: config.supportEmail,
+      })
+      return sendTransactionalEmail({ ...template, to })
+    },
+    sendPasswordResetEmail: async ({ resetUrl, to }) => {
+      const template = createPasswordResetTemplate({
+        appName: config.appName,
+        resetUrl,
+      })
+      return sendTransactionalEmail({ ...template, to })
+    },
+    sendSignupVerificationOtpEmail: async ({ code, to }) => {
+      const template = createSignupVerificationOtpTemplate({
+        appName: config.appName,
+        code,
+        expiryText: config.signupVerificationOtpExpiryText,
       })
       return sendTransactionalEmail({ ...template, to })
     },

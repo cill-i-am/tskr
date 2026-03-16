@@ -11,7 +11,9 @@ type AuthenticationEmailEnv = Pick<
   "emailFrom" | "emailProvider" | "emailReplyTo" | "resendApiKey"
 >
 
-const createAuthenticationEmailService = (environment: AuthenticationEmailEnv) => {
+const createAuthenticationEmailService = (
+  environment: AuthenticationEmailEnv
+) => {
   const transport =
     environment.emailProvider === "resend"
       ? createResendTransport({

@@ -39,10 +39,10 @@ describe(parseAuthenticationEnv, () => {
         EMAIL_FROM: "TSKR <noreply@tskr.app>",
         EMAIL_PROVIDER: undefined,
         EMAIL_REPLY_TO: undefined,
-        RESEND_API_KEY: undefined,
-        WEB_BASE_URL: undefined,
         NODE_ENV: "test",
         PORTLESS: "1",
+        RESEND_API_KEY: undefined,
+        WEB_BASE_URL: undefined,
       },
       () => {
         expect(parseAuthenticationEnv()).toStrictEqual({
@@ -52,12 +52,12 @@ describe(parseAuthenticationEnv, () => {
           emailProvider: "console",
           emailReplyTo: undefined,
           resendApiKey: undefined,
-          webBaseUrl: "https://web.tskr.localhost:1355",
           trustedOrigins: [
             "https://web.tskr.localhost:1355",
             "https://web.example.com",
             "http://localhost:3000",
           ],
+          webBaseUrl: "https://web.tskr.localhost:1355",
         })
       }
     )
@@ -69,9 +69,9 @@ describe(parseAuthenticationEnv, () => {
         BETTER_AUTH_SECRET: undefined,
         EMAIL_FROM: "TSKR <noreply@tskr.app>",
         EMAIL_PROVIDER: "console",
-        WEB_BASE_URL: undefined,
-        PORTLESS: "1",
         NODE_ENV: "production",
+        PORTLESS: "1",
+        WEB_BASE_URL: undefined,
       },
       () => {
         expect(() => parseAuthenticationEnv()).toThrow(
@@ -90,10 +90,10 @@ describe(parseAuthenticationEnv, () => {
         EMAIL_FROM: "TSKR <noreply@tskr.app>",
         EMAIL_PROVIDER: undefined,
         EMAIL_REPLY_TO: undefined,
-        RESEND_API_KEY: undefined,
-        WEB_BASE_URL: undefined,
         NODE_ENV: "test",
         PORTLESS: "0",
+        RESEND_API_KEY: undefined,
+        WEB_BASE_URL: undefined,
       },
       () => {
         expect(parseAuthenticationEnv()).toStrictEqual({
@@ -103,13 +103,13 @@ describe(parseAuthenticationEnv, () => {
           emailProvider: "console",
           emailReplyTo: undefined,
           resendApiKey: undefined,
-          webBaseUrl: "http://localhost:3000",
           trustedOrigins: [
             "https://web.tskr.localhost:1355",
             "http://localhost:3002",
             "http://localhost:3000",
             "http://localhost:5173",
           ],
+          webBaseUrl: "http://localhost:3000",
         })
       }
     )
@@ -121,10 +121,10 @@ describe(parseAuthenticationEnv, () => {
         BETTER_AUTH_SECRET: "test-secret",
         EMAIL_FROM: "TSKR <noreply@tskr.app>",
         EMAIL_PROVIDER: undefined,
+        NODE_ENV: "production",
+        PORTLESS: "1",
         RESEND_API_KEY: undefined,
         WEB_BASE_URL: undefined,
-        PORTLESS: "1",
-        NODE_ENV: "production",
       },
       () => {
         expect(() => parseAuthenticationEnv()).toThrow(
@@ -141,10 +141,10 @@ describe(parseAuthenticationEnv, () => {
         EMAIL_FROM: "TSKR <noreply@tskr.app>",
         EMAIL_PROVIDER: undefined,
         EMAIL_REPLY_TO: "support@tskr.app",
+        NODE_ENV: "production",
+        PORTLESS: "1",
         RESEND_API_KEY: "resend_test_123",
         WEB_BASE_URL: undefined,
-        PORTLESS: "1",
-        NODE_ENV: "production",
       },
       () => {
         expect(parseAuthenticationEnv()).toMatchObject({
@@ -164,9 +164,9 @@ describe(parseAuthenticationEnv, () => {
         BETTER_AUTH_SECRET: "test-secret",
         EMAIL_FROM: undefined,
         EMAIL_PROVIDER: "console",
-        WEB_BASE_URL: undefined,
-        PORTLESS: "1",
         NODE_ENV: "test",
+        PORTLESS: "1",
+        WEB_BASE_URL: undefined,
       },
       () => {
         expect(() => parseAuthenticationEnv()).toThrow("EMAIL_FROM must be set")
@@ -180,9 +180,9 @@ describe(parseAuthenticationEnv, () => {
         BETTER_AUTH_SECRET: "test-secret",
         EMAIL_FROM: "TSKR <noreply@tskr.app>",
         EMAIL_PROVIDER: "console",
-        WEB_BASE_URL: "https://app.example.com",
-        PORTLESS: "0",
         NODE_ENV: "test",
+        PORTLESS: "0",
+        WEB_BASE_URL: "https://app.example.com",
       },
       () => {
         expect(parseAuthenticationEnv().webBaseUrl).toBe(

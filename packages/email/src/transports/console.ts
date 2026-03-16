@@ -1,6 +1,6 @@
 import type { EmailSendResult, EmailTransport } from "../contracts.ts"
 
-type ConsoleTransportConfig = {
+interface ConsoleTransportConfig {
   logger?: Pick<Console, "info">
 }
 

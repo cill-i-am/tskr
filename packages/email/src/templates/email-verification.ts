@@ -1,6 +1,7 @@
-import { escapeHtml, type EmailTemplateContent } from "./shared.ts"
+import { escapeHtml } from "./shared.ts"
+import type { EmailTemplateContent } from "./shared.ts"
 
-type EmailVerificationTemplateInput = {
+interface EmailVerificationTemplateInput {
   appName: string
   verificationUrl: string
 }
@@ -13,12 +14,12 @@ const createEmailVerificationTemplate = ({
   const safeUrl = escapeHtml(verificationUrl)
 
   return {
-    subject: `Verify your ${appName} email`,
     html: [
       "<p>Confirm your email address to continue.</p>",
       `<p><a href="${safeUrl}">Verify email</a></p>`,
       `<p>If you did not create this ${safeAppName} account, you can ignore this email.</p>`,
     ].join(""),
+    subject: `Verify your ${appName} email`,
     text: [
       "Confirm your email address to continue.",
       `Verify email: ${verificationUrl}`,

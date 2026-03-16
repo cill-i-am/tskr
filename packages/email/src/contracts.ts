@@ -1,6 +1,6 @@
 type EmailRecipient = string | string[]
 
-type EmailMessage = {
+interface EmailMessage {
   from: string
   html: string
   replyTo?: string
@@ -9,30 +9,30 @@ type EmailMessage = {
   to: EmailRecipient
 }
 
-type EmailSendResult = {
+interface EmailSendResult {
   id: string
 }
 
-type EmailTransport = {
+interface EmailTransport {
   send(message: EmailMessage): Promise<EmailSendResult>
 }
 
-type PasswordResetEmailInput = {
+interface PasswordResetEmailInput {
   resetUrl: string
   to: string
 }
 
-type SignupVerificationOtpEmailInput = {
+interface SignupVerificationOtpEmailInput {
   code: string
   to: string
 }
 
-type EmailVerificationEmailInput = {
+interface EmailVerificationEmailInput {
   to: string
   verificationUrl: string
 }
 
-type ExistingUserSignUpNoticeEmailInput = {
+interface ExistingUserSignUpNoticeEmailInput {
   signInUrl: string
   to: string
 }

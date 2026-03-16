@@ -8,7 +8,7 @@ const {
   createResendTransportMock: vi.fn(() => "resend-transport"),
 }))
 
-vi.mock("@workspace/email", () => ({
+vi.mock<typeof import("@workspace/email")>(import("@workspace/email"), () => ({
   createConsoleTransport: createConsoleTransportMock,
   createEmailService: createEmailServiceMock,
   createResendTransport: createResendTransportMock,
@@ -16,7 +16,7 @@ vi.mock("@workspace/email", () => ({
 
 import { createAuthenticationEmailService } from "./email-service.js"
 
-describe("createAuthenticationEmailService", () => {
+describe(createAuthenticationEmailService, () => {
   beforeEach(() => {
     createConsoleTransportMock.mockClear()
     createEmailServiceMock.mockClear()

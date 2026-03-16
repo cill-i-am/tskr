@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
+import { emailOTP } from "better-auth/plugins/email-otp"
 
 import { authDatabaseSchema } from "@workspace/db"
 
@@ -30,7 +31,7 @@ const auth = betterAuth({
     schema: authDatabaseSchema,
   }),
   emailAndPassword: {
-    autoSignIn: true,
+    autoSignIn: false,
     enabled: true,
     onExistingUserSignUp: ({ user }) => {
       // Keep notification delivery off the critical auth path.
@@ -50,7 +51,7 @@ const auth = betterAuth({
           )
         })
     },
-    requireEmailVerification: false,
+    requireEmailVerification: true,
     sendResetPassword: ({ url, user }) => {
       // Better Auth treats reset delivery as a generic background side effect.
       void authenticationEmailService
@@ -71,26 +72,36 @@ const auth = betterAuth({
     },
   },
   emailVerification: {
+    autoSignInAfterVerification: true,
+    sendOnSignIn: true,
     sendOnSignUp: true,
-    sendVerificationEmail: ({ url, user }) => {
-      // Better Auth supplies the auth-hosted verify URL, including any callbackURL from signup.
-      void authenticationEmailService
-        .sendEmailVerificationEmail({
-          to: user.email,
-          verificationUrl: url,
-        })
-        .catch((error) => {
-          logEmailDeliveryFailure(
-            "[auth:email] failed to send verification email",
-            {
-              error,
-              recipient: user.email,
-              verificationUrl: url,
-            }
-          )
-        })
-    },
   },
+  plugins: [
+    emailOTP({
+      allowedAttempts: 3,
+      expiresIn: 300,
+      otpLength: 6,
+      overrideDefaultEmailVerification: true,
+      sendVerificationOTP: async ({ email, otp, type }) => {
+        void authenticationEmailService
+          .sendSignupVerificationOtpEmail({
+            code: otp,
+            to: email,
+          })
+          .catch((error) => {
+            logEmailDeliveryFailure(
+              "[auth:email] failed to send signup verification otp email",
+              {
+                error,
+                otpType: type,
+                recipient: email,
+              }
+            )
+          })
+      },
+      storeOTP: "hashed",
+    }),
+  ],
   secret: authenticationEnv.betterAuthSecret,
   trustedOrigins: authenticationEnv.trustedOrigins,
 })
