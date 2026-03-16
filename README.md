@@ -141,6 +141,30 @@ pnpm --filter api run db:ensure
 pnpm --filter auth run db:ensure
 ```
 
+### Auth environment variables
+
+The `auth` service uses Better Auth with Postgres through the Drizzle adapter.
+
+Required in Railway for `auth`:
+
+- `DATABASE_URL=${{Postgres.DATABASE_URL}}`
+- `BETTER_AUTH_SECRET=<generated secret>`
+- `BETTER_AUTH_URL=<public auth service URL>`
+- `BETTER_AUTH_TRUSTED_ORIGINS=<comma-separated allowed browser origins>`
+
+Required in Railway for `web`:
+
+- `VITE_AUTH_BASE_URL=<public auth service URL>`
+
+Useful local defaults:
+
+- `BETTER_AUTH_URL=https://auth.tskr.localhost:1355`
+- `BETTER_AUTH_TRUSTED_ORIGINS=https://web.tskr.localhost:1355,http://localhost:3000,http://localhost:5173`
+- `VITE_AUTH_BASE_URL=https://auth.tskr.localhost:1355`
+
+If running direct local development without Portless, the auth service falls back
+to `http://localhost:3002`.
+
 ## Local source mirrors
 
 - Run `pnpm bootstrap` to install workspace dependencies and any local project prerequisites.

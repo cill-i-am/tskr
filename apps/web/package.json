@@ -6,10 +6,11 @@
   "scripts": {
     "check": "git -C ../.. ls-files -- apps/web ':(exclude)apps/web/public/favicon.ico' | xargs pnpm --dir ../.. exec ultracite check",
     "dev": "portless --name web.tskr vite dev",
-    "build": "vite build",
+    "build": "pnpm --filter @workspace/ui build && vite build",
     "preview": "vite preview",
     "start": "node .output/server/index.mjs",
-    "typecheck": "tsc --noEmit"
+    "test": "pnpm --filter @workspace/ui build && vitest run",
+    "typecheck": "pnpm --filter @workspace/ui build && tsc --noEmit"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.2.8",
@@ -18,6 +19,7 @@
     "@tanstack/react-start": "^1.132.0",
     "@tanstack/router-plugin": "^1.132.0",
     "@workspace/ui": "workspace:*",
+    "better-auth": "^1.5.5",
     "clsx": "^2.1.1",
     "lucide-react": "^0.577.0",
     "nitro": "latest",
@@ -28,11 +30,15 @@
     "vite-tsconfig-paths": "^5.1.4"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^25.1.0",
     "@types/react": "^19.2.10",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
+    "jsdom": "^29.0.0",
     "typescript": "^5.9.3",
-    "vite": "^7.2.4"
+    "vite": "^7.2.4",
+    "vitest": "^4.1.0"
   }
 }
