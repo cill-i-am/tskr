@@ -30,3 +30,4 @@ const auth = betterAuth({
 })
 
 export { auth }
+export { authenticationEnv }

@@ -99,6 +99,27 @@ describe("auth app", () => {
     })
   })
 
+  it("responds to auth CORS preflight requests for trusted origins", async () => {
+    await truncateAuthTables()
+
+    const response = await app.request("/api/auth/sign-in/email", {
+      headers: {
+        "access-control-request-headers": "content-type",
+        "access-control-request-method": "POST",
+        origin: "http://localhost:3000",
+      },
+      method: "OPTIONS",
+    })
+
+    expect(response.status).toBe(204)
+    expect(response.headers.get("access-control-allow-origin")).toBe(
+      "http://localhost:3000"
+    )
+    expect(response.headers.get("access-control-allow-credentials")).toBe(
+      "true"
+    )
+  })
+
   it("supports email sign up and sign in", async () => {
     await truncateAuthTables()
 
