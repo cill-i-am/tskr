@@ -3,32 +3,34 @@ const {
   createAuthenticationEmailServiceMock,
   drizzleAdapterMock,
   resolveDefaultCookieAttributesMock,
-  sendEmailVerificationMock,
-  sendExistingUserSignUpNoticeMock,
-  sendPasswordResetMock,
+  sendEmailVerificationEmailMock,
+  sendExistingUserSignupNoticeMock,
+  sendPasswordResetEmailMock,
 } = vi.hoisted(() => {
-  const sendEmailVerification = vi.fn(async () => ({ id: "verification-id" }))
-  const sendExistingUserSignUpNotice = vi.fn(async () => ({
+  const sendEmailVerificationEmail = vi.fn(async () => ({
+    id: "verification-id",
+  }))
+  const sendExistingUserSignupNotice = vi.fn(async () => ({
     id: "existing-user-id",
   }))
-  const sendPasswordReset = vi.fn(async () => ({ id: "reset-id" }))
+  const sendPasswordResetEmail = vi.fn(async () => ({ id: "reset-id" }))
 
   return {
     betterAuthMock: vi.fn(() => ({
       handler: vi.fn(),
     })),
     createAuthenticationEmailServiceMock: vi.fn(() => ({
-      sendEmailVerification,
-      sendExistingUserSignUpNotice,
-      sendPasswordReset,
+      sendEmailVerificationEmail,
+      sendExistingUserSignupNotice,
+      sendPasswordResetEmail,
     })),
     drizzleAdapterMock: vi.fn(() => "drizzle-adapter"),
     resolveDefaultCookieAttributesMock: vi.fn(() => ({
       secure: true,
     })),
-    sendEmailVerificationMock: sendEmailVerification,
-    sendExistingUserSignUpNoticeMock: sendExistingUserSignUpNotice,
-    sendPasswordResetMock: sendPasswordReset,
+    sendEmailVerificationEmailMock: sendEmailVerificationEmail,
+    sendExistingUserSignupNoticeMock: sendExistingUserSignupNotice,
+    sendPasswordResetEmailMock: sendPasswordResetEmail,
   }
 })
 
@@ -101,9 +103,9 @@ describe("auth config", () => {
     createAuthenticationEmailServiceMock.mockClear()
     drizzleAdapterMock.mockClear()
     resolveDefaultCookieAttributesMock.mockClear()
-    sendEmailVerificationMock.mockClear()
-    sendExistingUserSignUpNoticeMock.mockClear()
-    sendPasswordResetMock.mockClear()
+    sendEmailVerificationEmailMock.mockClear()
+    sendExistingUserSignupNoticeMock.mockClear()
+    sendPasswordResetEmailMock.mockClear()
     vi.resetModules()
   })
 
@@ -132,7 +134,7 @@ describe("auth config", () => {
       },
     })
 
-    expect(sendPasswordResetMock).toHaveBeenCalledWith({
+    expect(sendPasswordResetEmailMock).toHaveBeenCalledWith({
       resetUrl: "http://localhost:3000/reset-password?token=reset-token",
       to: "grace@example.com",
     })
@@ -144,7 +146,7 @@ describe("auth config", () => {
       },
     })
 
-    expect(sendEmailVerificationMock).toHaveBeenCalledWith({
+    expect(sendEmailVerificationEmailMock).toHaveBeenCalledWith({
       to: "grace@example.com",
       verificationUrl: "http://localhost:3000/verify-email?token=verify-token",
     })
@@ -155,7 +157,7 @@ describe("auth config", () => {
       },
     })
 
-    expect(sendExistingUserSignUpNoticeMock).toHaveBeenCalledWith({
+    expect(sendExistingUserSignupNoticeMock).toHaveBeenCalledWith({
       signInUrl: "https://app.example.com/login",
       to: "grace@example.com",
     })
@@ -165,11 +167,11 @@ describe("auth config", () => {
     const consoleErrorMock = vi
       .spyOn(console, "error")
       .mockImplementation(() => undefined)
-    sendPasswordResetMock.mockRejectedValueOnce(new Error("reset failed"))
-    sendEmailVerificationMock.mockRejectedValueOnce(
+    sendPasswordResetEmailMock.mockRejectedValueOnce(new Error("reset failed"))
+    sendEmailVerificationEmailMock.mockRejectedValueOnce(
       new Error("verification failed")
     )
-    sendExistingUserSignUpNoticeMock.mockRejectedValueOnce(
+    sendExistingUserSignupNoticeMock.mockRejectedValueOnce(
       new Error("existing-user failed")
     )
 

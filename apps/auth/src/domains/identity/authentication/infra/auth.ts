@@ -33,7 +33,7 @@ const auth = betterAuth({
     enabled: true,
     onExistingUserSignUp: ({ user }) => {
       void authenticationEmailService
-        .sendExistingUserSignUpNotice({
+        .sendExistingUserSignupNotice({
           signInUrl: existingUserSignInUrl,
           to: user.email,
         })
@@ -51,7 +51,7 @@ const auth = betterAuth({
     requireEmailVerification: false,
     sendResetPassword: ({ url, user }) => {
       void authenticationEmailService
-        .sendPasswordReset({
+        .sendPasswordResetEmail({
           resetUrl: url,
           to: user.email,
         })
@@ -70,7 +70,7 @@ const auth = betterAuth({
   emailVerification: {
     sendVerificationEmail: ({ url, user }) => {
       void authenticationEmailService
-        .sendEmailVerification({
+        .sendEmailVerificationEmail({
           to: user.email,
           verificationUrl: url,
         })

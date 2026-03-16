@@ -4,22 +4,26 @@ import { Pool } from "pg"
 import type { AppType } from "./app.js"
 
 const {
-  sendEmailVerificationMock,
-  sendExistingUserSignUpNoticeMock,
-  sendPasswordResetMock,
+  sendEmailVerificationEmailMock,
+  sendExistingUserSignupNoticeMock,
+  sendPasswordResetEmailMock,
 } = vi.hoisted(() => ({
-  sendEmailVerificationMock: vi.fn(async () => ({ id: "test-verification-id" })),
-  sendExistingUserSignUpNoticeMock: vi.fn(async () => ({
+  sendEmailVerificationEmailMock: vi.fn(async () => ({
+    id: "test-verification-id",
+  })),
+  sendExistingUserSignupNoticeMock: vi.fn(async () => ({
     id: "test-existing-user-id",
   })),
-  sendPasswordResetMock: vi.fn(async () => ({ id: "test-password-reset-id" })),
+  sendPasswordResetEmailMock: vi.fn(async () => ({
+    id: "test-password-reset-id",
+  })),
 }))
 
 vi.mock("./domains/identity/authentication/infra/email-service.js", () => ({
   createAuthenticationEmailService: () => ({
-    sendEmailVerification: sendEmailVerificationMock,
-    sendExistingUserSignUpNotice: sendExistingUserSignUpNoticeMock,
-    sendPasswordReset: sendPasswordResetMock,
+    sendEmailVerificationEmail: sendEmailVerificationEmailMock,
+    sendExistingUserSignupNotice: sendExistingUserSignupNoticeMock,
+    sendPasswordResetEmail: sendPasswordResetEmailMock,
   }),
 }))
 
@@ -97,9 +101,9 @@ const findLatestResetToken = async () => {
 
 describe("auth app", () => {
   beforeEach(() => {
-    sendEmailVerificationMock.mockClear()
-    sendExistingUserSignUpNoticeMock.mockClear()
-    sendPasswordResetMock.mockClear()
+    sendEmailVerificationEmailMock.mockClear()
+    sendExistingUserSignupNoticeMock.mockClear()
+    sendPasswordResetEmailMock.mockClear()
   })
 
   it("returns the expected /up healthcheck payload", async () => {
