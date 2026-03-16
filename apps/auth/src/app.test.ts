@@ -179,6 +179,7 @@ describe("auth app", () => {
 
     const signUpResponse = await requestJson("/api/auth/sign-up/email", {
       body: JSON.stringify({
+        callbackURL: "http://localhost:3000/login",
         email: "ada@example.com",
         name: "Ada Lovelace",
         password: "password-1234",
@@ -211,6 +212,9 @@ describe("auth app", () => {
     expect(verificationEmailInput?.verificationUrl).toContain(
       "/api/auth/verify-email"
     )
+    expect(verificationEmailInput?.verificationUrl).toContain(
+      encodeURIComponent("http://localhost:3000/login")
+    )
 
     const signInResponse = await requestJson("/api/auth/sign-in/email", {
       body: JSON.stringify({
@@ -236,6 +240,7 @@ describe("auth app", () => {
 
     await requestJson("/api/auth/sign-up/email", {
       body: JSON.stringify({
+        callbackURL: "http://localhost:3000/login",
         email: "ada@example.com",
         name: "Ada Lovelace",
         password: "password-1234",
@@ -250,6 +255,7 @@ describe("auth app", () => {
 
     const duplicateSignUpResponse = await requestJson("/api/auth/sign-up/email", {
       body: JSON.stringify({
+        callbackURL: "http://localhost:3000/login",
         email: "ada@example.com",
         name: "Ada Byron",
         password: "password-1234",
@@ -273,6 +279,7 @@ describe("auth app", () => {
 
     await requestJson("/api/auth/sign-up/email", {
       body: JSON.stringify({
+        callbackURL: "http://localhost:3000/login",
         email: "grace@example.com",
         name: "Grace Hopper",
         password: "password-1234",
@@ -332,6 +339,7 @@ describe("auth app", () => {
 
     await requestJson("/api/auth/sign-up/email", {
       body: JSON.stringify({
+        callbackURL: "http://localhost:3000/login",
         email: "grace@example.com",
         name: "Grace Hopper",
         password: "password-1234",

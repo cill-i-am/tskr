@@ -72,7 +72,7 @@ const auth = betterAuth({
   emailVerification: {
     sendOnSignUp: true,
     sendVerificationEmail: ({ url, user }) => {
-      // Verification email delivery should not change signup success semantics.
+      // Better Auth supplies the auth-hosted verify URL, including any callbackURL from signup.
       void authenticationEmailService
         .sendEmailVerificationEmail({
           to: user.email,

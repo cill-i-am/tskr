@@ -47,6 +47,7 @@ const SignupPage = () => {
       }
 
       const result = await authClient.signUp.email({
+        callbackURL: new URL("/login", window.location.origin).toString(),
         email,
         name,
         password,

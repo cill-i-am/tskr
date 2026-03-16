@@ -170,6 +170,7 @@ describe("authentication pages", () => {
 
       await waitFor(() => {
         expect(signUpEmailMock).toHaveBeenCalledWith({
+          callbackURL: "http://localhost:3000/login",
           email: "ada@example.com",
           name: "Ada Lovelace",
           password: "password-1234",
