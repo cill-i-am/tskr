@@ -148,12 +148,9 @@ describe("authentication pages", () => {
     }
   })
 
-  it("signs the user in immediately after successful signup", async () => {
+  it("navigates home after successful signup", async () => {
     resetMocks()
     signUpEmailMock.mockResolvedValue({
-      error: null,
-    })
-    signInEmailMock.mockResolvedValue({
       error: null,
     })
     const { SignupPage } = await loadPages()
@@ -179,12 +176,7 @@ describe("authentication pages", () => {
         })
       })
 
-      await waitFor(() => {
-        expect(signInEmailMock).toHaveBeenCalledWith({
-          email: "ada@example.com",
-          password: "password-1234",
-        })
-      })
+      expect(signInEmailMock).not.toHaveBeenCalled()
 
       await waitFor(() => {
         expect(navigateMock).toHaveBeenCalledWith({

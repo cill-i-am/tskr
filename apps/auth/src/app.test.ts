@@ -195,6 +195,41 @@ describe("auth app", () => {
     })
   })
 
+  it("sends an existing-user signup notice when a signup email already exists", async () => {
+    await truncateAuthTables()
+
+    await requestJson("/api/auth/sign-up/email", {
+      body: JSON.stringify({
+        email: "ada@example.com",
+        name: "Ada Lovelace",
+        password: "password-1234",
+      }),
+      headers: {
+        "content-type": "application/json",
+      },
+      method: "POST",
+    })
+
+    sendExistingUserSignupNoticeMock.mockClear()
+
+    await requestJson("/api/auth/sign-up/email", {
+      body: JSON.stringify({
+        email: "ada@example.com",
+        name: "Ada Byron",
+        password: "password-1234",
+      }),
+      headers: {
+        "content-type": "application/json",
+      },
+      method: "POST",
+    })
+
+    expect(sendExistingUserSignupNoticeMock).toHaveBeenCalledWith({
+      signInUrl: "http://localhost:3000/login",
+      to: "ada@example.com",
+    })
+  })
+
   it("issues a password reset token", async () => {
     await truncateAuthTables()
 

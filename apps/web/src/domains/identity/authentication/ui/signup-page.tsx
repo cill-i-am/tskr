@@ -58,19 +58,7 @@ const SignupPage = () => {
         return
       }
 
-      const signInResult = await authClient.signIn.email({
-        email,
-        password,
-      })
-
       setIsSubmitting(false)
-
-      if (signInResult.error) {
-        setError(
-          signInResult.error.message ?? "Unable to sign in after signup."
-        )
-        return
-      }
 
       startTransition(() => {
         navigate({

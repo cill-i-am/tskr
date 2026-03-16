@@ -125,7 +125,7 @@ describe("auth config", () => {
       trustedOrigins: ["http://localhost:3000"],
     })
 
-    expect(config.emailAndPassword.autoSignIn).toBe(false)
+    expect(config.emailAndPassword.autoSignIn).toBe(true)
     expect(config.emailAndPassword.requireEmailVerification).toBe(false)
     expect(config.emailVerification.sendOnSignUp).toBe(true)
 

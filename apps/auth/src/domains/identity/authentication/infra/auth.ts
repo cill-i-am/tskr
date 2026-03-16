@@ -29,7 +29,7 @@ const auth = betterAuth({
     schema,
   }),
   emailAndPassword: {
-    autoSignIn: false,
+    autoSignIn: true,
     enabled: true,
     onExistingUserSignUp: ({ user }) => {
       void authenticationEmailService
