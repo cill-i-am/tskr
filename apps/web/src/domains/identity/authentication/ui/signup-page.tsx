@@ -47,7 +47,6 @@ const SignupPage = () => {
       }
 
       const result = await authClient.signUp.email({
-        callbackURL: new URL("/login", window.location.origin).toString(),
         email,
         name,
         password,
@@ -63,7 +62,11 @@ const SignupPage = () => {
 
       startTransition(() => {
         navigate({
-          to: "/",
+          search: {
+            email,
+            reason: "",
+          },
+          to: "/verify-email",
         })
       })
     }

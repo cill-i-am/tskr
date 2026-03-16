@@ -22,6 +22,13 @@ import { Input } from "@workspace/ui/components/input"
 import { authClient } from "./auth-client"
 import { AuthPageShell } from "./auth-page-shell"
 
+const isEmailVerificationRequired = (
+  error: {
+    message?: string | undefined
+    status?: number | undefined
+  } | null
+) => error?.status === 403 && error.message === "Email not verified"
+
 const LoginPage = () => {
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
@@ -45,6 +52,19 @@ const LoginPage = () => {
       setIsSubmitting(false)
 
       if (result.error) {
+        if (isEmailVerificationRequired(result.error)) {
+          startTransition(() => {
+            navigate({
+              search: {
+                email,
+                reason: "signin",
+              },
+              to: "/verify-email",
+            })
+          })
+          return
+        }
+
         setError(
           result.error.message ?? "Unable to sign in with those credentials."
         )

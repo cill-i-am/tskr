@@ -29,6 +29,7 @@ const config = defineConfig({
     },
     globals: true,
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+    setupFiles: ["./test-setup.ts"],
   },
 })
 

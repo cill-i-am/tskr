@@ -66,6 +66,9 @@ importers:
       '@workspace/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@workspace/email':
+        specifier: workspace:*
+        version: link:../../packages/email
       better-auth:
         specifier: ^1.5.5
         version: 1.5.5(@tanstack/react-start@1.166.9(crossws@0.4.4(srvx@0.11.9))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)))(drizzle-kit@0.31.9)(drizzle-orm@0.45.1(@types/pg@8.18.0)(kysely@0.28.12)(pg@8.20.0))(mongodb@7.1.0)(pg@8.20.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vitest@4.1.0(@types/node@25.5.0)(jsdom@29.0.0(@noble/hashes@2.0.1))(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)))
@@ -190,6 +193,18 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  packages/email:
+    devDependencies:
+      '@types/node':
+        specifier: ^25.1.0
+        version: 25.5.0
+      tsdown:
+        specifier: ^0.21.2
+        version: 0.21.2(typescript@5.9.3)
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   packages/ui:
     dependencies:
       '@base-ui/react':
@@ -201,6 +216,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      input-otp:
+        specifier: ^1.4.2
+        version: 1.4.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       react:
         specifier: ^19.2.4
         version: 19.2.4
@@ -2470,6 +2488,12 @@ packages:
   import-without-cache@0.2.5:
     resolution: {integrity: sha512-B6Lc2s6yApwnD2/pMzFh/d5AVjdsDXjgkeJ766FmFuJELIGHNycKRj+l3A39yZPM4CchqNCB4RITEAYB1KUM6A==}
     engines: {node: '>=20.19.0'}
+
+  input-otp@1.4.2:
+    resolution: {integrity: sha512-l3jWwYNvrEa6NTCt7BECfCm48GvwuZzkoeG3gBL2w4CHeOXW3eKFmf9UNYkNfYc3mxMrthMnxjIE07MT0zLBQA==}
+    peerDependencies:
+      react: ^16.8 || ^17.0 || ^18.0 || ^19.0.0 || ^19.0.0-rc
+      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0.0 || ^19.0.0-rc
 
   is-binary-path@2.1.0:
     resolution: {integrity: sha512-ZMERYes6pDydyuGidse7OsHxtbI7WVeUEozgR/g7rd0xUimYNlvZRE/K2MgZTjWy725IfelLeVcEM97mmtRGXw==}
@@ -5199,6 +5223,11 @@ snapshots:
       safer-buffer: 2.1.2
 
   import-without-cache@0.2.5: {}
+
+  input-otp@1.4.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
+    dependencies:
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
 
   is-binary-path@2.1.0:
     dependencies:

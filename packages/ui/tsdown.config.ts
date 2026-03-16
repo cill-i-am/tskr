@@ -17,6 +17,7 @@ export default defineConfig({
     "components/card": "src/components/card.tsx",
     "components/field": "src/components/field.tsx",
     "components/input": "src/components/input.tsx",
+    "components/input-otp": "src/components/input-otp.tsx",
     "components/label": "src/components/label.tsx",
     "components/separator": "src/components/separator.tsx",
     index: "src/index.ts",
