@@ -235,12 +235,12 @@ describe("auth app", () => {
     const resetToken = await findLatestResetToken()
 
     expect(resetToken).toBeTruthy()
-    expect(sendPasswordResetMock).toHaveBeenCalledOnce()
+    expect(sendPasswordResetEmailMock).toHaveBeenCalledOnce()
     if (!resetToken) {
       throw new Error("Expected a reset token to be stored")
     }
 
-    const emailInput = sendPasswordResetMock.mock.calls.at(0)?.at(0) as
+    const emailInput = sendPasswordResetEmailMock.mock.calls.at(0)?.at(0) as
       | {
           resetUrl: string
           to: string
