@@ -7,15 +7,16 @@
     "check": "git -C ../.. ls-files -- apps/auth | xargs pnpm --dir ../.. exec ultracite check",
     "db:ensure": "node ../../scripts/local-postgres.mjs ensure",
     "db:migrate": "pnpm --filter @workspace/db db:migrate",
-    "dev": "portless --name auth.tskr node ../../scripts/local-postgres-launcher.mjs -- tsx watch src/index.ts",
-    "build": "tsc --project tsconfig.json",
+    "dev": "pnpm --filter @workspace/db build && pnpm --filter @workspace/email build && portless --name auth.tskr node ../../scripts/local-postgres-launcher.mjs -- tsx watch src/index.ts",
+    "build": "pnpm --filter @workspace/db build && pnpm --filter @workspace/email build && tsc --project tsconfig.json",
     "start": "node dist/index.js",
-    "test": "node ../../scripts/local-postgres-launcher.mjs -- sh -lc 'pnpm --filter @workspace/db db:migrate && vitest run'",
-    "typecheck": "tsc --project tsconfig.json --noEmit"
+    "test": "pnpm --filter @workspace/db build && pnpm --filter @workspace/email build && node ../../scripts/local-postgres-launcher.mjs -- sh -lc 'pnpm --filter @workspace/db db:migrate && vitest run'",
+    "typecheck": "pnpm --filter @workspace/db build && pnpm --filter @workspace/email build && tsc --project tsconfig.json --noEmit"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.11",
     "@workspace/db": "workspace:*",
+    "@workspace/email": "workspace:*",
     "better-auth": "^1.5.5",
     "hono": "^4.12.8"
   },

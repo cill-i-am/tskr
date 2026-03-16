@@ -38,6 +38,11 @@
       "cache": false,
       "persistent": true,
       "with": ["@workspace/ui#dev"]
+    },
+    "auth#dev": {
+      "cache": false,
+      "persistent": true,
+      "with": ["@workspace/email#dev"]
     }
   }
 }

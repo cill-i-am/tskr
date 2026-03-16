@@ -22,3 +22,6 @@ workspace packages under `packages/*`.
   `packages/*`.
 - Push narrower build, export, or design-system rules down into the owning
   package-level `AGENTS.md` file.
+- Use package-level intent nodes for shared infrastructure with distinct build
+  or provider boundaries, such as `packages/email/AGENTS.md` for transactional
+  email delivery primitives.

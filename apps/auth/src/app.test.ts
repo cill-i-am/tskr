@@ -4,10 +4,37 @@ import { createPgPool } from "@workspace/db"
 
 import type { AppType } from "./app.js"
 
+const {
+  sendEmailVerificationEmailMock,
+  sendExistingUserSignupNoticeMock,
+  sendPasswordResetEmailMock,
+} = vi.hoisted(() => ({
+  sendEmailVerificationEmailMock: vi.fn(async () => ({
+    id: "test-verification-id",
+  })),
+  sendExistingUserSignupNoticeMock: vi.fn(async () => ({
+    id: "test-existing-user-id",
+  })),
+  sendPasswordResetEmailMock: vi.fn(async () => ({
+    id: "test-password-reset-id",
+  })),
+}))
+
+vi.mock("./domains/identity/authentication/infra/email-service.js", () => ({
+  createAuthenticationEmailService: () => ({
+    sendEmailVerificationEmail: sendEmailVerificationEmailMock,
+    sendExistingUserSignupNotice: sendExistingUserSignupNoticeMock,
+    sendPasswordResetEmail: sendPasswordResetEmailMock,
+  }),
+}))
+
 process.env.BETTER_AUTH_SECRET ??=
   "test-secret-test-secret-test-secret-test-secret"
 process.env.BETTER_AUTH_URL ??= "http://localhost:3002"
 process.env.BETTER_AUTH_TRUSTED_ORIGINS ??= "http://localhost:3000"
+process.env.EMAIL_FROM ??= "TSKR <noreply@tskr.app>"
+process.env.EMAIL_PROVIDER ??= "console"
+process.env.WEB_BASE_URL ??= "http://localhost:3000"
 
 const { app } = await import("./app.js")
 const { upResponse } = await import("./domains/system/healthcheck/index.js")
@@ -65,7 +92,34 @@ const findLatestResetToken = async () => {
   }
 }
 
+const countUsersByEmail = async (email: string) => {
+  try {
+    const result = await pool.query<{ count: string }>(
+      `SELECT COUNT(*)::text AS count
+       FROM "auth"."user"
+       WHERE email = $1`,
+      [email]
+    )
+
+    return Number(result.rows.at(0)?.count ?? "0")
+  } catch (error) {
+    const databaseError = error as { code?: string }
+
+    if (databaseError.code === "42P01") {
+      return 0
+    }
+
+    throw error
+  }
+}
+
 describe("auth app", () => {
+  beforeEach(() => {
+    sendEmailVerificationEmailMock.mockClear()
+    sendExistingUserSignupNoticeMock.mockClear()
+    sendPasswordResetEmailMock.mockClear()
+  })
+
   it("returns the expected /up healthcheck payload", async () => {
     await truncateAuthTables()
 
@@ -118,6 +172,7 @@ describe("auth app", () => {
 
     const signUpResponse = await requestJson("/api/auth/sign-up/email", {
       body: JSON.stringify({
+        callbackURL: "http://localhost:3000/login",
         email: "ada@example.com",
         name: "Ada Lovelace",
         password: "password-1234",
@@ -135,6 +190,24 @@ describe("auth app", () => {
         name: "Ada Lovelace",
       },
     })
+    expect(sendEmailVerificationEmailMock).toHaveBeenCalledOnce()
+
+    const verificationEmailInput = sendEmailVerificationEmailMock.mock.calls
+      .at(0)
+      ?.at(0) as
+      | {
+          to: string
+          verificationUrl: string
+        }
+      | undefined
+
+    expect(verificationEmailInput?.to).toBe("ada@example.com")
+    expect(verificationEmailInput?.verificationUrl).toContain(
+      "/api/auth/verify-email"
+    )
+    expect(verificationEmailInput?.verificationUrl).toContain(
+      encodeURIComponent("http://localhost:3000/login")
+    )
 
     const signInResponse = await requestJson("/api/auth/sign-in/email", {
       body: JSON.stringify({
@@ -155,11 +228,50 @@ describe("auth app", () => {
     })
   })
 
+  it("sends an existing-user signup notice when a signup email already exists", async () => {
+    await truncateAuthTables()
+
+    await requestJson("/api/auth/sign-up/email", {
+      body: JSON.stringify({
+        callbackURL: "http://localhost:3000/login",
+        email: "ada@example.com",
+        name: "Ada Lovelace",
+        password: "password-1234",
+      }),
+      headers: {
+        "content-type": "application/json",
+      },
+      method: "POST",
+    })
+
+    sendExistingUserSignupNoticeMock.mockClear()
+
+    const duplicateSignUpResponse = await requestJson("/api/auth/sign-up/email", {
+      body: JSON.stringify({
+        callbackURL: "http://localhost:3000/login",
+        email: "ada@example.com",
+        name: "Ada Byron",
+        password: "password-1234",
+      }),
+      headers: {
+        "content-type": "application/json",
+      },
+      method: "POST",
+    })
+
+    expect(sendExistingUserSignupNoticeMock).toHaveBeenCalledWith({
+      signInUrl: "http://localhost:3000/login",
+      to: "ada@example.com",
+    })
+    await expect(countUsersByEmail("ada@example.com")).resolves.toBe(1)
+  })
+
   it("issues a password reset token", async () => {
     await truncateAuthTables()
 
     await requestJson("/api/auth/sign-up/email", {
       body: JSON.stringify({
+        callbackURL: "http://localhost:3000/login",
         email: "grace@example.com",
         name: "Grace Hopper",
         password: "password-1234",
@@ -195,6 +307,23 @@ describe("auth app", () => {
     const resetToken = await findLatestResetToken()
 
     expect(resetToken).toBeTruthy()
+    expect(sendPasswordResetEmailMock).toHaveBeenCalledOnce()
+    if (!resetToken) {
+      throw new Error("Expected a reset token to be stored")
+    }
+
+    const emailInput = sendPasswordResetEmailMock.mock.calls.at(0)?.at(0) as
+      | {
+          resetUrl: string
+          to: string
+        }
+      | undefined
+
+    expect(emailInput?.to).toBe("grace@example.com")
+    expect(emailInput?.resetUrl).toContain(
+      "http://localhost:3000/reset-password"
+    )
+    expect(emailInput?.resetUrl).toContain(resetToken)
   })
 
   it("resets the password and rejects the old credential", async () => {
@@ -202,6 +331,7 @@ describe("auth app", () => {
 
     await requestJson("/api/auth/sign-up/email", {
       body: JSON.stringify({
+        callbackURL: "http://localhost:3000/login",
         email: "grace@example.com",
         name: "Grace Hopper",
         password: "password-1234",

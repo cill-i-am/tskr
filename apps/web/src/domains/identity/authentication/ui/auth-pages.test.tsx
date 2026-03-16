@@ -148,6 +148,48 @@ describe("authentication pages", () => {
     }
   })
 
+  it("navigates home after successful signup", async () => {
+    resetMocks()
+    signUpEmailMock.mockResolvedValue({
+      error: null,
+    })
+    const { SignupPage } = await loadPages()
+
+    const user = userEvent.setup()
+    const view = render(<SignupPage />)
+
+    try {
+      await user.type(screen.getByLabelText("Full name"), "Ada Lovelace")
+      await user.type(screen.getByLabelText("Email"), "ada@example.com")
+      await user.type(screen.getByLabelText("Password"), "password-1234")
+      await user.type(
+        screen.getByLabelText("Confirm password"),
+        "password-1234"
+      )
+      await user.click(screen.getByRole("button", { name: "Create account" }))
+
+      await waitFor(() => {
+        expect(signUpEmailMock).toHaveBeenCalledWith({
+          callbackURL: "http://localhost:3000/login",
+          email: "ada@example.com",
+          name: "Ada Lovelace",
+          password: "password-1234",
+        })
+      })
+
+      expect(signInEmailMock).not.toHaveBeenCalled()
+
+      await waitFor(() => {
+        expect(navigateMock).toHaveBeenCalledWith({
+          to: "/",
+        })
+      })
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
   it("requests a password reset using the current web origin", async () => {
     resetMocks()
     requestPasswordResetMock.mockResolvedValue({
@@ -170,7 +212,9 @@ describe("authentication pages", () => {
       })
 
       expect(
-        screen.getByText(/the auth service has issued a reset link/i)
+        screen.getByText(
+          /If the account exists, check your email for a reset link/i
+        )
       ).toBeTruthy()
     } finally {
       view.unmount()

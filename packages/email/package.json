@@ -1,0 +1,29 @@
+{
+  "name": "@workspace/email",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "check": "pnpm exec ultracite check package.json src tsconfig.json tsconfig.contract.json tsdown.config.ts turbo.json",
+    "dev": "sh -c 'case \"$1\" in --) shift;; esac; exec tsdown --watch \"$@\"' sh",
+    "test": "node --experimental-strip-types --test src/**/*.test.ts",
+    "typecheck": "tsc --noEmit && tsc --project tsconfig.contract.json --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^25.1.0",
+    "tsdown": "^0.21.2",
+    "typescript": "^5.9.3"
+  }
+}

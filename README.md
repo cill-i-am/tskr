@@ -151,6 +151,11 @@ Required in Railway for `auth`:
 - `BETTER_AUTH_SECRET=<generated secret>`
 - `BETTER_AUTH_URL=<public auth service URL>`
 - `BETTER_AUTH_TRUSTED_ORIGINS=<comma-separated allowed browser origins>`
+- `WEB_BASE_URL=<public web app URL used in auth-generated sign-in links>`
+- `EMAIL_FROM=<display name and sender, e.g. TSKR <noreply@your-domain>>`
+- `EMAIL_PROVIDER=resend` (recommended in production; defaults to `resend` in production when unset)
+- `RESEND_API_KEY=<resend api key>` (required whenever `EMAIL_PROVIDER` resolves to `resend`)
+- `EMAIL_REPLY_TO=<optional support mailbox>`
 
 Required in Railway for `web`:
 
@@ -164,7 +169,16 @@ Useful local defaults:
 
 - `BETTER_AUTH_URL=https://auth.tskr.localhost:1355`
 - `BETTER_AUTH_TRUSTED_ORIGINS=https://web.tskr.localhost:1355,http://localhost:3000,http://localhost:5173`
+- `WEB_BASE_URL=https://web.tskr.localhost:1355` (or `http://localhost:3000` with `PORTLESS=0`)
+- `EMAIL_FROM=TSKR <noreply@localhost>`
+- `EMAIL_PROVIDER=console` (default outside production)
+- `EMAIL_REPLY_TO=support@localhost` (optional)
 - `VITE_AUTH_BASE_URL=https://auth.tskr.localhost:1355`
+
+For Resend-backed delivery, verify your sender domain in Resend first, then set
+`EMAIL_FROM` to a verified sender and provide `RESEND_API_KEY`. If you only need
+local development behavior, leave `EMAIL_PROVIDER` unset and auth will default
+to the console transport outside production.
 
 If running direct local development without Portless, the auth service falls back
 to `http://localhost:3002`.

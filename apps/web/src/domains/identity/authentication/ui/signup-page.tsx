@@ -47,17 +47,19 @@ const SignupPage = () => {
       }
 
       const result = await authClient.signUp.email({
+        callbackURL: new URL("/login", window.location.origin).toString(),
         email,
         name,
         password,
       })
 
-      setIsSubmitting(false)
-
       if (result.error) {
+        setIsSubmitting(false)
         setError(result.error.message ?? "Unable to create your account.")
         return
       }
+
+      setIsSubmitting(false)
 
       startTransition(() => {
         navigate({
