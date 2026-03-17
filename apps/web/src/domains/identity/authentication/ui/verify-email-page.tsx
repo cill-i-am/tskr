@@ -26,17 +26,51 @@ import {
 
 import { authClient } from "./auth-client"
 import { AuthPageShell } from "./auth-page-shell"
+import {
+  clearEmailVerificationFlow,
+  hasStoredEmailVerificationFlow,
+  readStoredEmailVerificationFlow,
+} from "./email-verification-flow"
 
 interface VerifyEmailPageProps {
   email: string
   reason?: "signin" | ""
 }
 
+const getVerificationErrorMessage = (
+  error: {
+    code?: string | undefined
+    message?: string | undefined
+  } | null
+) => {
+  switch (error?.code) {
+    case "INVALID_OTP": {
+      return "That code is not valid. Check it and try again."
+    }
+    case "OTP_EXPIRED": {
+      return "That code expired. Request a new one and try again."
+    }
+    case "TOO_MANY_ATTEMPTS": {
+      return "That code is locked. Request a new one to keep going."
+    }
+    default: {
+      return error?.message ?? "Unable to verify that code."
+    }
+  }
+}
+
 const VerifyEmailPage = ({ email, reason = "" }: VerifyEmailPageProps) => {
   const navigate = useNavigate()
+  const storedFlow = readStoredEmailVerificationFlow()
+  const hasMatchingStoredFlow = storedFlow?.email === email
+  const isSigninFlow =
+    reason === "signin" &&
+    hasMatchingStoredFlow &&
+    storedFlow.reason === "signin"
   const [otp, setOtp] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const canResend = isSigninFlow || hasStoredEmailVerificationFlow(email)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isResending, setIsResending] = useState(false)
   const [isNavigating, startTransition] = useTransition()
@@ -62,9 +96,11 @@ const VerifyEmailPage = ({ email, reason = "" }: VerifyEmailPageProps) => {
       setIsSubmitting(false)
 
       if (result.error) {
-        setError(result.error.message ?? "Unable to verify that code.")
+        setError(getVerificationErrorMessage(result.error))
         return
       }
+
+      clearEmailVerificationFlow()
 
       startTransition(() => {
         navigate({
@@ -174,7 +210,7 @@ const VerifyEmailPage = ({ email, reason = "" }: VerifyEmailPageProps) => {
                   Codes expire after 5 minutes.
                 </FieldDescription>
               </Field>
-              {reason === "signin" ? (
+              {isSigninFlow ? (
                 <FieldDescription className="text-center">
                   We sent a fresh verification code after your sign-in attempt.
                 </FieldDescription>
@@ -192,14 +228,16 @@ const VerifyEmailPage = ({ email, reason = "" }: VerifyEmailPageProps) => {
                       ? "Verifying..."
                       : "Verify email"}
                   </Button>
-                  <Button
-                    disabled={isResending}
-                    onClick={handleResend}
-                    type="button"
-                    variant="outline"
-                  >
-                    {isResending ? "Sending..." : "Send a new code"}
-                  </Button>
+                  {canResend ? (
+                    <Button
+                      disabled={isResending}
+                      onClick={handleResend}
+                      type="button"
+                      variant="outline"
+                    >
+                      {isResending ? "Sending..." : "Send a new code"}
+                    </Button>
+                  ) : null}
                 </div>
                 <FieldDescription className="text-center">
                   Need a different address?{" "}

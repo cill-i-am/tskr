@@ -12,10 +12,6 @@ import { parseAuthenticationEnv } from "./env.js"
 const authenticationEnv = parseAuthenticationEnv()
 const authenticationEmailService =
   createAuthenticationEmailService(authenticationEnv)
-const existingUserSignInUrl = new URL(
-  "/login",
-  authenticationEnv.webBaseUrl
-).toString()
 
 const auth = betterAuth({
   advanced: {
@@ -33,26 +29,8 @@ const auth = betterAuth({
   emailAndPassword: {
     autoSignIn: false,
     enabled: true,
-    onExistingUserSignUp: ({ user }) => {
-      // Keep notification delivery off the critical auth path.
-      void authenticationEmailService
-        .sendExistingUserSignupNotice({
-          signInUrl: existingUserSignInUrl,
-          to: user.email,
-        })
-        .catch((error) => {
-          logEmailDeliveryFailure(
-            "[auth:email] failed to send existing-user signup notice email",
-            {
-              error,
-              recipient: user.email,
-              signInUrl: existingUserSignInUrl,
-            }
-          )
-        })
-    },
     requireEmailVerification: true,
-    sendResetPassword: ({ url, user }) => {
+    sendResetPassword: async ({ url, user }) => {
       // Better Auth treats reset delivery as a generic background side effect.
       void authenticationEmailService
         .sendPasswordResetEmail({

@@ -21,13 +21,18 @@ import { Input } from "@workspace/ui/components/input"
 
 import { authClient } from "./auth-client"
 import { AuthPageShell } from "./auth-page-shell"
+import { persistEmailVerificationFlow } from "./email-verification-flow"
 
 const isEmailVerificationRequired = (
   error: {
+    code?: string | undefined
     message?: string | undefined
     status?: number | undefined
   } | null
-) => error?.status === 403 && error.message === "Email not verified"
+) =>
+  error?.status === 403 &&
+  (error.code === "EMAIL_NOT_VERIFIED" ||
+    error.message === "Email not verified")
 
 const LoginPage = () => {
   const navigate = useNavigate()
@@ -53,6 +58,11 @@ const LoginPage = () => {
 
       if (result.error) {
         if (isEmailVerificationRequired(result.error)) {
+          persistEmailVerificationFlow({
+            email,
+            reason: "signin",
+          })
+
           startTransition(() => {
             navigate({
               search: {

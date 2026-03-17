@@ -201,7 +201,7 @@ describe("auth app", () => {
         name: "Ada Lovelace",
       },
     })
-    expect(sendSignupVerificationOtpEmailMock).toHaveBeenCalledTimes(1)
+    expect(sendSignupVerificationOtpEmailMock).toHaveBeenCalledOnce()
 
     const verificationOtpEmailInput = latestSignupVerificationOtpEmail()
 
@@ -266,13 +266,13 @@ describe("auth app", () => {
     expect(signInResponse.json).toMatchObject({
       code: expect.any(String),
     })
-    expect(sendSignupVerificationOtpEmailMock).toHaveBeenCalledTimes(1)
+    expect(sendSignupVerificationOtpEmailMock).toHaveBeenCalledOnce()
     expect(latestSignupVerificationOtpEmail()).toMatchObject({
       to: "ada@example.com",
     })
   })
 
-  it("sends an existing-user signup notice when a signup email already exists", async () => {
+  it("rejects duplicate signup attempts when a signup email already exists", async () => {
     await truncateAuthTables()
 
     await requestJson("/api/auth/sign-up/email", {
@@ -288,7 +288,6 @@ describe("auth app", () => {
       method: "POST",
     })
 
-    sendExistingUserSignupNoticeMock.mockClear()
     sendSignupVerificationOtpEmailMock.mockClear()
 
     const duplicateSignUpResponse = await requestJson(
@@ -306,17 +305,12 @@ describe("auth app", () => {
         method: "POST",
       }
     )
-    expect(duplicateSignUpResponse.response.status).toBe(200)
+    expect(duplicateSignUpResponse.response.status).toBe(422)
     expect(duplicateSignUpResponse.json).toMatchObject({
-      token: null,
-      user: {
-        email: "ada@example.com",
-      },
+      code: "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL",
+      message: expect.any(String),
     })
-    expect(sendExistingUserSignupNoticeMock).toHaveBeenCalledWith({
-      signInUrl: "http://localhost:3000/login",
-      to: "ada@example.com",
-    })
+    expect(sendExistingUserSignupNoticeMock).not.toHaveBeenCalled()
     expect(sendSignupVerificationOtpEmailMock).not.toHaveBeenCalled()
     await expect(countUsersByEmail("ada@example.com")).resolves.toBe(1)
   })
@@ -362,7 +356,7 @@ describe("auth app", () => {
     const resetToken = await findLatestResetToken()
 
     expect(resetToken).toBeTruthy()
-    expect(sendPasswordResetEmailMock).toHaveBeenCalledOnce()
+    expect(sendPasswordResetEmailMock).toHaveBeenCalledTimes(1)
     if (!resetToken) {
       throw new Error("Expected a reset token to be stored")
     }

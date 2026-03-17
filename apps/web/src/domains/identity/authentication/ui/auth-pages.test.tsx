@@ -98,6 +98,7 @@ const resetMocks = () => {
     data: null,
     isPending: false,
   })
+  window.sessionStorage.clear()
   vi.resetModules()
 }
 
@@ -205,11 +206,53 @@ describe("authentication pages", () => {
     }
   })
 
+  it("shows the duplicate signup error without leaving the signup page", async () => {
+    resetMocks()
+    signUpEmailMock.mockResolvedValue({
+      error: {
+        code: "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL",
+        message: "User already exists. Use another email.",
+      },
+    })
+    const { SignupPage } = await loadPages()
+
+    const user = userEvent.setup()
+    const view = render(<SignupPage />)
+
+    try {
+      await user.type(screen.getByLabelText("Full name"), "Ada Lovelace")
+      await user.type(screen.getByLabelText("Email"), "ada@example.com")
+      await user.type(screen.getByLabelText("Password"), "password-1234")
+      await user.type(
+        screen.getByLabelText("Confirm password"),
+        "password-1234"
+      )
+      await user.click(screen.getByRole("button", { name: "Create account" }))
+
+      await waitFor(() => {
+        expect(signUpEmailMock).toHaveBeenCalledWith({
+          email: "ada@example.com",
+          name: "Ada Lovelace",
+          password: "password-1234",
+        })
+      })
+
+      expect(
+        screen.getByText("User already exists. Use another email.")
+      ).toBeTruthy()
+      expect(navigateMock).not.toHaveBeenCalled()
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
   it("redirects unverified password sign-ins into the verify email flow", async () => {
     resetMocks()
     signInEmailMock.mockResolvedValue({
       error: {
-        message: "Email not verified",
+        code: "EMAIL_NOT_VERIFIED",
+        message: "Please verify your email address.",
         status: 403,
         statusText: "Forbidden",
       },
@@ -276,6 +319,13 @@ describe("authentication pages", () => {
     sendVerificationOtpMock.mockResolvedValue({
       error: null,
     })
+    window.sessionStorage.setItem(
+      "tskr-email-verification-flow",
+      JSON.stringify({
+        email: "ada@example.com",
+        reason: "signin",
+      })
+    )
     const { VerifyEmailPage } = await loadPages()
 
     const user = userEvent.setup()
@@ -302,6 +352,59 @@ describe("authentication pages", () => {
       expect(
         screen.getByText("A new verification code is on the way.")
       ).toBeTruthy()
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
+  it("does not allow resend when signin context is only spoofed in props", async () => {
+    resetMocks()
+    const { VerifyEmailPage } = await loadPages()
+
+    const view = render(
+      <VerifyEmailPage email="ada@example.com" reason="signin" />
+    )
+
+    try {
+      expect(
+        screen.queryByText(
+          "We sent a fresh verification code after your sign-in attempt."
+        )
+      ).toBeNull()
+      expect(
+        screen.queryByRole("button", { name: "Send a new code" })
+      ).toBeNull()
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
+  it("shows a friendly error when the verification code is expired", async () => {
+    resetMocks()
+    verifyEmailMock.mockResolvedValue({
+      error: {
+        code: "OTP_EXPIRED",
+        message: "OTP expired",
+      },
+    })
+    const { VerifyEmailPage } = await loadPages()
+
+    const user = userEvent.setup()
+    const view = render(<VerifyEmailPage email="ada@example.com" />)
+
+    try {
+      await user.type(screen.getByLabelText("Verification code"), "123456")
+      await user.click(screen.getByRole("button", { name: "Verify email" }))
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(
+            "That code expired. Request a new one and try again."
+          )
+        ).toBeTruthy()
+      })
     } finally {
       view.unmount()
       cleanup()
