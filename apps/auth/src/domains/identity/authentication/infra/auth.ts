@@ -11,6 +11,30 @@ import { parseAuthenticationEnv } from "./env.js"
 const authenticationEnv = parseAuthenticationEnv()
 const authenticationEmailService =
   createAuthenticationEmailService(authenticationEnv)
+const logEmailDeliveryFailure = (
+  message: string,
+  details: Record<string, unknown>
+) => {
+  console.error(message, details)
+}
+const runEmailSideEffect = (
+  send: () => Promise<unknown>,
+  message: string,
+  details: Record<string, unknown>
+) => {
+  queueMicrotask(async () => {
+    try {
+      await send()
+    } catch (error) {
+      logEmailDeliveryFailure(message, {
+        ...details,
+        error,
+      })
+    }
+  })
+
+  return Promise.resolve()
+}
 const existingUserSignInUrl = new URL(
   "/login",
   authenticationEnv.webBaseUrl
@@ -32,75 +56,56 @@ const auth = betterAuth({
   emailAndPassword: {
     autoSignIn: true,
     enabled: true,
-    onExistingUserSignUp: ({ user }) => {
+    onExistingUserSignUp: ({ user }) =>
       // Keep notification delivery off the critical auth path.
-      void authenticationEmailService
-        .sendExistingUserSignupNotice({
+      runEmailSideEffect(
+        () =>
+          authenticationEmailService.sendExistingUserSignupNotice({
+            signInUrl: existingUserSignInUrl,
+            to: user.email,
+          }),
+        "[auth:email] failed to send existing-user signup notice email",
+        {
+          recipient: user.email,
           signInUrl: existingUserSignInUrl,
-          to: user.email,
-        })
-        .catch((error) => {
-          logEmailDeliveryFailure(
-            "[auth:email] failed to send existing-user signup notice email",
-            {
-              error,
-              recipient: user.email,
-              signInUrl: existingUserSignInUrl,
-            }
-          )
-        })
-    },
+        }
+      ),
     requireEmailVerification: false,
-    sendResetPassword: ({ url, user }) => {
+    sendResetPassword: ({ url, user }) =>
       // Better Auth treats reset delivery as a generic background side effect.
-      void authenticationEmailService
-        .sendPasswordResetEmail({
+      runEmailSideEffect(
+        () =>
+          authenticationEmailService.sendPasswordResetEmail({
+            resetUrl: url,
+            to: user.email,
+          }),
+        "[auth:email] failed to send password reset email",
+        {
+          recipient: user.email,
           resetUrl: url,
-          to: user.email,
-        })
-        .catch((error) => {
-          logEmailDeliveryFailure(
-            "[auth:email] failed to send password reset email",
-            {
-              error,
-              recipient: user.email,
-              resetUrl: url,
-            }
-          )
-        })
-    },
+        }
+      ),
   },
   emailVerification: {
     sendOnSignUp: true,
-    sendVerificationEmail: ({ url, user }) => {
+    sendVerificationEmail: ({ url, user }) =>
       // Better Auth supplies the auth-hosted verify URL, including any callbackURL from signup.
-      void authenticationEmailService
-        .sendEmailVerificationEmail({
-          to: user.email,
+      runEmailSideEffect(
+        () =>
+          authenticationEmailService.sendEmailVerificationEmail({
+            to: user.email,
+            verificationUrl: url,
+          }),
+        "[auth:email] failed to send verification email",
+        {
+          recipient: user.email,
           verificationUrl: url,
-        })
-        .catch((error) => {
-          logEmailDeliveryFailure(
-            "[auth:email] failed to send verification email",
-            {
-              error,
-              recipient: user.email,
-              verificationUrl: url,
-            }
-          )
-        })
-    },
+        }
+      ),
   },
   secret: authenticationEnv.betterAuthSecret,
   trustedOrigins: authenticationEnv.trustedOrigins,
 })
-
-function logEmailDeliveryFailure(
-  message: string,
-  details: Record<string, unknown>
-) {
-  console.error(message, details)
-}
 
 export { auth }
 export { authenticationEnv }

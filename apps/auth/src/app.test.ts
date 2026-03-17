@@ -8,23 +8,38 @@ const {
   sendEmailVerificationEmailMock,
   sendExistingUserSignupNoticeMock,
   sendPasswordResetEmailMock,
+  sendSignupVerificationOtpEmailMock,
 } = vi.hoisted(() => ({
-  sendEmailVerificationEmailMock: vi.fn(async () => ({
-    id: "test-verification-id",
-  })),
-  sendExistingUserSignupNoticeMock: vi.fn(async () => ({
-    id: "test-existing-user-id",
-  })),
-  sendPasswordResetEmailMock: vi.fn(async () => ({
-    id: "test-password-reset-id",
-  })),
+  sendEmailVerificationEmailMock: vi.fn(() =>
+    Promise.resolve({
+      id: "test-verification-id",
+    })
+  ),
+  sendExistingUserSignupNoticeMock: vi.fn(() =>
+    Promise.resolve({
+      id: "test-existing-user-id",
+    })
+  ),
+  sendPasswordResetEmailMock: vi.fn(() =>
+    Promise.resolve({
+      id: "test-password-reset-id",
+    })
+  ),
+  sendSignupVerificationOtpEmailMock: vi.fn(() =>
+    Promise.resolve({
+      id: "test-signup-otp-id",
+    })
+  ),
 }))
 
-vi.mock<typeof import('./domains/identity/authentication/infra/email-service.js')>(import('./domains/identity/authentication/infra/email-service.js'), () => ({
+vi.mock<
+  typeof import("./domains/identity/authentication/infra/email-service.js")
+>(import("./domains/identity/authentication/infra/email-service.js"), () => ({
   createAuthenticationEmailService: () => ({
     sendEmailVerificationEmail: sendEmailVerificationEmailMock,
     sendExistingUserSignupNotice: sendExistingUserSignupNoticeMock,
     sendPasswordResetEmail: sendPasswordResetEmailMock,
+    sendSignupVerificationOtpEmail: sendSignupVerificationOtpEmailMock,
   }),
 }))
 
@@ -118,6 +133,7 @@ describe("auth app", () => {
     sendEmailVerificationEmailMock.mockClear()
     sendExistingUserSignupNoticeMock.mockClear()
     sendPasswordResetEmailMock.mockClear()
+    sendSignupVerificationOtpEmailMock.mockClear()
   })
 
   it("returns the expected /up healthcheck payload", async () => {
@@ -246,21 +262,21 @@ describe("auth app", () => {
 
     sendExistingUserSignupNoticeMock.mockClear()
 
-    const duplicateSignUpResponse = await requestJson(
-      "/api/auth/sign-up/email",
-      {
-        body: JSON.stringify({
-          callbackURL: "http://localhost:3000/login",
-          email: "ada@example.com",
-          name: "Ada Byron",
-          password: "password-1234",
-        }),
-        headers: {
-          "content-type": "application/json",
-        },
-        method: "POST",
-      }
-    )
+    await requestJson("/api/auth/sign-up/email", {
+      body: JSON.stringify({
+        callbackURL: "http://localhost:3000/login",
+        email: "ada@example.com",
+        name: "Ada Byron",
+        password: "password-1234",
+      }),
+      headers: {
+        "content-type": "application/json",
+      },
+      method: "POST",
+    })
+
+    await Promise.resolve()
+    await Promise.resolve()
 
     expect(sendExistingUserSignupNoticeMock).toHaveBeenCalledWith({
       signInUrl: "http://localhost:3000/login",
@@ -323,8 +339,9 @@ describe("auth app", () => {
       | undefined
 
     expect(emailInput?.to).toBe("grace@example.com")
+    expect(emailInput?.resetUrl).toContain("/api/auth/reset-password/")
     expect(emailInput?.resetUrl).toContain(
-      "http://localhost:3000/reset-password"
+      encodeURIComponent("http://localhost:3000/reset-password")
     )
     expect(emailInput?.resetUrl).toContain(resetToken)
   })

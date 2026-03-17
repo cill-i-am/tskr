@@ -164,7 +164,7 @@ test("createConsoleTransport returns a transport id", async () => {
   })
   const result = await transport.send({
     from: "TSKR <noreply@tskr.app>",
-    html: "<a href=\"https://app.tskr.test/reset?token=secret-token\">Reset</a>",
+    html: '<a href="https://app.tskr.test/reset?token=secret-token">Reset</a>',
     subject: "Hello",
     text: "Reset at https://app.tskr.test/reset?token=secret-token",
     to: "ada@example.com",

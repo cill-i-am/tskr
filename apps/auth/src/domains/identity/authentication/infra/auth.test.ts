@@ -6,52 +6,68 @@ const {
   sendEmailVerificationEmailMock,
   sendExistingUserSignupNoticeMock,
   sendPasswordResetEmailMock,
+  sendSignupVerificationOtpEmailMock,
 } = vi.hoisted(() => {
-  const sendEmailVerificationEmail = vi.fn(async () => ({
-    id: "verification-id",
-  }))
-  const sendExistingUserSignupNotice = vi.fn(async () => ({
-    id: "existing-user-id",
-  }))
-  const sendPasswordResetEmail = vi.fn(async () => ({ id: "reset-id" }))
+  const sendEmailVerificationEmail = vi.fn(() =>
+    Promise.resolve({
+      id: "verification-id",
+    })
+  )
+  const sendExistingUserSignupNotice = vi.fn(() =>
+    Promise.resolve({
+      id: "existing-user-id",
+    })
+  )
+  const sendPasswordResetEmail = vi.fn(() =>
+    Promise.resolve({ id: "reset-id" })
+  )
+  const sendSignupVerificationOtpEmail = vi.fn(() =>
+    Promise.resolve({
+      id: "signup-otp-id",
+    })
+  )
+  const emailService = {
+    sendEmailVerificationEmail,
+    sendExistingUserSignupNotice,
+    sendPasswordResetEmail,
+    sendSignupVerificationOtpEmail,
+  }
 
   return {
     betterAuthMock: vi.fn(() => ({
       handler: vi.fn(),
     })),
-    createAuthenticationEmailServiceMock: vi.fn(() => ({
-      sendEmailVerificationEmail,
-      sendExistingUserSignupNotice,
-      sendPasswordResetEmail,
-    })),
+    createAuthenticationEmailServiceMock: vi.fn(() => emailService),
     drizzleAdapterMock: vi.fn(() => "drizzle-adapter"),
     resolveDefaultCookieAttributesMock: vi.fn(() => ({
-      secure: true,
+      sameSite: "none" as const,
     })),
     sendEmailVerificationEmailMock: sendEmailVerificationEmail,
     sendExistingUserSignupNoticeMock: sendExistingUserSignupNotice,
     sendPasswordResetEmailMock: sendPasswordResetEmail,
+    sendSignupVerificationOtpEmailMock: sendSignupVerificationOtpEmail,
   }
 })
 
 vi.mock<typeof import('better-auth')>(import('better-auth'), () => ({
-  betterAuth: betterAuthMock,
+  betterAuth: betterAuthMock as never,
 }))
 
 vi.mock<typeof import('better-auth/adapters/drizzle')>(import('better-auth/adapters/drizzle'), () => ({
-  drizzleAdapter: drizzleAdapterMock,
+  drizzleAdapter: drizzleAdapterMock as never,
 }))
 
 vi.mock<typeof import('./cookie-attributes.js')>(import('./cookie-attributes.js'), () => ({
-  resolveDefaultCookieAttributes: resolveDefaultCookieAttributesMock,
+  resolveDefaultCookieAttributes: resolveDefaultCookieAttributesMock as never,
 }))
 
 vi.mock<typeof import('./database.js')>(import('./database.js'), () => ({
-  database: "database",
+  database: {} as never,
 }))
 
 vi.mock<typeof import('./email-service.js')>(import('./email-service.js'), () => ({
-  createAuthenticationEmailService: createAuthenticationEmailServiceMock,
+  createAuthenticationEmailService:
+    createAuthenticationEmailServiceMock as never,
 }))
 
 vi.mock<typeof import('./env.js')>(import('./env.js'), () => ({
@@ -70,25 +86,31 @@ vi.mock<typeof import('./env.js')>(import('./env.js'), () => ({
 interface AuthConfiguration {
   emailAndPassword: {
     autoSignIn: boolean
-    onExistingUserSignUp: (input: { user: { email: string } }) => unknown
+    onExistingUserSignUp: (input: { user: { email: string } }) => Promise<void>
     requireEmailVerification: boolean
     sendResetPassword: (input: {
       url: string
       user: { email: string }
-    }) => unknown
+    }) => Promise<void>
   }
   emailVerification: {
     sendOnSignUp: boolean
     sendVerificationEmail: (input: {
       url: string
       user: { email: string }
-    }) => unknown
+    }) => Promise<void>
   }
 }
 
 const loadAuthConfiguration = async (): Promise<AuthConfiguration> => {
   await import("./auth.js")
-  return betterAuthMock.mock.calls.at(0)?.at(0) as AuthConfiguration
+  const config = betterAuthMock.mock.calls.at(0)?.at(0)
+
+  if (!config) {
+    throw new Error("Expected betterAuth to be called with a config")
+  }
+
+  return config as AuthConfiguration
 }
 
 describe("auth config", () => {
@@ -100,6 +122,7 @@ describe("auth config", () => {
     sendEmailVerificationEmailMock.mockClear()
     sendExistingUserSignupNoticeMock.mockClear()
     sendPasswordResetEmailMock.mockClear()
+    sendSignupVerificationOtpEmailMock.mockClear()
     vi.resetModules()
   })
 
@@ -121,7 +144,7 @@ describe("auth config", () => {
     expect(config.emailAndPassword.requireEmailVerification).toBeFalsy()
     expect(config.emailVerification.sendOnSignUp).toBeTruthy()
 
-    config.emailAndPassword.sendResetPassword({
+    await config.emailAndPassword.sendResetPassword({
       url: "http://localhost:3000/reset-password?token=reset-token",
       user: {
         email: "grace@example.com",
@@ -133,7 +156,7 @@ describe("auth config", () => {
       to: "grace@example.com",
     })
 
-    config.emailVerification.sendVerificationEmail({
+    await config.emailVerification.sendVerificationEmail({
       url: "http://localhost:3000/verify-email?token=verify-token",
       user: {
         email: "grace@example.com",
@@ -145,7 +168,7 @@ describe("auth config", () => {
       verificationUrl: "http://localhost:3000/verify-email?token=verify-token",
     })
 
-    config.emailAndPassword.onExistingUserSignUp({
+    await config.emailAndPassword.onExistingUserSignUp({
       user: {
         email: "grace@example.com",
       },
@@ -158,14 +181,12 @@ describe("auth config", () => {
   })
 
   it("logs password reset delivery errors without surfacing them", async () => {
-    const consoleErrorMock = vi
-      .spyOn(console, "error")
-      .mockReturnValue(undefined)
+    const consoleErrorMock = vi.spyOn(console, "error").mockReturnValue()
     sendPasswordResetEmailMock.mockRejectedValueOnce(new Error("reset failed"))
 
     try {
       const config = await loadAuthConfiguration()
-      config.emailAndPassword.sendResetPassword({
+      await config.emailAndPassword.sendResetPassword({
         url: "http://localhost:3000/reset-password?token=reset-token",
         user: {
           email: "grace@example.com",
@@ -188,9 +209,7 @@ describe("auth config", () => {
   })
 
   it("logs delivery errors from fire-and-forget email hooks", async () => {
-    const consoleErrorMock = vi
-      .spyOn(console, "error")
-      .mockReturnValue(undefined)
+    const consoleErrorMock = vi.spyOn(console, "error").mockReturnValue()
     sendEmailVerificationEmailMock.mockRejectedValueOnce(
       new Error("verification failed")
     )
@@ -200,13 +219,13 @@ describe("auth config", () => {
 
     try {
       const config = await loadAuthConfiguration()
-      config.emailVerification.sendVerificationEmail({
+      await config.emailVerification.sendVerificationEmail({
         url: "http://localhost:3000/verify-email?token=verify-token",
         user: {
           email: "grace@example.com",
         },
       })
-      config.emailAndPassword.onExistingUserSignUp({
+      await config.emailAndPassword.onExistingUserSignUp({
         user: {
           email: "grace@example.com",
         },

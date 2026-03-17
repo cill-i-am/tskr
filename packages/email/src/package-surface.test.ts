@@ -8,7 +8,7 @@ import * as emailPackage from "./index.ts"
 import { createEmailService } from "./index.ts"
 
 test("root export surface is explicit and provider-agnostic", () => {
-  assert.deepEqual(Object.keys(emailPackage).sort(), [
+  assert.deepEqual(Object.keys(emailPackage).toSorted(), [
     "createConsoleTransport",
     "createEmailService",
     "createResendTransport",
@@ -24,8 +24,8 @@ test("package.json export map points to built root entrypoint", async () => {
   }
 
   assert.deepEqual(packageJson.exports["."], {
-    types: "./dist/index.d.ts",
     import: "./dist/index.mjs",
+    types: "./dist/index.d.ts",
   })
 })
 
@@ -40,7 +40,7 @@ test("email service exposes the spec'd auth method names", () => {
     },
   })
 
-  assert.deepEqual(Object.keys(service).sort(), [
+  assert.deepEqual(Object.keys(service).toSorted(), [
     "sendEmailVerificationEmail",
     "sendExistingUserSignupNotice",
     "sendPasswordResetEmail",

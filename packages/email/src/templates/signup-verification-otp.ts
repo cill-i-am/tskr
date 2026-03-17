@@ -1,6 +1,7 @@
-import { escapeHtml, type EmailTemplateContent } from "./shared.ts"
+import { escapeHtml } from './shared.ts';
+import type { EmailTemplateContent } from './shared.ts';
 
-type SignupVerificationOtpTemplateInput = {
+interface SignupVerificationOtpTemplateInput {
   code: string
 }
 

@@ -46,10 +46,10 @@ const createResendTransport = (
       const response = await fetchImpl(`${baseUrl}/emails`, {
         body: JSON.stringify({
           from: message.from,
-          to: Array.isArray(message.to) ? message.to : [message.to],
-          subject: message.subject,
           html: message.html,
+          subject: message.subject,
           text: message.text,
+          to: Array.isArray(message.to) ? message.to : [message.to],
           ...(message.replyTo ? { reply_to: message.replyTo } : {}),
         }),
         headers: {
@@ -107,7 +107,7 @@ const parseResponseBody = async (response: Response): Promise<unknown> => {
 
 const resolveResponseId = (body: unknown): string | null => {
   if (body && typeof body === "object" && "id" in body) {
-    const {id} = body
+    const { id } = body
     if (typeof id === "string" && id.length > 0) {
       return id
     }

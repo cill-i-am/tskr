@@ -53,7 +53,8 @@ test("maps transport messages to resend request payload", async () => {
 test("surfaces resend error details", async () => {
   const transport = createResendTransport({
     apiKey: "wrong-key",
-    fetch: async () => new Response(JSON.stringify({ message: "invalid_api_key" }), {
+    fetch: async () =>
+      new Response(JSON.stringify({ message: "invalid_api_key" }), {
         status: 401,
       }),
   })
@@ -82,7 +83,8 @@ test("surfaces resend error details", async () => {
 test("throws when resend success response is missing id", async () => {
   const transport = createResendTransport({
     apiKey: "resend-key",
-    fetch: async () => new Response(JSON.stringify({ ok: true }), {
+    fetch: async () =>
+      new Response(JSON.stringify({ ok: true }), {
         status: 200,
       }),
   })

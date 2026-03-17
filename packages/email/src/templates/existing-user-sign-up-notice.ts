@@ -1,5 +1,5 @@
-import { escapeHtml } from './shared.ts';
-import type { EmailTemplateContent } from './shared.ts';
+import { escapeHtml } from "./shared.ts"
+import type { EmailTemplateContent } from "./shared.ts"
 
 interface ExistingUserSignUpNoticeTemplateInput {
   appName: string

@@ -11,6 +11,14 @@ type AuthenticationEmailEnv = Pick<
   "emailFrom" | "emailProvider" | "emailReplyTo" | "resendApiKey"
 >
 
+const requireResendApiKey = (apiKey: string | undefined) => {
+  if (!apiKey) {
+    throw new Error("RESEND_API_KEY must be set when EMAIL_PROVIDER is resend")
+  }
+
+  return apiKey
+}
+
 const createAuthenticationEmailService = (
   environment: AuthenticationEmailEnv
 ) => {
@@ -28,14 +36,6 @@ const createAuthenticationEmailService = (
     supportEmail: environment.emailReplyTo,
     transport,
   })
-}
-
-const requireResendApiKey = (apiKey: string | undefined) => {
-  if (!apiKey) {
-    throw new Error("RESEND_API_KEY must be set when EMAIL_PROVIDER is resend")
-  }
-
-  return apiKey
 }
 
 export { createAuthenticationEmailService }
