@@ -11,9 +11,16 @@ const {
 vi.mock<typeof import("./infra/auth.js")>(import("./infra/auth.js"), () => ({
   auth: {
     handler: authHandlerMock,
-  },
+  } as never,
   authenticationEnv: {
+    betterAuthSecret: "test-secret",
+    betterAuthUrl: "http://localhost:3002",
+    emailFrom: "TSKR <noreply@tskr.app>",
+    emailProvider: "console",
+    emailReplyTo: "support@tskr.app",
+    resendApiKey: undefined,
     trustedOrigins: ["http://localhost:3000"],
+    webBaseUrl: "http://localhost:3000",
   },
 }))
 
@@ -23,7 +30,7 @@ vi.mock<typeof import("./infra/database.js")>(
     pool: {
       connect: connectMock,
       query: queryMock,
-    },
+    } as never,
   })
 )
 
