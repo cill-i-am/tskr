@@ -145,21 +145,29 @@ pnpm --filter auth run db:ensure
 
 The `auth` service uses Better Auth with Postgres through the Drizzle adapter.
 
+Prefer Railway interpolation for service URLs and managed database wiring so
+production domains stay aligned with the current environment without manual
+copying. Keep secrets and sender identities explicit.
+
+Required in Railway for `api`:
+
+- `DATABASE_URL=${{Postgres.DATABASE_URL}}`
+
 Required in Railway for `auth`:
 
 - `DATABASE_URL=${{Postgres.DATABASE_URL}}`
 - `BETTER_AUTH_SECRET=<generated secret>`
-- `BETTER_AUTH_URL=<public auth service URL>`
-- `BETTER_AUTH_TRUSTED_ORIGINS=<comma-separated allowed browser origins>`
-- `WEB_BASE_URL=<public web app URL used in auth-generated sign-in links>`
+- `BETTER_AUTH_URL=https://${{auth.RAILWAY_PUBLIC_DOMAIN}}`
+- `BETTER_AUTH_TRUSTED_ORIGINS=https://${{web.RAILWAY_PUBLIC_DOMAIN}}` (or a comma-separated list if multiple browser origins are allowed)
+- `WEB_BASE_URL=https://${{web.RAILWAY_PUBLIC_DOMAIN}}`
 - `EMAIL_FROM=<display name and sender, e.g. TSKR <noreply@your-domain>>`
 - `EMAIL_PROVIDER=resend` (recommended in production; defaults to `resend` in production when unset)
 - `RESEND_API_KEY=<resend api key>` (required whenever `EMAIL_PROVIDER` resolves to `resend`)
 - `EMAIL_REPLY_TO=<optional support mailbox>`
 
-Required in Railway for `web`:
+Recommended in Railway for `web`:
 
-- `VITE_AUTH_BASE_URL=<public auth service URL>`
+- `VITE_AUTH_BASE_URL=https://${{auth.RAILWAY_PUBLIC_DOMAIN}}` (optional explicit override; the app also falls back to `RAILWAY_SERVICE_AUTH_URL` during server rendering)
 
 Required in GitHub Actions for shared production migrations:
 

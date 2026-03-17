@@ -13,6 +13,32 @@ const authenticationEnv = parseAuthenticationEnv()
 const authenticationEmailService =
   createAuthenticationEmailService(authenticationEnv)
 
+const logEmailDeliveryFailure = (
+  message: string,
+  details: Record<string, unknown>
+) => {
+  console.error(message, details)
+}
+
+const runEmailSideEffect = (
+  send: () => Promise<unknown>,
+  message: string,
+  details: Record<string, unknown>
+) => {
+  queueMicrotask(async () => {
+    try {
+      await send()
+    } catch (error) {
+      logEmailDeliveryFailure(message, {
+        ...details,
+        error,
+      })
+    }
+  })
+
+  return Promise.resolve()
+}
+
 const auth = betterAuth({
   advanced: {
     defaultCookieAttributes: resolveDefaultCookieAttributes(
@@ -30,24 +56,19 @@ const auth = betterAuth({
     autoSignIn: false,
     enabled: true,
     requireEmailVerification: true,
-    sendResetPassword: async ({ url, user }) => {
-      // Better Auth treats reset delivery as a generic background side effect.
-      void authenticationEmailService
-        .sendPasswordResetEmail({
+    sendResetPassword: ({ url, user }) =>
+      runEmailSideEffect(
+        () =>
+          authenticationEmailService.sendPasswordResetEmail({
+            resetUrl: url,
+            to: user.email,
+          }),
+        "[auth:email] failed to send password reset email",
+        {
+          recipient: user.email,
           resetUrl: url,
-          to: user.email,
-        })
-        .catch((error) => {
-          logEmailDeliveryFailure(
-            "[auth:email] failed to send password reset email",
-            {
-              error,
-              recipient: user.email,
-              resetUrl: url,
-            }
-          )
-        })
-    },
+        }
+      ),
   },
   emailVerification: {
     autoSignInAfterVerification: true,
@@ -60,36 +81,25 @@ const auth = betterAuth({
       expiresIn: 300,
       otpLength: 6,
       overrideDefaultEmailVerification: true,
-      sendVerificationOTP: async ({ email, otp, type }) => {
-        void authenticationEmailService
-          .sendSignupVerificationOtpEmail({
-            code: otp,
-            to: email,
-          })
-          .catch((error) => {
-            logEmailDeliveryFailure(
-              "[auth:email] failed to send signup verification otp email",
-              {
-                error,
-                otpType: type,
-                recipient: email,
-              }
-            )
-          })
-      },
+      sendVerificationOTP: ({ email, otp, type }) =>
+        runEmailSideEffect(
+          () =>
+            authenticationEmailService.sendSignupVerificationOtpEmail({
+              code: otp,
+              to: email,
+            }),
+          "[auth:email] failed to send signup verification otp email",
+          {
+            otpType: type,
+            recipient: email,
+          }
+        ),
       storeOTP: "hashed",
     }),
   ],
   secret: authenticationEnv.betterAuthSecret,
   trustedOrigins: authenticationEnv.trustedOrigins,
 })
-
-function logEmailDeliveryFailure(
-  message: string,
-  details: Record<string, unknown>
-) {
-  console.error(message, details)
-}
 
 export { auth }
 export { authenticationEnv }

@@ -5,25 +5,38 @@ import { createPgPool } from "@workspace/db"
 import type { AppType } from "./app.js"
 
 const {
+  sendEmailVerificationEmailMock,
   sendExistingUserSignupNoticeMock,
   sendPasswordResetEmailMock,
   sendSignupVerificationOtpEmailMock,
 } = vi.hoisted(() => ({
-  sendExistingUserSignupNoticeMock: vi.fn(async () => ({
-    id: "test-existing-user-id",
-  })),
-  sendPasswordResetEmailMock: vi.fn(async () => ({
-    id: "test-password-reset-id",
-  })),
-  sendSignupVerificationOtpEmailMock: vi.fn(async () => ({
-    id: "test-signup-otp-id",
-  })),
+  sendEmailVerificationEmailMock: vi.fn(() =>
+    Promise.resolve({
+      id: "test-verification-id",
+    })
+  ),
+  sendExistingUserSignupNoticeMock: vi.fn(() =>
+    Promise.resolve({
+      id: "test-existing-user-id",
+    })
+  ),
+  sendPasswordResetEmailMock: vi.fn(() =>
+    Promise.resolve({
+      id: "test-password-reset-id",
+    })
+  ),
+  sendSignupVerificationOtpEmailMock: vi.fn(() =>
+    Promise.resolve({
+      id: "test-signup-otp-id",
+    })
+  ),
 }))
 
 vi.mock<
   typeof import("./domains/identity/authentication/infra/email-service.js")
 >(import("./domains/identity/authentication/infra/email-service.js"), () => ({
   createAuthenticationEmailService: () => ({
+    sendEmailVerificationEmail: sendEmailVerificationEmailMock,
     sendExistingUserSignupNotice: sendExistingUserSignupNoticeMock,
     sendPasswordResetEmail: sendPasswordResetEmailMock,
     sendSignupVerificationOtpEmail: sendSignupVerificationOtpEmailMock,
@@ -125,6 +138,7 @@ const countUsersByEmail = async (email: string) => {
 
 describe("auth app", () => {
   beforeEach(() => {
+    sendEmailVerificationEmailMock.mockClear()
     sendExistingUserSignupNoticeMock.mockClear()
     sendPasswordResetEmailMock.mockClear()
     sendSignupVerificationOtpEmailMock.mockClear()
@@ -202,6 +216,7 @@ describe("auth app", () => {
       },
     })
     expect(sendSignupVerificationOtpEmailMock).toHaveBeenCalledOnce()
+    expect(sendEmailVerificationEmailMock).not.toHaveBeenCalled()
 
     const verificationOtpEmailInput = latestSignupVerificationOtpEmail()
 
@@ -250,6 +265,7 @@ describe("auth app", () => {
     })
 
     sendSignupVerificationOtpEmailMock.mockClear()
+    sendExistingUserSignupNoticeMock.mockClear()
 
     const signInResponse = await requestJson("/api/auth/sign-in/email", {
       body: JSON.stringify({
@@ -267,6 +283,7 @@ describe("auth app", () => {
       code: expect.any(String),
     })
     expect(sendSignupVerificationOtpEmailMock).toHaveBeenCalledOnce()
+    expect(sendExistingUserSignupNoticeMock).not.toHaveBeenCalled()
     expect(latestSignupVerificationOtpEmail()).toMatchObject({
       to: "ada@example.com",
     })

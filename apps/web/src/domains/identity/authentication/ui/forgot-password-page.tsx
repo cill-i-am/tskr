@@ -53,9 +53,7 @@ const ForgotPasswordPage = () => {
         return
       }
 
-      setSuccess(
-        "If the account exists, check your email for a reset link."
-      )
+      setSuccess("If the account exists, check your email for a reset link.")
     }
   )
 

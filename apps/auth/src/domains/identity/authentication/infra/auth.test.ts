@@ -4,13 +4,35 @@ const {
   drizzleAdapterMock,
   emailOTPMock,
   resolveDefaultCookieAttributesMock,
+  sendEmailVerificationEmailMock,
+  sendExistingUserSignupNoticeMock,
   sendPasswordResetEmailMock,
   sendSignupVerificationOtpEmailMock,
 } = vi.hoisted(() => {
-  const sendPasswordResetEmail = vi.fn(async () => ({ id: "reset-id" }))
-  const sendSignupVerificationOtpEmail = vi.fn(async () => ({
-    id: "signup-otp-id",
-  }))
+  const sendEmailVerificationEmail = vi.fn(() =>
+    Promise.resolve({
+      id: "verification-id",
+    })
+  )
+  const sendExistingUserSignupNotice = vi.fn(() =>
+    Promise.resolve({
+      id: "existing-user-id",
+    })
+  )
+  const sendPasswordResetEmail = vi.fn(() =>
+    Promise.resolve({ id: "reset-id" })
+  )
+  const sendSignupVerificationOtpEmail = vi.fn(() =>
+    Promise.resolve({
+      id: "signup-otp-id",
+    })
+  )
+  const emailService = {
+    sendEmailVerificationEmail,
+    sendExistingUserSignupNotice,
+    sendPasswordResetEmail,
+    sendSignupVerificationOtpEmail,
+  }
   const emailOTP = vi.fn((options) => ({
     id: "email-otp",
     options,
@@ -20,53 +42,53 @@ const {
     betterAuthMock: vi.fn(() => ({
       handler: vi.fn(),
     })),
-    createAuthenticationEmailServiceMock: vi.fn(() => ({
-      sendPasswordResetEmail,
-      sendSignupVerificationOtpEmail,
-    })),
+    createAuthenticationEmailServiceMock: vi.fn(() => emailService),
     drizzleAdapterMock: vi.fn(() => "drizzle-adapter"),
     emailOTPMock: emailOTP,
     resolveDefaultCookieAttributesMock: vi.fn(() => ({
-      secure: true,
+      sameSite: "none" as const,
     })),
+    sendEmailVerificationEmailMock: sendEmailVerificationEmail,
+    sendExistingUserSignupNoticeMock: sendExistingUserSignupNotice,
     sendPasswordResetEmailMock: sendPasswordResetEmail,
     sendSignupVerificationOtpEmailMock: sendSignupVerificationOtpEmail,
   }
 })
 
 vi.mock<typeof import("better-auth")>(import("better-auth"), () => ({
-  betterAuth: betterAuthMock,
+  betterAuth: betterAuthMock as never,
 }))
 
 vi.mock<typeof import("better-auth/adapters/drizzle")>(
   import("better-auth/adapters/drizzle"),
   () => ({
-    drizzleAdapter: drizzleAdapterMock,
+    drizzleAdapter: drizzleAdapterMock as never,
   })
 )
 
 vi.mock<typeof import("better-auth/plugins/email-otp")>(
   import("better-auth/plugins/email-otp"),
   () => ({
-    emailOTP: emailOTPMock,
+    emailOTP: emailOTPMock as never,
   })
 )
 
 vi.mock<typeof import("./cookie-attributes.js")>(
   import("./cookie-attributes.js"),
   () => ({
-    resolveDefaultCookieAttributes: resolveDefaultCookieAttributesMock,
+    resolveDefaultCookieAttributes: resolveDefaultCookieAttributesMock as never,
   })
 )
 
 vi.mock<typeof import("./database.js")>(import("./database.js"), () => ({
-  database: "database",
+  database: {} as never,
 }))
 
 vi.mock<typeof import("./email-service.js")>(
   import("./email-service.js"),
   () => ({
-    createAuthenticationEmailService: createAuthenticationEmailServiceMock,
+    createAuthenticationEmailService:
+      createAuthenticationEmailServiceMock as never,
   })
 )
 
@@ -90,12 +112,12 @@ interface AuthConfiguration {
     sendResetPassword: (input: {
       url: string
       user: { email: string }
-    }) => unknown
+    }) => Promise<void>
   }
   emailVerification: {
     autoSignInAfterVerification: boolean
-    sendOnSignUp: boolean
     sendOnSignIn: boolean
+    sendOnSignUp: boolean
   }
   plugins: {
     id: string
@@ -120,7 +142,14 @@ interface AuthConfiguration {
 
 const loadAuthConfiguration = async (): Promise<AuthConfiguration> => {
   await import("./auth.js")
-  return betterAuthMock.mock.calls.at(0)?.at(0) as unknown as AuthConfiguration
+
+  const config = betterAuthMock.mock.calls.at(0)?.at(0)
+
+  if (!config) {
+    throw new Error("Expected betterAuth to be called with a config")
+  }
+
+  return config as AuthConfiguration
 }
 
 describe("auth config", () => {
@@ -130,6 +159,8 @@ describe("auth config", () => {
     drizzleAdapterMock.mockClear()
     emailOTPMock.mockClear()
     resolveDefaultCookieAttributesMock.mockClear()
+    sendEmailVerificationEmailMock.mockClear()
+    sendExistingUserSignupNoticeMock.mockClear()
     sendPasswordResetEmailMock.mockClear()
     sendSignupVerificationOtpEmailMock.mockClear()
     vi.resetModules()
@@ -154,8 +185,8 @@ describe("auth config", () => {
     expect(config.emailAndPassword.requireEmailVerification).toBeTruthy()
     expect("onExistingUserSignUp" in config.emailAndPassword).toBeFalsy()
     expect(config.emailVerification.autoSignInAfterVerification).toBeTruthy()
-    expect(config.emailVerification.sendOnSignUp).toBeTruthy()
     expect(config.emailVerification.sendOnSignIn).toBeTruthy()
+    expect(config.emailVerification.sendOnSignUp).toBeTruthy()
     expect(emailOTPMock).toHaveBeenCalledOnce()
     expect(emailOtpPlugin?.id).toBe("email-otp")
     expect(emailOtpPlugin?.options.allowedAttempts).toBe(3)
@@ -188,6 +219,8 @@ describe("auth config", () => {
       code: "482913",
       to: "grace@example.com",
     })
+    expect(sendEmailVerificationEmailMock).not.toHaveBeenCalled()
+    expect(sendExistingUserSignupNoticeMock).not.toHaveBeenCalled()
   })
 
   it("logs password reset delivery errors without surfacing them", async () => {
@@ -223,6 +256,7 @@ describe("auth config", () => {
     sendSignupVerificationOtpEmailMock.mockRejectedValueOnce(
       new Error("signup otp failed")
     )
+
     try {
       const config = await loadAuthConfiguration()
       const emailOtpPlugin = config.plugins.at(0)

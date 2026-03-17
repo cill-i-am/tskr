@@ -14,6 +14,12 @@ applications under `apps/*`.
 
 - Keep app-specific infrastructure, deploy config, and runtime entrypoints with
   the app that owns them.
+- When wiring Railway app variables to managed services or sibling apps, prefer
+  Railway interpolation such as `${{Postgres.DATABASE_URL}}` and
+  `https://${{service.RAILWAY_PUBLIC_DOMAIN}}` over hard-coded environment
+  URLs.
+- Keep secrets, third-party API keys, and sender identities explicit rather
+  than deriving them from Railway-provided variables.
 - Do not let deployable apps become the canonical owner of shared Postgres
   schema or migration history; that belongs in a shared platform boundary under
   `packages/*`.
