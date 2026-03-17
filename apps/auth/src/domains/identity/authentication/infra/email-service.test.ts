@@ -3,8 +3,8 @@ import { createAuthenticationEmailService } from "./email-service.js"
 const {
   consoleTransportMock,
   createConsoleTransportMock,
-  createEmailServiceResultMock,
   createEmailServiceMock,
+  createEmailServiceResultMock,
   createResendTransportMock,
   resendTransportMock,
 } = vi.hoisted(() => {
@@ -41,7 +41,7 @@ const {
   }
 })
 
-vi.mock<typeof import('@workspace/email')>(import('@workspace/email'), () => ({
+vi.mock<typeof import("@workspace/email")>(import("@workspace/email"), () => ({
   createConsoleTransport: createConsoleTransportMock as never,
   createEmailService: createEmailServiceMock as never,
   createResendTransport: createResendTransportMock as never,
@@ -62,12 +62,13 @@ describe(createAuthenticationEmailService, () => {
       resendApiKey: undefined,
     })
 
-    expect(createConsoleTransportMock).toHaveBeenCalledTimes(1)
+    expect(createConsoleTransportMock).toHaveBeenCalledOnce()
     expect(createResendTransportMock).not.toHaveBeenCalled()
     expect(createEmailServiceMock).toHaveBeenCalledWith({
       appName: "tskr",
       from: "TSKR <noreply@tskr.app>",
       replyTo: "support@tskr.app",
+      signupVerificationOtpExpiryText: "5 minutes",
       supportEmail: "support@tskr.app",
       transport: consoleTransportMock,
     })
@@ -90,6 +91,7 @@ describe(createAuthenticationEmailService, () => {
       appName: "tskr",
       from: "TSKR <noreply@tskr.app>",
       replyTo: "support@tskr.app",
+      signupVerificationOtpExpiryText: "5 minutes",
       supportEmail: "support@tskr.app",
       transport: resendTransportMock,
     })

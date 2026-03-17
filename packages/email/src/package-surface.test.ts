@@ -8,7 +8,7 @@ import * as emailPackage from "./index.ts"
 import { createEmailService } from "./index.ts"
 
 test("root export surface is explicit and provider-agnostic", () => {
-  assert.deepEqual(Object.keys(emailPackage).toSorted(), [
+  assert.deepEqual([...Object.keys(emailPackage)].sort(), [
     "createConsoleTransport",
     "createEmailService",
     "createResendTransport",
@@ -21,11 +21,13 @@ test("package.json export map points to built root entrypoint", async () => {
   const packageJsonPath = join(srcDir, "..", "package.json")
   const packageJson = JSON.parse(await readFile(packageJsonPath, "utf8")) as {
     exports: Record<string, unknown>
+    types: string
   }
 
+  assert.equal(packageJson.types, "./dist/index.d.mts")
   assert.deepEqual(packageJson.exports["."], {
     import: "./dist/index.mjs",
-    types: "./dist/index.d.ts",
+    types: "./dist/index.d.mts",
   })
 })
 
@@ -33,6 +35,7 @@ test("email service exposes the spec'd auth method names", () => {
   const service = createEmailService({
     appName: "tskr",
     from: "TSKR <noreply@tskr.app>",
+    signupVerificationOtpExpiryText: "5 minutes",
     transport: {
       async send() {
         return { id: "mock-1" }
@@ -40,7 +43,7 @@ test("email service exposes the spec'd auth method names", () => {
     },
   })
 
-  assert.deepEqual(Object.keys(service).toSorted(), [
+  assert.deepEqual([...Object.keys(service)].sort(), [
     "sendEmailVerificationEmail",
     "sendExistingUserSignupNotice",
     "sendPasswordResetEmail",

@@ -67,6 +67,14 @@ const requestJson = async (path: string, init?: RequestInit) => {
   }
 }
 
+const latestSignupVerificationOtpEmail = () =>
+  sendSignupVerificationOtpEmailMock.mock.calls.at(-1)?.at(0) as
+    | {
+        code: string
+        to: string
+      }
+    | undefined
+
 const truncateAuthTables = async () => {
   try {
     await pool.query(
@@ -183,7 +191,7 @@ describe("auth app", () => {
     )
   })
 
-  it("supports email sign up and sign in", async () => {
+  it("signs up with otp verification and auto-signs in after verification", async () => {
     await truncateAuthTables()
 
     const signUpResponse = await requestJson("/api/auth/sign-up/email", {
@@ -201,50 +209,46 @@ describe("auth app", () => {
 
     expect(signUpResponse.response.status).toBe(200)
     expect(signUpResponse.json).toMatchObject({
+      token: null,
       user: {
         email: "ada@example.com",
         name: "Ada Lovelace",
       },
     })
-    expect(sendEmailVerificationEmailMock).toHaveBeenCalledTimes(1)
+    expect(sendSignupVerificationOtpEmailMock).toHaveBeenCalledOnce()
+    expect(sendEmailVerificationEmailMock).not.toHaveBeenCalled()
 
-    const verificationEmailInput = sendEmailVerificationEmailMock.mock.calls
-      .at(0)
-      ?.at(0) as
-      | {
-          to: string
-          verificationUrl: string
-        }
-      | undefined
+    const verificationOtpEmailInput = latestSignupVerificationOtpEmail()
 
-    expect(verificationEmailInput?.to).toBe("ada@example.com")
-    expect(verificationEmailInput?.verificationUrl).toContain(
-      "/api/auth/verify-email"
+    expect(verificationOtpEmailInput?.to).toBe("ada@example.com")
+    expect(verificationOtpEmailInput?.code).toMatch(/^\d{6}$/u)
+
+    const verifyEmailResponse = await requestJson(
+      "/api/auth/email-otp/verify-email",
+      {
+        body: JSON.stringify({
+          email: "ada@example.com",
+          otp: verificationOtpEmailInput?.code,
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      }
     )
-    expect(verificationEmailInput?.verificationUrl).toContain(
-      encodeURIComponent("http://localhost:3000/login")
-    )
 
-    const signInResponse = await requestJson("/api/auth/sign-in/email", {
-      body: JSON.stringify({
-        email: "ada@example.com",
-        password: "password-1234",
-      }),
-      headers: {
-        "content-type": "application/json",
-      },
-      method: "POST",
-    })
-
-    expect(signInResponse.response.status).toBe(200)
-    expect(signInResponse.json).toMatchObject({
+    expect(verifyEmailResponse.response.status).toBe(200)
+    expect(verifyEmailResponse.json).toMatchObject({
+      status: true,
+      token: expect.any(String),
       user: {
         email: "ada@example.com",
+        emailVerified: true,
       },
     })
   })
 
-  it("sends an existing-user signup notice when a signup email already exists", async () => {
+  it("blocks password sign-in for unverified users and sends a fresh otp", async () => {
     await truncateAuthTables()
 
     await requestJson("/api/auth/sign-up/email", {
@@ -260,13 +264,12 @@ describe("auth app", () => {
       method: "POST",
     })
 
+    sendSignupVerificationOtpEmailMock.mockClear()
     sendExistingUserSignupNoticeMock.mockClear()
 
-    await requestJson("/api/auth/sign-up/email", {
+    const signInResponse = await requestJson("/api/auth/sign-in/email", {
       body: JSON.stringify({
-        callbackURL: "http://localhost:3000/login",
         email: "ada@example.com",
-        name: "Ada Byron",
         password: "password-1234",
       }),
       headers: {
@@ -275,13 +278,57 @@ describe("auth app", () => {
       method: "POST",
     })
 
-    await Promise.resolve()
-    await Promise.resolve()
-
-    expect(sendExistingUserSignupNoticeMock).toHaveBeenCalledWith({
-      signInUrl: "http://localhost:3000/login",
+    expect(signInResponse.response.status).toBe(403)
+    expect(signInResponse.json).toMatchObject({
+      code: expect.any(String),
+    })
+    expect(sendSignupVerificationOtpEmailMock).toHaveBeenCalledOnce()
+    expect(sendExistingUserSignupNoticeMock).not.toHaveBeenCalled()
+    expect(latestSignupVerificationOtpEmail()).toMatchObject({
       to: "ada@example.com",
     })
+  })
+
+  it("rejects duplicate signup attempts when a signup email already exists", async () => {
+    await truncateAuthTables()
+
+    await requestJson("/api/auth/sign-up/email", {
+      body: JSON.stringify({
+        callbackURL: "http://localhost:3000/login",
+        email: "ada@example.com",
+        name: "Ada Lovelace",
+        password: "password-1234",
+      }),
+      headers: {
+        "content-type": "application/json",
+      },
+      method: "POST",
+    })
+
+    sendSignupVerificationOtpEmailMock.mockClear()
+
+    const duplicateSignUpResponse = await requestJson(
+      "/api/auth/sign-up/email",
+      {
+        body: JSON.stringify({
+          callbackURL: "http://localhost:3000/login",
+          email: "ada@example.com",
+          name: "Ada Byron",
+          password: "password-1234",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      }
+    )
+    expect(duplicateSignUpResponse.response.status).toBe(422)
+    expect(duplicateSignUpResponse.json).toMatchObject({
+      code: "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL",
+      message: expect.any(String),
+    })
+    expect(sendExistingUserSignupNoticeMock).not.toHaveBeenCalled()
+    expect(sendSignupVerificationOtpEmailMock).not.toHaveBeenCalled()
     await expect(countUsersByEmail("ada@example.com")).resolves.toBe(1)
   })
 
@@ -394,6 +441,26 @@ describe("auth app", () => {
     expect(resetPasswordResponse.json).toStrictEqual({
       status: true,
     })
+
+    const verificationOtpEmailInput = latestSignupVerificationOtpEmail()
+
+    expect(verificationOtpEmailInput?.code).toMatch(/^\d{6}$/u)
+
+    const verifyEmailResponse = await requestJson(
+      "/api/auth/email-otp/verify-email",
+      {
+        body: JSON.stringify({
+          email: "grace@example.com",
+          otp: verificationOtpEmailInput?.code,
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      }
+    )
+
+    expect(verifyEmailResponse.response.ok).toBeTruthy()
 
     const oldPasswordResponse = await requestJson("/api/auth/sign-in/email", {
       body: JSON.stringify({

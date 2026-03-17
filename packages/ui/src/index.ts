@@ -21,5 +21,11 @@ export {
   FieldTitle,
 } from "./components/field"
 export { Input } from "./components/input"
+export {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSeparator,
+  InputOTPSlot,
+} from "./components/input-otp"
 export { Label } from "./components/label"
 export { Separator } from "./components/separator"

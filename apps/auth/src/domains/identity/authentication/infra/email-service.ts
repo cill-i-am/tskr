@@ -33,6 +33,7 @@ const createAuthenticationEmailService = (
     appName: "tskr",
     from: environment.emailFrom,
     replyTo: environment.emailReplyTo,
+    signupVerificationOtpExpiryText: "5 minutes",
     supportEmail: environment.emailReplyTo,
     transport,
   })

@@ -21,6 +21,7 @@ import { Input } from "@workspace/ui/components/input"
 
 import { authClient } from "./auth-client"
 import { AuthPageShell } from "./auth-page-shell"
+import { persistEmailVerificationFlow } from "./email-verification-flow"
 
 const SignupPage = () => {
   const navigate = useNavigate()
@@ -47,7 +48,6 @@ const SignupPage = () => {
       }
 
       const result = await authClient.signUp.email({
-        callbackURL: new URL("/login", window.location.origin).toString(),
         email,
         name,
         password,
@@ -61,9 +61,18 @@ const SignupPage = () => {
 
       setIsSubmitting(false)
 
+      persistEmailVerificationFlow({
+        email,
+        reason: "",
+      })
+
       startTransition(() => {
         navigate({
-          to: "/",
+          search: {
+            email,
+            reason: "",
+          },
+          to: "/verify-email",
         })
       })
     }

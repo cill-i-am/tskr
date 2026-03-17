@@ -15,6 +15,7 @@ interface EmailServiceConfig {
   appName: string
   from: string
   replyTo?: string
+  signupVerificationOtpExpiryText: string
   supportEmail?: string
   transport: EmailTransport
 }
@@ -79,7 +80,11 @@ const createEmailService = (config: EmailServiceConfig): EmailService => {
       return sendTransactionalEmail({ ...template, to })
     },
     sendSignupVerificationOtpEmail: async ({ code, to }) => {
-      const template = createSignupVerificationOtpTemplate({ code })
+      const template = createSignupVerificationOtpTemplate({
+        appName: config.appName,
+        code,
+        expiryText: config.signupVerificationOtpExpiryText,
+      })
       return sendTransactionalEmail({ ...template, to })
     },
   }

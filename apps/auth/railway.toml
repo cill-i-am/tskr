@@ -4,6 +4,7 @@ buildCommand = "pnpm exec turbo run build --filter=auth"
 watchPatterns = [
   "/apps/auth/**",
   "/packages/db/**",
+  "/packages/email/**",
   "/package.json",
   "/pnpm-lock.yaml",
   "/pnpm-workspace.yaml",
