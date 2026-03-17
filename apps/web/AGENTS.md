@@ -16,6 +16,9 @@ for the deployable web application in this subtree.
   build, start, and healthcheck expectations.
 - Preserve the app's runtime entrypoint and healthcheck behavior when changing
   deployment or startup paths.
+- Prefer `https://${{auth.RAILWAY_PUBLIC_DOMAIN}}` when setting an explicit
+  Railway auth base URL for this app, and preserve the existing
+  `RAILWAY_SERVICE_AUTH_URL` server-side fallback when touching runtime config.
 - Prefer shared primitives from `@workspace/ui` before creating new app-local UI
   building blocks.
 - Keep app-specific assets, styles, and route concerns inside `apps/web`

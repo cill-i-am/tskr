@@ -14,6 +14,10 @@ for the deployable auth application in this subtree.
   slice-owned modules under `src/domains/*`.
 - Treat `apps/auth/railway.toml` as the source of truth for Railway-specific
   build, start, and healthcheck expectations.
+- Prefer Railway interpolation for auth-facing public URLs in deploy config,
+  especially `BETTER_AUTH_URL`, `WEB_BASE_URL`, and single-origin
+  `BETTER_AUTH_TRUSTED_ORIGINS`; switch back to explicit comma-separated values
+  only when multiple browser origins or custom domains are required.
 - Keep server-side auth behavior here, but keep shared database schema,
   migrations, and Drizzle config owned by `@workspace/db` rather than inside
   the app.
