@@ -3,12 +3,12 @@ import { createFileRoute, useSearch } from "@tanstack/react-router"
 
 const VerifyEmailRoute = () => {
   const search = useSearch({
-    strict: false,
+    from: "/verify-email",
   })
 
   return (
     <VerifyEmailPage
-      email={typeof search.email === "string" ? search.email : ""}
+      email={search.email}
       reason={search.reason === "signin" ? "signin" : ""}
     />
   )

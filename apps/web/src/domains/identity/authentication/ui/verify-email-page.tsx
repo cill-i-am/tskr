@@ -28,7 +28,6 @@ import { authClient } from "./auth-client"
 import { AuthPageShell } from "./auth-page-shell"
 import {
   clearEmailVerificationFlow,
-  hasStoredEmailVerificationFlow,
   readStoredEmailVerificationFlow,
 } from "./email-verification-flow"
 
@@ -67,10 +66,11 @@ const VerifyEmailPage = ({ email, reason = "" }: VerifyEmailPageProps) => {
     reason === "signin" &&
     hasMatchingStoredFlow &&
     storedFlow.reason === "signin"
+  const hasStoredFlowForEmail = hasMatchingStoredFlow
   const [otp, setOtp] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-  const canResend = isSigninFlow || hasStoredEmailVerificationFlow(email)
+  const canResend = isSigninFlow || hasStoredFlowForEmail
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isResending, setIsResending] = useState(false)
   const [isNavigating, startTransition] = useTransition()
