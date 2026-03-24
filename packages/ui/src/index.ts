@@ -141,10 +141,7 @@ export {
   DialogTitle,
   DialogTrigger,
 } from "./components/dialog"
-export {
-  DirectionProvider,
-  useDirection,
-} from "./components/direction"
+export { DirectionProvider, useDirection } from "./components/direction"
 export {
   Drawer,
   DrawerClose,
@@ -357,8 +354,19 @@ export {
   TableHeader,
   TableRow,
 } from "./components/table"
-export { Tabs, TabsContent, TabsList, TabsTrigger, tabsListVariants } from "./components/tabs"
+export {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+  tabsListVariants,
+} from "./components/tabs"
 export { Textarea } from "./components/textarea"
 export { Toggle, toggleVariants } from "./components/toggle"
 export { ToggleGroup, ToggleGroupItem } from "./components/toggle-group"
-export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./components/tooltip"
+export {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./components/tooltip"

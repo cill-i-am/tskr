@@ -231,9 +231,6 @@ importers:
       lucide-react:
         specifier: ^0.577.0
         version: 0.577.0(react@19.2.4)
-      next-themes:
-        specifier: ^0.4.6
-        version: 0.4.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       react:
         specifier: ^19.2.4
         version: 19.2.4
@@ -3080,12 +3077,6 @@ packages:
   nanostores@1.2.0:
     resolution: {integrity: sha512-F0wCzbsH80G7XXo0Jd9/AVQC7ouWY6idUCTnMwW5t/Rv9W8qmO6endavDwg7TNp5GbugwSukFMVZqzPSrSMndg==}
     engines: {node: ^20.0.0 || >=22.0.0}
-
-  next-themes@0.4.6:
-    resolution: {integrity: sha512-pZvgD5L0IEvX5/9GWyHMf3m8BKiVQwsCMHfoFosXtXBMnaS0ZnIJ9ST4b4NqLVKDEm8QBxoNNGNaBv2JNF6XNA==}
-    peerDependencies:
-      react: ^16.8 || ^17 || ^18 || ^19 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17 || ^18 || ^19 || ^19.0.0-rc
 
   nf3@0.3.11:
     resolution: {integrity: sha512-ObKp/SA3f1g1f/OMeDlRWaZmqGgk7A0NnDIbeO7c/MV4r/quMlpP/BsqMGuTi3lUlXbC1On8YH7ICM2u2bIAOw==}
@@ -6153,11 +6144,6 @@ snapshots:
   nanoid@3.3.11: {}
 
   nanostores@1.2.0: {}
-
-  next-themes@0.4.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
-    dependencies:
-      react: 19.2.4
-      react-dom: 19.2.4(react@19.2.4)
 
   nf3@0.3.11: {}
 

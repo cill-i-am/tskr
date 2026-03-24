@@ -1,3 +1,5 @@
+"use client"
+
 import { Button } from "@/components/button"
 import { Input } from "@/components/input"
 import { Separator } from "@/components/separator"
@@ -14,8 +16,8 @@ import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 import { mergeProps } from "@base-ui/react/merge-props"
 import { useRender } from "@base-ui/react/use-render"
-import { cva } from 'class-variance-authority';
-import type { VariantProps } from 'class-variance-authority';
+import { cva } from "class-variance-authority"
+import type { VariantProps } from "class-variance-authority"
 import { PanelLeftIcon } from "lucide-react"
 import * as React from "react"
 
@@ -83,7 +85,11 @@ function SidebarProvider({
   )
 
   // Helper to toggle the sidebar.
-  const toggleSidebar = React.useCallback(() => isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open), [isMobile, setOpen, setOpenMobile])
+  const toggleSidebar = React.useCallback(
+    () =>
+      isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open),
+    [isMobile, setOpen, setOpenMobile]
+  )
 
   // Adds a keyboard shortcut to toggle the sidebar.
   React.useEffect(() => {
@@ -470,19 +476,19 @@ const sidebarMenuButtonVariants = cva(
   "peer/menu-button group/menu-button gap-2 p-2 text-sm group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! data-active:font-medium [&_svg]:size-4 flex w-full items-center overflow-hidden rounded-md text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground data-open:hover:bg-sidebar-accent data-open:hover:text-sidebar-accent-foreground [&_svg]:shrink-0 [&>span:last-child]:truncate",
   {
     defaultVariants: {
-      variant: "default",
       size: "default",
+      variant: "default",
     },
     variants: {
-      variant: {
-        default: "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-        outline:
-          "bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]",
-      },
       size: {
         default: "h-8 text-sm",
         sm: "h-7 text-xs",
         lg: "h-12 text-sm group-data-[collapsible=icon]:p-0!",
+      },
+      variant: {
+        default: "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+        outline:
+          "bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]",
       },
     },
   }
@@ -597,7 +603,9 @@ function SidebarMenuSkeleton({
   showIcon?: boolean
 }) {
   // Random width between 50 to 90%.
-  const [width] = React.useState(() => `${Math.floor(Math.random() * 40) + 50}%`)
+  const [width] = React.useState(
+    () => `${Math.floor(Math.random() * 40) + 50}%`
+  )
 
   return (
     <div
