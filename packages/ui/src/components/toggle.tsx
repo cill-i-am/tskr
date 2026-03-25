@@ -1,3 +1,4 @@
+"use client"
 import { cn } from "@/lib/utils"
 import { Toggle as TogglePrimitive } from "@base-ui/react/toggle"
 import { cva } from "class-variance-authority"

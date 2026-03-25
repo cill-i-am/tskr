@@ -1,3 +1,4 @@
+"use client"
 import { Button } from "@/components/button"
 import { Input } from "@/components/input"
 import { Textarea } from "@/components/textarea"
@@ -47,7 +48,11 @@ const InputGroupAddon = ({
       if ((event.target as HTMLElement).closest("button")) {
         return
       }
-      event.currentTarget.parentElement?.querySelector("input")?.focus()
+      event.currentTarget.parentElement
+        ?.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+          "[data-slot=input-group-control]"
+        )
+        ?.focus()
     },
     []
   )
