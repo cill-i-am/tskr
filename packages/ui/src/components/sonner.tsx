@@ -1,5 +1,4 @@
 "use client"
-
 import {
   CircleCheckIcon,
   InfoIcon,
@@ -7,10 +6,9 @@ import {
   OctagonXIcon,
   Loader2Icon,
 } from "lucide-react"
+import type { CSSProperties } from "react"
 import { Toaster as Sonner } from "sonner"
 import type { ToasterProps } from "sonner"
-import type { CSSProperties } from "react"
-
 const Toaster = ({ ...props }: ToasterProps) => (
   <Sonner
     className="toaster group"
@@ -37,5 +35,4 @@ const Toaster = ({ ...props }: ToasterProps) => (
     {...props}
   />
 )
-
 export { Toaster }
