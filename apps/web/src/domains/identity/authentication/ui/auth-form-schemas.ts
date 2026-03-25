@@ -6,10 +6,8 @@ const signupFormSchema = z
   .object({
     confirmPassword: z.string().min(1, "Confirm your password."),
     email: emailSchema,
-    name: z.string().refine((value) => value.trim().length > 0, {
-      message: "Enter your full name.",
-    }),
-    password: z.string().min(8, "Password must be at least 8 characters."),
+    name: z.string().min(1, "Enter your full name."),
+    password: z.string().min(1, "Enter your password."),
   })
   .superRefine((value, context) => {
     if (
@@ -28,7 +26,7 @@ const signupFormSchema = z
 const resetPasswordFormSchema = z
   .object({
     confirmPassword: z.string().min(1, "Confirm your new password."),
-    newPassword: z.string().min(8, "Password must be at least 8 characters."),
+    newPassword: z.string().min(1, "Enter your new password."),
   })
   .superRefine((value, context) => {
     if (

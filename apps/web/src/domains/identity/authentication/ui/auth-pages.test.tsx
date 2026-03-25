@@ -24,6 +24,8 @@ const {
   verifyEmailMock: vi.fn(),
 }))
 
+const EMAIL_VERIFICATION_FLOW_STORAGE_KEY = "tskr-email-verification-flow"
+
 const installMocks = () => {
   vi.doMock(import("@tanstack/react-router"), (() => ({
     Link: ({
@@ -187,6 +189,12 @@ describe("authentication pages", () => {
 
     const user = userEvent.setup()
     const view = render(<SignupPage />)
+    let storedFlowAtNavigate: string | null = null
+    navigateMock.mockImplementation(() => {
+      storedFlowAtNavigate = window.sessionStorage.getItem(
+        EMAIL_VERIFICATION_FLOW_STORAGE_KEY
+      )
+    })
 
     try {
       await user.type(screen.getByLabelText("Full name"), "Ada Lovelace")
@@ -215,6 +223,46 @@ describe("authentication pages", () => {
             reason: "",
           },
           to: "/verify-email",
+        })
+      })
+
+      expect(storedFlowAtNavigate).toBe(
+        JSON.stringify({
+          email: "ada@example.com",
+          reason: "",
+        })
+      )
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
+  it("submits signup with a whitespace-only full name", async () => {
+    resetMocks()
+    signUpEmailMock.mockResolvedValue({
+      error: {
+        code: "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL",
+        message: "User already exists. Use another email.",
+      },
+    })
+    const { SignupPage } = await loadPages()
+
+    const user = userEvent.setup()
+    const view = render(<SignupPage />)
+
+    try {
+      await user.type(screen.getByLabelText("Full name"), "   ")
+      await user.type(screen.getByLabelText("Email"), "ada@example.com")
+      await user.type(screen.getByLabelText("Password"), "short")
+      await user.type(screen.getByLabelText("Confirm password"), "short")
+      await user.click(screen.getByRole("button", { name: "Create account" }))
+
+      await waitFor(() => {
+        expect(signUpEmailMock).toHaveBeenCalledWith({
+          email: "ada@example.com",
+          name: "   ",
+          password: "short",
         })
       })
     } finally {
@@ -278,6 +326,12 @@ describe("authentication pages", () => {
 
     const user = userEvent.setup()
     const view = render(<LoginPage />)
+    let storedFlowAtNavigate: string | null = null
+    navigateMock.mockImplementation(() => {
+      storedFlowAtNavigate = window.sessionStorage.getItem(
+        EMAIL_VERIFICATION_FLOW_STORAGE_KEY
+      )
+    })
 
     try {
       await user.type(screen.getByLabelText("Email"), "ada@example.com")
@@ -293,6 +347,13 @@ describe("authentication pages", () => {
           to: "/verify-email",
         })
       })
+
+      expect(storedFlowAtNavigate).toBe(
+        JSON.stringify({
+          email: "ada@example.com",
+          reason: "signin",
+        })
+      )
     } finally {
       view.unmount()
       cleanup()
@@ -528,6 +589,39 @@ describe("authentication pages", () => {
           to: "/login",
         })
       })
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
+  it("submits a short reset password to the server and shows the server error", async () => {
+    resetMocks()
+    resetPasswordMock.mockResolvedValue({
+      error: {
+        message: "Password must be at least 8 characters.",
+      },
+    })
+    const { ResetPasswordPage } = await loadPages()
+
+    const user = userEvent.setup()
+    const view = render(<ResetPasswordPage token="reset-token-123" />)
+
+    try {
+      await user.type(screen.getByLabelText("New password"), "short")
+      await user.type(screen.getByLabelText("Confirm new password"), "short")
+      await user.click(screen.getByRole("button", { name: "Reset password" }))
+
+      await waitFor(() => {
+        expect(resetPasswordMock).toHaveBeenCalledWith({
+          newPassword: "short",
+          token: "reset-token-123",
+        })
+      })
+
+      expect(
+        screen.getByText("Password must be at least 8 characters.")
+      ).toBeTruthy()
     } finally {
       view.unmount()
       cleanup()
