@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils"
 import { cva } from "class-variance-authority"
 import type { VariantProps } from "class-variance-authority"
 import * as React from "react"
-
 const FieldSet = ({
   className,
   ...props
@@ -18,12 +17,13 @@ const FieldSet = ({
     {...props}
   />
 )
-
 const FieldLegend = ({
   className,
   variant = "legend",
   ...props
-}: React.ComponentProps<"legend"> & { variant?: "legend" | "label" }) => (
+}: React.ComponentProps<"legend"> & {
+  variant?: "legend" | "label"
+}) => (
   <legend
     data-slot="field-legend"
     data-variant={variant}
@@ -34,7 +34,6 @@ const FieldLegend = ({
     {...props}
   />
 )
-
 const FieldGroup = ({ className, ...props }: React.ComponentProps<"div">) => (
   <div
     data-slot="field-group"
@@ -45,7 +44,6 @@ const FieldGroup = ({ className, ...props }: React.ComponentProps<"div">) => (
     {...props}
   />
 )
-
 const fieldVariants = cva(
   "group/field gap-2 flex w-full data-[invalid=true]:text-destructive",
   {
@@ -63,7 +61,6 @@ const fieldVariants = cva(
     },
   }
 )
-
 const Field = ({
   className,
   orientation = "vertical",
@@ -77,7 +74,6 @@ const Field = ({
     {...props}
   />
 )
-
 const FieldContent = ({ className, ...props }: React.ComponentProps<"div">) => (
   <div
     data-slot="field-content"
@@ -88,7 +84,6 @@ const FieldContent = ({ className, ...props }: React.ComponentProps<"div">) => (
     {...props}
   />
 )
-
 const FieldLabel = ({
   className,
   ...props
@@ -102,7 +97,6 @@ const FieldLabel = ({
     {...props}
   />
 )
-
 const FieldTitle = ({ className, ...props }: React.ComponentProps<"div">) => (
   <div
     data-slot="field-label"
@@ -113,7 +107,6 @@ const FieldTitle = ({ className, ...props }: React.ComponentProps<"div">) => (
     {...props}
   />
 )
-
 const FieldDescription = ({
   className,
   ...props
@@ -127,7 +120,6 @@ const FieldDescription = ({
     {...props}
   />
 )
-
 const FieldSeparator = ({
   children,
   className,
@@ -155,14 +147,18 @@ const FieldSeparator = ({
     ) : null}
   </div>
 )
-
 const FieldError = ({
   className,
   children,
   errors,
   ...props
 }: React.ComponentProps<"div"> & {
-  errors?: ({ message?: string } | undefined)[]
+  errors?: (
+    | {
+        message?: string
+      }
+    | undefined
+  )[]
 }) => {
   if (children) {
     return (
@@ -176,21 +172,16 @@ const FieldError = ({
       </div>
     )
   }
-
   const uniqueMessages: string[] = []
-
   for (const error of errors ?? []) {
     const message = error?.message
-
     if (message && !uniqueMessages.includes(message)) {
       uniqueMessages.push(message)
     }
   }
-
   if (!uniqueMessages.length) {
     return null
   }
-
   return (
     <div
       data-slot="field-error"
@@ -210,16 +201,15 @@ const FieldError = ({
     </div>
   )
 }
-
 export {
   Field,
-  FieldContent,
+  FieldLabel,
   FieldDescription,
   FieldError,
   FieldGroup,
-  FieldLabel,
   FieldLegend,
   FieldSeparator,
   FieldSet,
+  FieldContent,
   FieldTitle,
 }

@@ -1,6 +1,4 @@
-import { Link, useNavigate } from "@tanstack/react-router"
-import { useEffectEvent, useState, useTransition } from "react"
-import type { FormEvent } from "react"
+import { Link } from "@tanstack/react-router"
 
 import { Button } from "@workspace/ui/components/button"
 import {
@@ -10,63 +8,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card"
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@workspace/ui/components/field"
-import { Input } from "@workspace/ui/components/input"
+import { FieldDescription } from "@workspace/ui/components/field"
 
-import { authClient } from "./auth-client"
 import { AuthPageShell } from "./auth-page-shell"
+import { ResetPasswordForm } from "./reset-password-form"
 
 interface ResetPasswordPageProps {
   token: string
 }
 
 const ResetPasswordPage = ({ token }: ResetPasswordPageProps) => {
-  const navigate = useNavigate()
-  const [error, setError] = useState<string | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isNavigating, startTransition] = useTransition()
-  const handleSubmit = useEffectEvent(
-    async (event: FormEvent<HTMLFormElement>) => {
-      event.preventDefault()
-      setError(null)
-      setIsSubmitting(true)
-
-      const formData = new FormData(event.currentTarget)
-      const newPassword = String(formData.get("newPassword") ?? "")
-      const confirmPassword = String(formData.get("confirmPassword") ?? "")
-
-      if (newPassword !== confirmPassword) {
-        setIsSubmitting(false)
-        setError("Passwords must match.")
-        return
-      }
-
-      const result = await authClient.resetPassword({
-        newPassword,
-        token,
-      })
-
-      setIsSubmitting(false)
-
-      if (result.error) {
-        setError(result.error.message ?? "Unable to reset your password.")
-        return
-      }
-
-      startTransition(() => {
-        navigate({
-          to: "/login",
-        })
-      })
-    }
-  )
-
   if (!token) {
     return (
       <AuthPageShell
@@ -116,52 +67,7 @@ const ResetPasswordPage = ({ token }: ResetPasswordPageProps) => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="gap-6 flex flex-col" onSubmit={handleSubmit}>
-            <FieldGroup>
-              <Field>
-                <FieldLabel htmlFor="newPassword">New password</FieldLabel>
-                <Input
-                  autoComplete="new-password"
-                  id="newPassword"
-                  name="newPassword"
-                  required
-                  type="password"
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="confirmPassword">
-                  Confirm new password
-                </FieldLabel>
-                <Input
-                  autoComplete="new-password"
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  required
-                  type="password"
-                />
-                <FieldDescription>
-                  After reset, use this password on the login page.
-                </FieldDescription>
-              </Field>
-              {error ? <FieldError>{error}</FieldError> : null}
-              <Field>
-                <Button disabled={isSubmitting || isNavigating} type="submit">
-                  {isSubmitting || isNavigating
-                    ? "Resetting password..."
-                    : "Reset password"}
-                </Button>
-                <FieldDescription className="text-center">
-                  Need a fresh link?{" "}
-                  <Link
-                    className="underline underline-offset-4 hover:text-foreground"
-                    to="/forgot-password"
-                  >
-                    Request another reset
-                  </Link>
-                </FieldDescription>
-              </Field>
-            </FieldGroup>
-          </form>
+          <ResetPasswordForm token={token} />
         </CardContent>
       </Card>
     </AuthPageShell>

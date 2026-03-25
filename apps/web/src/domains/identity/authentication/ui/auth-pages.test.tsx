@@ -24,27 +24,26 @@ const {
   verifyEmailMock: vi.fn(),
 }))
 
-const installMocks = () => {
-  vi.doMock<typeof import("@tanstack/react-router")>(
-    import("@tanstack/react-router"),
-    (() => ({
-      Link: ({
-        children,
-        to,
-        ...props
-      }: {
-        children?: ReactNode
-        to: string
-      } & ComponentProps<"a">) => (
-        <a href={to} {...props}>
-          {children}
-        </a>
-      ),
-      useNavigate: () => navigateMock,
-    })) as never
-  )
+const EMAIL_VERIFICATION_FLOW_STORAGE_KEY = "tskr-email-verification-flow"
 
-  vi.doMock<typeof import("./auth-client")>(import("./auth-client"), (() => ({
+const installMocks = () => {
+  vi.doMock(import("@tanstack/react-router"), (() => ({
+    Link: ({
+      children,
+      to,
+      ...props
+    }: {
+      children?: ReactNode
+      to: string
+    } & ComponentProps<"a">) => (
+      <a href={to} {...props}>
+        {children}
+      </a>
+    ),
+    useNavigate: () => navigateMock,
+  })) as never)
+
+  vi.doMock(import("./auth-client"), (() => ({
     authClient: {
       emailOtp: {
         sendVerificationOtp: sendVerificationOtpMock,
@@ -103,6 +102,26 @@ const resetMocks = () => {
 }
 
 describe("authentication pages", () => {
+  it("blocks login when the email address is invalid", async () => {
+    resetMocks()
+    const { LoginPage } = await loadPages()
+
+    const user = userEvent.setup()
+    const view = render(<LoginPage />)
+
+    try {
+      await user.type(screen.getByLabelText("Email"), "not-an-email")
+      await user.type(screen.getByLabelText("Password"), "password-1234")
+      await user.click(screen.getByRole("button", { name: "Login" }))
+
+      expect(signInEmailMock).not.toHaveBeenCalled()
+      expect(screen.getByText("Enter a valid email address.")).toBeTruthy()
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
   it("submits the login form and navigates home on success", async () => {
     resetMocks()
     signInEmailMock.mockResolvedValue({
@@ -170,6 +189,12 @@ describe("authentication pages", () => {
 
     const user = userEvent.setup()
     const view = render(<SignupPage />)
+    let storedFlowAtNavigate: string | null = null
+    navigateMock.mockImplementation(() => {
+      storedFlowAtNavigate = window.sessionStorage.getItem(
+        EMAIL_VERIFICATION_FLOW_STORAGE_KEY
+      )
+    })
 
     try {
       await user.type(screen.getByLabelText("Full name"), "Ada Lovelace")
@@ -198,6 +223,46 @@ describe("authentication pages", () => {
             reason: "",
           },
           to: "/verify-email",
+        })
+      })
+
+      expect(storedFlowAtNavigate).toBe(
+        JSON.stringify({
+          email: "ada@example.com",
+          reason: "",
+        })
+      )
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
+  it("submits signup with a whitespace-only full name", async () => {
+    resetMocks()
+    signUpEmailMock.mockResolvedValue({
+      error: {
+        code: "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL",
+        message: "User already exists. Use another email.",
+      },
+    })
+    const { SignupPage } = await loadPages()
+
+    const user = userEvent.setup()
+    const view = render(<SignupPage />)
+
+    try {
+      await user.type(screen.getByLabelText("Full name"), "   ")
+      await user.type(screen.getByLabelText("Email"), "ada@example.com")
+      await user.type(screen.getByLabelText("Password"), "short")
+      await user.type(screen.getByLabelText("Confirm password"), "short")
+      await user.click(screen.getByRole("button", { name: "Create account" }))
+
+      await waitFor(() => {
+        expect(signUpEmailMock).toHaveBeenCalledWith({
+          email: "ada@example.com",
+          name: "   ",
+          password: "short",
         })
       })
     } finally {
@@ -261,6 +326,12 @@ describe("authentication pages", () => {
 
     const user = userEvent.setup()
     const view = render(<LoginPage />)
+    let storedFlowAtNavigate: string | null = null
+    navigateMock.mockImplementation(() => {
+      storedFlowAtNavigate = window.sessionStorage.getItem(
+        EMAIL_VERIFICATION_FLOW_STORAGE_KEY
+      )
+    })
 
     try {
       await user.type(screen.getByLabelText("Email"), "ada@example.com")
@@ -276,6 +347,13 @@ describe("authentication pages", () => {
           to: "/verify-email",
         })
       })
+
+      expect(storedFlowAtNavigate).toBe(
+        JSON.stringify({
+          email: "ada@example.com",
+          reason: "signin",
+        })
+      )
     } finally {
       view.unmount()
       cleanup()
@@ -308,6 +386,88 @@ describe("authentication pages", () => {
           to: "/",
         })
       })
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
+  it("clears the stored email verification flow before navigating home", async () => {
+    resetMocks()
+    verifyEmailMock.mockResolvedValue({
+      error: null,
+    })
+    window.sessionStorage.setItem(
+      EMAIL_VERIFICATION_FLOW_STORAGE_KEY,
+      JSON.stringify({
+        email: "ada@example.com",
+        reason: "signin",
+      })
+    )
+    const { VerifyEmailPage } = await loadPages()
+
+    const user = userEvent.setup()
+    const view = render(
+      <VerifyEmailPage email="ada@example.com" reason="signin" />
+    )
+    let storedFlowAtNavigate: string | null = null
+    navigateMock.mockImplementation(() => {
+      storedFlowAtNavigate = window.sessionStorage.getItem(
+        EMAIL_VERIFICATION_FLOW_STORAGE_KEY
+      )
+    })
+
+    try {
+      await user.type(screen.getByLabelText("Verification code"), "123456")
+      await user.click(screen.getByRole("button", { name: "Verify email" }))
+
+      await waitFor(() => {
+        expect(navigateMock).toHaveBeenCalledWith({
+          to: "/",
+        })
+      })
+
+      expect(storedFlowAtNavigate).toBeNull()
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
+  it("blocks verify email submit when the otp code is incomplete", async () => {
+    resetMocks()
+    const { VerifyEmailPage } = await loadPages()
+
+    const user = userEvent.setup()
+    const view = render(<VerifyEmailPage email="ada@example.com" />)
+
+    try {
+      await user.type(screen.getByLabelText("Verification code"), "12345")
+      await user.click(screen.getByRole("button", { name: "Verify email" }))
+
+      expect(verifyEmailMock).not.toHaveBeenCalled()
+      expect(
+        screen.getByText("Enter the 6-digit verification code.")
+      ).toBeTruthy()
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
+  it("uses managed validation on the verify email form", async () => {
+    resetMocks()
+    const { VerifyEmailPage } = await loadPages()
+
+    const view = render(<VerifyEmailPage email="ada@example.com" />)
+
+    try {
+      expect(
+        screen
+          .getByRole("button", { name: "Verify email" })
+          .closest("form")
+          ?.hasAttribute("novalidate")
+      ).toBeTruthy()
     } finally {
       view.unmount()
       cleanup()
@@ -352,6 +512,58 @@ describe("authentication pages", () => {
       expect(
         screen.getByText("A new verification code is on the way.")
       ).toBeTruthy()
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
+  it("clears stale otp validation state after a successful resend", async () => {
+    resetMocks()
+    sendVerificationOtpMock.mockResolvedValue({
+      error: null,
+    })
+    window.sessionStorage.setItem(
+      EMAIL_VERIFICATION_FLOW_STORAGE_KEY,
+      JSON.stringify({
+        email: "ada@example.com",
+        reason: "signin",
+      })
+    )
+    const { VerifyEmailPage } = await loadPages()
+
+    const user = userEvent.setup()
+    const view = render(
+      <VerifyEmailPage email="ada@example.com" reason="signin" />
+    )
+
+    try {
+      await user.type(screen.getByLabelText("Verification code"), "12345")
+      await user.click(screen.getByRole("button", { name: "Verify email" }))
+
+      const otpInput = screen.getByLabelText("Verification code")
+
+      expect(
+        screen.getByText("Enter the 6-digit verification code.")
+      ).toBeTruthy()
+      expect(otpInput.getAttribute("aria-invalid")).toBe("true")
+
+      await user.click(screen.getByRole("button", { name: "Send a new code" }))
+
+      await waitFor(() => {
+        expect(sendVerificationOtpMock).toHaveBeenCalledWith({
+          email: "ada@example.com",
+          type: "email-verification",
+        })
+      })
+
+      expect(
+        screen.getByText("A new verification code is on the way.")
+      ).toBeTruthy()
+      expect(
+        screen.queryByText("Enter the 6-digit verification code.")
+      ).toBeNull()
+      expect(otpInput.hasAttribute("aria-invalid")).toBeFalsy()
     } finally {
       view.unmount()
       cleanup()
@@ -405,6 +617,10 @@ describe("authentication pages", () => {
           )
         ).toBeTruthy()
       })
+
+      expect(
+        screen.getByLabelText("Verification code").getAttribute("aria-invalid")
+      ).toBe("true")
     } finally {
       view.unmount()
       cleanup()
@@ -437,6 +653,25 @@ describe("authentication pages", () => {
           /If the account exists, check your email for a reset link/i
         )
       ).toBeTruthy()
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
+  it("blocks password reset requests when the email address is invalid", async () => {
+    resetMocks()
+    const { ForgotPasswordPage } = await loadPages()
+
+    const user = userEvent.setup()
+    const view = render(<ForgotPasswordPage />)
+
+    try {
+      await user.type(screen.getByLabelText("Email"), "not-an-email")
+      await user.click(screen.getByRole("button", { name: "Send reset link" }))
+
+      expect(requestPasswordResetMock).not.toHaveBeenCalled()
+      expect(screen.getByText("Enter a valid email address.")).toBeTruthy()
     } finally {
       view.unmount()
       cleanup()
@@ -492,6 +727,62 @@ describe("authentication pages", () => {
           to: "/login",
         })
       })
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
+  it("submits a short reset password to the server and shows the server error", async () => {
+    resetMocks()
+    resetPasswordMock.mockResolvedValue({
+      error: {
+        message: "Password must be at least 8 characters.",
+      },
+    })
+    const { ResetPasswordPage } = await loadPages()
+
+    const user = userEvent.setup()
+    const view = render(<ResetPasswordPage token="reset-token-123" />)
+
+    try {
+      await user.type(screen.getByLabelText("New password"), "short")
+      await user.type(screen.getByLabelText("Confirm new password"), "short")
+      await user.click(screen.getByRole("button", { name: "Reset password" }))
+
+      await waitFor(() => {
+        expect(resetPasswordMock).toHaveBeenCalledWith({
+          newPassword: "short",
+          token: "reset-token-123",
+        })
+      })
+
+      expect(
+        screen.getByText("Password must be at least 8 characters.")
+      ).toBeTruthy()
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
+  it("blocks password resets when the passwords do not match", async () => {
+    resetMocks()
+    const { ResetPasswordPage } = await loadPages()
+
+    const user = userEvent.setup()
+    const view = render(<ResetPasswordPage token="reset-token-123" />)
+
+    try {
+      await user.type(screen.getByLabelText("New password"), "password-5678")
+      await user.type(
+        screen.getByLabelText("Confirm new password"),
+        "password-1234"
+      )
+      await user.click(screen.getByRole("button", { name: "Reset password" }))
+
+      expect(resetPasswordMock).not.toHaveBeenCalled()
+      expect(screen.getByText("Passwords must match.")).toBeTruthy()
     } finally {
       view.unmount()
       cleanup()

@@ -1,14 +1,15 @@
 import { cn } from "@/lib/utils"
 import * as React from "react"
-
 const Card = ({
   className,
   size = "default",
   ...props
-}: React.ComponentProps<"div"> & { size?: "default" | "sm" }) => (
+}: React.ComponentProps<"div"> & {
+  size?: "default" | "sm"
+}) => (
   <div
-    data-size={size}
     data-slot="card"
+    data-size={size}
     className={cn(
       "group/card gap-4 py-4 text-sm has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:gap-3 data-[size=sm]:py-3 data-[size=sm]:has-data-[slot=card-footer]:pb-0 flex flex-col overflow-hidden rounded-xl bg-card text-card-foreground ring-1 ring-foreground/10 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
       className
@@ -16,7 +17,6 @@ const Card = ({
     {...props}
   />
 )
-
 const CardHeader = ({ className, ...props }: React.ComponentProps<"div">) => (
   <div
     data-slot="card-header"
@@ -27,7 +27,6 @@ const CardHeader = ({ className, ...props }: React.ComponentProps<"div">) => (
     {...props}
   />
 )
-
 const CardTitle = ({ className, ...props }: React.ComponentProps<"div">) => (
   <div
     data-slot="card-title"
@@ -38,7 +37,6 @@ const CardTitle = ({ className, ...props }: React.ComponentProps<"div">) => (
     {...props}
   />
 )
-
 const CardDescription = ({
   className,
   ...props
@@ -49,7 +47,6 @@ const CardDescription = ({
     {...props}
   />
 )
-
 const CardAction = ({ className, ...props }: React.ComponentProps<"div">) => (
   <div
     data-slot="card-action"
@@ -60,7 +57,6 @@ const CardAction = ({ className, ...props }: React.ComponentProps<"div">) => (
     {...props}
   />
 )
-
 const CardContent = ({ className, ...props }: React.ComponentProps<"div">) => (
   <div
     data-slot="card-content"
@@ -68,7 +64,6 @@ const CardContent = ({ className, ...props }: React.ComponentProps<"div">) => (
     {...props}
   />
 )
-
 const CardFooter = ({ className, ...props }: React.ComponentProps<"div">) => (
   <div
     data-slot="card-footer"
@@ -79,13 +74,12 @@ const CardFooter = ({ className, ...props }: React.ComponentProps<"div">) => (
     {...props}
   />
 )
-
 export {
   Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardFooter,
   CardHeader,
+  CardFooter,
   CardTitle,
+  CardAction,
+  CardDescription,
+  CardContent,
 }

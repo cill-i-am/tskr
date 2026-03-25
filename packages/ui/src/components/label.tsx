@@ -1,7 +1,6 @@
+/* eslint-disable jsx-a11y/label-has-associated-control */
 import { cn } from "@/lib/utils"
 import * as React from "react"
-
-/* eslint-disable jsx-a11y/label-has-associated-control */
 const Label = ({ className, ...props }: React.ComponentProps<"label">) => (
   <label
     data-slot="label"
@@ -12,5 +11,4 @@ const Label = ({ className, ...props }: React.ComponentProps<"label">) => (
     {...props}
   />
 )
-
 export { Label }
