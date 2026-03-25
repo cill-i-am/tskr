@@ -51,20 +51,27 @@ const forgotPasswordFormSchema = z.object({
   email: emailSchema,
 })
 
+const verifyEmailFormSchema = z.object({
+  otp: z.string().length(6, "Enter the 6-digit verification code."),
+})
+
 type LoginFormValues = z.infer<typeof loginFormSchema>
 type SignupFormValues = z.infer<typeof signupFormSchema>
 type ForgotPasswordFormValues = z.infer<typeof forgotPasswordFormSchema>
 type ResetPasswordFormValues = z.infer<typeof resetPasswordFormSchema>
+type VerifyEmailFormValues = z.infer<typeof verifyEmailFormSchema>
 
 export {
   forgotPasswordFormSchema,
   loginFormSchema,
   resetPasswordFormSchema,
   signupFormSchema,
+  verifyEmailFormSchema,
 }
 export type {
   ForgotPasswordFormValues,
   LoginFormValues,
   ResetPasswordFormValues,
   SignupFormValues,
+  VerifyEmailFormValues,
 }

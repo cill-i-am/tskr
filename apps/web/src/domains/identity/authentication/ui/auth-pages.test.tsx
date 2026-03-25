@@ -392,6 +392,88 @@ describe("authentication pages", () => {
     }
   })
 
+  it("clears the stored email verification flow before navigating home", async () => {
+    resetMocks()
+    verifyEmailMock.mockResolvedValue({
+      error: null,
+    })
+    window.sessionStorage.setItem(
+      EMAIL_VERIFICATION_FLOW_STORAGE_KEY,
+      JSON.stringify({
+        email: "ada@example.com",
+        reason: "signin",
+      })
+    )
+    const { VerifyEmailPage } = await loadPages()
+
+    const user = userEvent.setup()
+    const view = render(
+      <VerifyEmailPage email="ada@example.com" reason="signin" />
+    )
+    let storedFlowAtNavigate: string | null = null
+    navigateMock.mockImplementation(() => {
+      storedFlowAtNavigate = window.sessionStorage.getItem(
+        EMAIL_VERIFICATION_FLOW_STORAGE_KEY
+      )
+    })
+
+    try {
+      await user.type(screen.getByLabelText("Verification code"), "123456")
+      await user.click(screen.getByRole("button", { name: "Verify email" }))
+
+      await waitFor(() => {
+        expect(navigateMock).toHaveBeenCalledWith({
+          to: "/",
+        })
+      })
+
+      expect(storedFlowAtNavigate).toBeNull()
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
+  it("blocks verify email submit when the otp code is incomplete", async () => {
+    resetMocks()
+    const { VerifyEmailPage } = await loadPages()
+
+    const user = userEvent.setup()
+    const view = render(<VerifyEmailPage email="ada@example.com" />)
+
+    try {
+      await user.type(screen.getByLabelText("Verification code"), "12345")
+      await user.click(screen.getByRole("button", { name: "Verify email" }))
+
+      expect(verifyEmailMock).not.toHaveBeenCalled()
+      expect(
+        screen.getByText("Enter the 6-digit verification code.")
+      ).toBeTruthy()
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
+  it("uses managed validation on the verify email form", async () => {
+    resetMocks()
+    const { VerifyEmailPage } = await loadPages()
+
+    const view = render(<VerifyEmailPage email="ada@example.com" />)
+
+    try {
+      expect(
+        screen
+          .getByRole("button", { name: "Verify email" })
+          .closest("form")
+          ?.hasAttribute("novalidate")
+      ).toBeTruthy()
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
   it("resends a verification otp from the verify email page", async () => {
     resetMocks()
     sendVerificationOtpMock.mockResolvedValue({
