@@ -25,26 +25,23 @@ const {
 }))
 
 const installMocks = () => {
-  vi.doMock<typeof import("@tanstack/react-router")>(
-    import("@tanstack/react-router"),
-    (() => ({
-      Link: ({
-        children,
-        to,
-        ...props
-      }: {
-        children?: ReactNode
-        to: string
-      } & ComponentProps<"a">) => (
-        <a href={to} {...props}>
-          {children}
-        </a>
-      ),
-      useNavigate: () => navigateMock,
-    })) as never
-  )
+  vi.doMock(import("@tanstack/react-router"), (() => ({
+    Link: ({
+      children,
+      to,
+      ...props
+    }: {
+      children?: ReactNode
+      to: string
+    } & ComponentProps<"a">) => (
+      <a href={to} {...props}>
+        {children}
+      </a>
+    ),
+    useNavigate: () => navigateMock,
+  })) as never)
 
-  vi.doMock<typeof import("./auth-client")>(import("./auth-client"), (() => ({
+  vi.doMock(import("./auth-client"), (() => ({
     authClient: {
       emailOtp: {
         sendVerificationOtp: sendVerificationOtpMock,
@@ -103,6 +100,26 @@ const resetMocks = () => {
 }
 
 describe("authentication pages", () => {
+  it("blocks login when the email address is invalid", async () => {
+    resetMocks()
+    const { LoginPage } = await loadPages()
+
+    const user = userEvent.setup()
+    const view = render(<LoginPage />)
+
+    try {
+      await user.type(screen.getByLabelText("Email"), "not-an-email")
+      await user.type(screen.getByLabelText("Password"), "password-1234")
+      await user.click(screen.getByRole("button", { name: "Login" }))
+
+      expect(signInEmailMock).not.toHaveBeenCalled()
+      expect(screen.getByText("Enter a valid email address.")).toBeTruthy()
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
   it("submits the login form and navigates home on success", async () => {
     resetMocks()
     signInEmailMock.mockResolvedValue({
@@ -443,6 +460,25 @@ describe("authentication pages", () => {
     }
   })
 
+  it("blocks password reset requests when the email address is invalid", async () => {
+    resetMocks()
+    const { ForgotPasswordPage } = await loadPages()
+
+    const user = userEvent.setup()
+    const view = render(<ForgotPasswordPage />)
+
+    try {
+      await user.type(screen.getByLabelText("Email"), "not-an-email")
+      await user.click(screen.getByRole("button", { name: "Send reset link" }))
+
+      expect(requestPasswordResetMock).not.toHaveBeenCalled()
+      expect(screen.getByText("Enter a valid email address.")).toBeTruthy()
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
   it("renders the invalid reset state when no token is present", async () => {
     resetMocks()
     const { ResetPasswordPage } = await loadPages()
@@ -492,6 +528,29 @@ describe("authentication pages", () => {
           to: "/login",
         })
       })
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
+  it("blocks password resets when the passwords do not match", async () => {
+    resetMocks()
+    const { ResetPasswordPage } = await loadPages()
+
+    const user = userEvent.setup()
+    const view = render(<ResetPasswordPage token="reset-token-123" />)
+
+    try {
+      await user.type(screen.getByLabelText("New password"), "password-5678")
+      await user.type(
+        screen.getByLabelText("Confirm new password"),
+        "password-1234"
+      )
+      await user.click(screen.getByRole("button", { name: "Reset password" }))
+
+      expect(resetPasswordMock).not.toHaveBeenCalled()
+      expect(screen.getByText("Passwords must match.")).toBeTruthy()
     } finally {
       view.unmount()
       cleanup()
