@@ -518,6 +518,58 @@ describe("authentication pages", () => {
     }
   })
 
+  it("clears stale otp validation state after a successful resend", async () => {
+    resetMocks()
+    sendVerificationOtpMock.mockResolvedValue({
+      error: null,
+    })
+    window.sessionStorage.setItem(
+      EMAIL_VERIFICATION_FLOW_STORAGE_KEY,
+      JSON.stringify({
+        email: "ada@example.com",
+        reason: "signin",
+      })
+    )
+    const { VerifyEmailPage } = await loadPages()
+
+    const user = userEvent.setup()
+    const view = render(
+      <VerifyEmailPage email="ada@example.com" reason="signin" />
+    )
+
+    try {
+      await user.type(screen.getByLabelText("Verification code"), "12345")
+      await user.click(screen.getByRole("button", { name: "Verify email" }))
+
+      const otpInput = screen.getByLabelText("Verification code")
+
+      expect(
+        screen.getByText("Enter the 6-digit verification code.")
+      ).toBeTruthy()
+      expect(otpInput.getAttribute("aria-invalid")).toBe("true")
+
+      await user.click(screen.getByRole("button", { name: "Send a new code" }))
+
+      await waitFor(() => {
+        expect(sendVerificationOtpMock).toHaveBeenCalledWith({
+          email: "ada@example.com",
+          type: "email-verification",
+        })
+      })
+
+      expect(
+        screen.getByText("A new verification code is on the way.")
+      ).toBeTruthy()
+      expect(
+        screen.queryByText("Enter the 6-digit verification code.")
+      ).toBeNull()
+      expect(otpInput.hasAttribute("aria-invalid")).toBeFalsy()
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
   it("does not allow resend when signin context is only spoofed in props", async () => {
     resetMocks()
     const { VerifyEmailPage } = await loadPages()
@@ -565,6 +617,10 @@ describe("authentication pages", () => {
           )
         ).toBeTruthy()
       })
+
+      expect(
+        screen.getByLabelText("Verification code").getAttribute("aria-invalid")
+      ).toBe("true")
     } finally {
       view.unmount()
       cleanup()

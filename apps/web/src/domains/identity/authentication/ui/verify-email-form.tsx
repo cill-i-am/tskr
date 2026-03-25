@@ -53,12 +53,24 @@ const getVerificationErrorMessage = (
 
 interface VerifyEmailOtpFieldProps {
   field: AnyFieldApi
+  hasServerError?: boolean
+  onChange?: (field: AnyFieldApi, value: string) => void
 }
 
-const VerifyEmailOtpField = ({ field }: VerifyEmailOtpFieldProps) => {
+const VerifyEmailOtpField = ({
+  field,
+  hasServerError = false,
+  onChange,
+}: VerifyEmailOtpFieldProps) => {
   const isInvalid =
-    field.state.meta.isTouched && field.state.meta.errors.length > 0
+    hasServerError ||
+    (field.state.meta.isTouched && field.state.meta.errors.length > 0)
   const handleChange = useEffectEvent((value: string) => {
+    if (onChange) {
+      onChange(field, value)
+      return
+    }
+
     field.handleChange(value)
   })
 
@@ -103,6 +115,7 @@ const VerifyEmailForm = ({
   const [notice, setNotice] = useState<string | null>(null)
   const [isResending, setIsResending] = useState(false)
   const [isNavigating, startTransition] = useTransition()
+  const [hasVerifyError, setHasVerifyError] = useState(false)
   const form = useForm({
     defaultValues: {
       otp: "",
@@ -110,6 +123,7 @@ const VerifyEmailForm = ({
     onSubmit: async ({ value }) => {
       setError(null)
       setNotice(null)
+      setHasVerifyError(false)
 
       const result = await authClient.emailOtp.verifyEmail({
         email,
@@ -117,6 +131,7 @@ const VerifyEmailForm = ({
       })
 
       if (result.error) {
+        setHasVerifyError(true)
         setError(getVerificationErrorMessage(result.error))
         return
       }
@@ -141,6 +156,27 @@ const VerifyEmailForm = ({
       await form.handleSubmit()
     }
   )
+  const handleOtpChange = useEffectEvent(
+    (field: AnyFieldApi, value: string) => {
+      if (hasVerifyError) {
+        setHasVerifyError(false)
+      }
+
+      field.handleChange(value)
+    }
+  )
+  const clearOtpValidationState = useEffectEvent(() => {
+    form.setFieldMeta("otp", (previous) => ({
+      ...previous,
+      errorMap: {},
+      errorSourceMap: {},
+      errors: [],
+      isBlurred: false,
+      isTouched: false,
+      isValid: true,
+    }))
+    setHasVerifyError(false)
+  })
   const handleResend = useEffectEvent(async () => {
     setError(null)
     setNotice(null)
@@ -160,6 +196,7 @@ const VerifyEmailForm = ({
       return
     }
 
+    clearOtpValidationState()
     setNotice("A new verification code is on the way.")
   })
 
@@ -171,7 +208,13 @@ const VerifyEmailForm = ({
           <Input id="email" readOnly type="email" value={email} />
         </Field>
         <form.Field name="otp">
-          {(field) => <VerifyEmailOtpField field={field} />}
+          {(field) => (
+            <VerifyEmailOtpField
+              field={field}
+              hasServerError={hasVerifyError}
+              onChange={handleOtpChange}
+            />
+          )}
         </form.Field>
         {isSigninFlow ? (
           <FieldDescription className="text-center">
