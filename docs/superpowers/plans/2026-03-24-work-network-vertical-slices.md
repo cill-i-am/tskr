@@ -66,6 +66,25 @@
 - WhatsApp delivery provider:
   - prove the v1 outbound-only notification path before the notification slice starts
 
+## Demo Loop And Deferred Expansion
+
+- The first demoable end-to-end product loop is:
+  - `Workspace Membership And Settings`
+  - `Task Core`
+  - `Manual Intake And Review`
+- Those three slices are sufficient to demonstrate:
+  - workspace-scoped onboarding and access
+  - core task creation and rendering
+  - human-in-the-loop AI intake that turns messy text into real tasks
+- The following slices are explicitly deferred expansion layers after the first
+  demo loop proves itself:
+  - `Workspace Connections And Work Requests`
+  - `Search And Visibility`
+  - `WhatsApp Notifications And Channel Boundary`
+- Deferred does not mean dropped. It means those slices should be picked up
+  later from the existing roadmap, PRDs, and issue handoff material rather than
+  blocking the first shippable demonstration.
+
 ## Chunk 1: Workspace Membership And Settings
 
 **Goal:** Make multi-workspace membership, workspace-scoped roles, invite-only access, and the minimum settings/admin area real.
