@@ -6,7 +6,7 @@ The product needs a clean multi-workspace foundation before task assignment,
 intake, dispatch, and cross-workspace work requests can exist safely.
 
 Users will often belong to more than one workspace and may play different roles
-in each one. A person might own one business, work as a field worker for
+in each one. A person might own one business, work as a `field_worker` for
 another, and later join a third workspace as an admin. Without explicit
 workspace membership, active-workspace switching, invite-only access, and
 workspace-scoped roles, later slices like task ownership, assignee logic, and
@@ -25,8 +25,8 @@ the existing auth foundation.
 In v1, a signed-in user can create a workspace with a name, receive a derived
 slug, and become its initial owner. Users can also join other workspaces by
 accepting invites. Membership is invite-only. A user can belong to multiple
-workspaces, roles are scoped per workspace, and the active workspace is stored
-remotely so it follows the user across devices.
+workspaces, roles are scoped per workspace, and the active workspace is
+session-scoped in auth for v1.
 
 Workspace setup lives in its own gated onboarding route tree, separate from the
 auth flows. A user cannot enter the main app until they either create or join
@@ -55,8 +55,8 @@ connections yet. It exists to make later vertical slices safe and coherent.
 13. As an invited user, I want invite codes to be short and human-shareable, so that they work well in real-world messaging.
 14. As an invited user with an existing account, I want accepting an invite to attach the workspace smoothly to my account, so that I do not have to fight the login flow.
 15. As a newly invited user, I want the product to switch me into the workspace immediately after acceptance, so that I land where I need to work.
-16. As a user who belongs to multiple workspaces, I want my last active workspace remembered across devices, so that the product reopens in the place I was actually working.
-17. As a user who belongs to multiple workspaces, I want the product to recover gracefully if my last active workspace is no longer valid, so that I can keep working without confusion.
+16. As a user who belongs to multiple workspaces, I want my active workspace remembered for the current session, so that the product can reopen in the place I was actually working during that session.
+17. As a user who belongs to multiple workspaces, I want the product to recover gracefully if my session's active workspace is no longer valid, so that I can keep working without confusion.
 18. As a user, I want to see all my workspaces in a switcher, so that I can move between them intentionally.
 19. As a user, I want the workspace switcher to show logo, name, and my role in each workspace, so that I can orient myself quickly.
 20. As a user, I want pending invites visible in the workspace switcher too, so that “join another workspace” lives in the same mental place as “switch workspace.”
@@ -82,6 +82,7 @@ connections yet. It exists to make later vertical slices safe and coherent.
 - This PRD covers workspace membership and settings only. It explicitly excludes task core, assignee logic, and workspace-to-workspace connections.
 - Authentication remains a separate concern. Workspace setup is a gated onboarding flow under a dedicated route tree such as `/onboarding` or `/setup`.
 - Setup is considered complete when the user belongs to at least one workspace and a valid active workspace is established.
+- TSK-20 implementation overrides are captured in [2026-03-26-workspace-membership-architecture-decision.md](./2026-03-26-workspace-membership-architecture-decision.md).
 - The onboarding flow should present two choices:
   - primary: create workspace
   - secondary: join workspace by invite
@@ -90,13 +91,13 @@ connections yet. It exists to make later vertical slices safe and coherent.
 - Workspace logo is editable later in settings; deeper branding stays out of scope for this slice.
 - Users can belong to multiple workspaces.
 - Roles are scoped per workspace, not global to the user account.
-- Built-in roles for the broader product remain `owner`, `admin`, `dispatcher`, and `field worker`, but this PRD only needs the membership and management behavior that makes those roles possible.
+- Built-in roles for the broader product remain `owner`, `admin`, `dispatcher`, and `field_worker`, but this PRD only needs the membership and management behavior that makes those roles possible.
 - Multiple owners are allowed in one workspace.
 - Only owners can create/remove other owners or transfer ownership.
 - Admins can manage users and invites, but cannot manage ownership.
 - Users can leave a workspace themselves, except that the last owner cannot leave until ownership is transferred or another owner exists.
-- Active workspace must be stored remotely and restored across devices.
-- When the stored active workspace becomes invalid:
+- Active workspace is session-scoped in v1 via Better Auth `session.activeOrganizationId`.
+- When the session's active workspace becomes invalid:
   - if one valid workspace remains, switch automatically
   - if several remain, prompt for selection
 - Workspace switcher must show:
@@ -127,10 +128,17 @@ connections yet. It exists to make later vertical slices safe and coherent.
   - real users-and-roles section
   - stub sections for labels, service zones, and notification/channel settings
 - `workspace type` is intentionally out of scope for this PRD and should be tracked as a later follow-up.
-- Better Auth organization-plugin integration needs explicit technical verification before implementation begins.
 - Better Auth UI should be investigated as a possible accelerator for auth/workspace surfaces before hand-rolling everything.
 - A standard TanStack Form + shadcn/ui form integration pattern should be established in or before this slice so later settings and task forms stay consistent.
 - Soft deletion / revocation should preserve backend auditability for memberships and invites, but no dedicated audit UI is needed in this slice.
+
+## TSK-20 Overrides
+
+- Superseded assumption: active workspace is a cross-device remote preference.
+- Replacement for v1: active workspace is session-scoped via Better Auth `session.activeOrganizationId`.
+- Superseded ambiguity: workspace/membership persistence might live in product-owned `app` tables.
+- Replacement for v1: Better Auth `organization`, `member`, and `invitation` are the canonical persistence model, owned behaviorally by `apps/auth`, with no duplicate custom workspace-membership tables in `app`.
+- Follow implementation from [2026-03-26-workspace-membership-architecture-decision.md](./2026-03-26-workspace-membership-architecture-decision.md) when it conflicts with earlier exploratory assumptions in this PRD.
 
 ## Testing Decisions
 
@@ -171,7 +179,7 @@ connections yet. It exists to make later vertical slices safe and coherent.
 - This PRD is the enabling slice for nearly every later product capability, so keeping the boundary sharp matters more than making it feel “feature rich.”
 - The product should continue treating auth as infrastructure and workspace membership as product behavior layered on top.
 - The edge-cases backlog for the broader work-network product is maintained in:
-  - [2026-03-24-work-network-edge-cases.md](/Users/cillianbarron/Documents/Development/tskr/docs/superpowers/specs/2026-03-24-work-network-edge-cases.md)
+  - [2026-03-24-work-network-edge-cases.md](./2026-03-24-work-network-edge-cases.md)
 - Follow-up ideas that should stay out of this slice but not be forgotten:
   - workspace type
   - richer branding
