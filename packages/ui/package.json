@@ -108,6 +108,10 @@
       "types": "./dist/components/field.d.ts",
       "import": "./dist/components/field.js"
     },
+    "./components/form": {
+      "types": "./dist/components/form.d.ts",
+      "import": "./dist/components/form.js"
+    },
     "./components/hover-card": {
       "types": "./dist/components/hover-card.d.ts",
       "import": "./dist/components/hover-card.js"
