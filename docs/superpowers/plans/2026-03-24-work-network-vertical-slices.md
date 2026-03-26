@@ -78,6 +78,7 @@
   - human-in-the-loop AI intake that turns messy text into real tasks
 - The following slices are explicitly deferred expansion layers after the first
   demo loop proves itself:
+  - `Assignees And Field Flow`
   - `Workspace Connections And Work Requests`
   - `Search And Visibility`
   - `WhatsApp Notifications And Channel Boundary`
@@ -291,7 +292,7 @@
 
 ## Linear Structure Recommendation
 
-- Initiative: `Work Network Foundation`
+- Initiative: `Work Network MVP`
 - Projects:
   - `Workspace Membership And Settings`
   - `Task Core`
@@ -302,10 +303,12 @@
   - `WhatsApp Notifications`
 - Documents:
   - `PRD 1: Workspace Membership And Settings`
-  - `PRD 2: Task Core And Dispatch`
+  - `PRD 2: Task Core`
   - `PRD 3: Manual Intake And Review`
-  - `PRD 4: Workspace Connections And Work Requests`
-  - `PRD 5: Search Visibility And Notifications`
+  - `PRD 4: Assignees And Field Flow`
+  - `PRD 5: Workspace Connections And Work Requests`
+  - `PRD 6: Search And Visibility`
+  - `PRD 7: WhatsApp Notifications And Channel Boundary`
 
 ## Completion Criteria For This Planning Phase
 
