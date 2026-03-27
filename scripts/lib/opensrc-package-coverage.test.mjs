@@ -10,12 +10,14 @@ const readJson = async (relativePath) => {
 }
 
 const approvedRuntimeDependencies = ["hono", "@hono/node-server"]
+const approvedCuratedPackages = [...approvedRuntimeDependencies, "better-auth"]
 const disallowedDevTestDependencies = ["vitest", "tsx", "@types/node"]
 
 test("curated opensrc manifest covers approved api/auth runtime deps", async () => {
   const manifest = await readJson("../../opensrc.packages.json")
   const apiPackage = await readJson("../../apps/api/package.json")
   const authPackage = await readJson("../../apps/auth/package.json")
+  const webPackage = await readJson("../../apps/web/package.json")
   const curatedPackages = new Set(manifest.packages)
 
   for (const [appName, pkg] of [
@@ -31,7 +33,18 @@ test("curated opensrc manifest covers approved api/auth runtime deps", async () 
     }
   }
 
-  for (const dependency of approvedRuntimeDependencies) {
+  for (const [appName, pkg] of [
+    ["apps/auth/package.json", authPackage],
+    ["apps/web/package.json", webPackage],
+  ]) {
+    assert.equal(
+      Object.hasOwn(pkg.dependencies ?? {}, "better-auth"),
+      true,
+      `${appName} must keep runtime dependency "better-auth" under dependencies`
+    )
+  }
+
+  for (const dependency of approvedCuratedPackages) {
     assert.equal(
       curatedPackages.has(dependency),
       true,
