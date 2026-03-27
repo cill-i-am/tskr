@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { emailOTP } from "better-auth/plugins/email-otp"
+import { organization } from "better-auth/plugins/organization"
 
 import { authDatabaseSchema } from "@workspace/db"
 
@@ -95,6 +96,10 @@ const auth = betterAuth({
           }
         ),
       storeOTP: "hashed",
+    }),
+    organization({
+      allowUserToCreateOrganization: true,
+      creatorRole: "owner",
     }),
   ],
   secret: authenticationEnv.betterAuthSecret,
