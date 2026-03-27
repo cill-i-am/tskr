@@ -1,5 +1,12 @@
 import { relations } from "drizzle-orm"
-import { boolean, index, pgSchema, text, timestamp } from "drizzle-orm/pg-core"
+import {
+  boolean,
+  index,
+  pgSchema,
+  text,
+  timestamp,
+  uniqueIndex,
+} from "drizzle-orm/pg-core"
 
 export const authSchema = pgSchema("auth")
 
@@ -16,9 +23,28 @@ export const user = authSchema.table("user", {
     .notNull(),
 })
 
+export const organization = authSchema.table(
+  "organization",
+  {
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    id: text("id").primaryKey(),
+    logo: text("logo"),
+    metadata: text("metadata"),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+  },
+  (table) => [uniqueIndex("organization_slug_idx").on(table.slug)]
+)
+
 export const session = authSchema.table(
   "session",
   {
+    activeOrganizationId: text("active_organization_id").references(
+      () => organization.id,
+      {
+        onDelete: "set null",
+      }
+    ),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     expiresAt: timestamp("expires_at").notNull(),
     id: text("id").primaryKey(),
@@ -32,7 +58,10 @@ export const session = authSchema.table(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
   },
-  (table) => [index("session_userId_idx").on(table.userId)]
+  (table) => [
+    index("session_activeOrganizationId_idx").on(table.activeOrganizationId),
+    index("session_userId_idx").on(table.userId),
+  ]
 )
 
 export const account = authSchema.table(
@@ -75,12 +104,67 @@ export const verification = authSchema.table(
   (table) => [index("verification_identifier_idx").on(table.identifier)]
 )
 
+export const member = authSchema.table(
+  "member",
+  {
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    role: text("role").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    index("member_organizationId_idx").on(table.organizationId),
+    uniqueIndex("member_organizationId_userId_idx").on(
+      table.organizationId,
+      table.userId
+    ),
+    index("member_userId_idx").on(table.userId),
+  ]
+)
+
+export const invitation = authSchema.table(
+  "invitation",
+  {
+    code: text("code").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    email: text("email").notNull(),
+    expiresAt: timestamp("expires_at").notNull(),
+    id: text("id").primaryKey(),
+    inviterId: text("inviter_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    role: text("role"),
+    status: text("status").notNull(),
+  },
+  (table) => [
+    uniqueIndex("invitation_code_idx").on(table.code),
+    index("invitation_email_idx").on(table.email),
+    index("invitation_inviterId_idx").on(table.inviterId),
+    index("invitation_organizationId_idx").on(table.organizationId),
+    index("invitation_status_idx").on(table.status),
+  ]
+)
+
 export const userRelations = relations(user, ({ many }) => ({
   accounts: many(account),
+  invitationsSent: many(invitation),
+  memberships: many(member),
   sessions: many(session),
 }))
 
 export const sessionRelations = relations(session, ({ one }) => ({
+  activeOrganization: one(organization, {
+    fields: [session.activeOrganizationId],
+    references: [organization.id],
+  }),
   user: one(user, {
     fields: [session.userId],
     references: [user.id],
@@ -94,9 +178,43 @@ export const accountRelations = relations(account, ({ one }) => ({
   }),
 }))
 
+export const organizationRelations = relations(organization, ({ many }) => ({
+  activeSessions: many(session),
+  invitations: many(invitation),
+  members: many(member),
+}))
+
+export const memberRelations = relations(member, ({ one }) => ({
+  organization: one(organization, {
+    fields: [member.organizationId],
+    references: [organization.id],
+  }),
+  user: one(user, {
+    fields: [member.userId],
+    references: [user.id],
+  }),
+}))
+
+export const invitationRelations = relations(invitation, ({ one }) => ({
+  inviter: one(user, {
+    fields: [invitation.inviterId],
+    references: [user.id],
+  }),
+  organization: one(organization, {
+    fields: [invitation.organizationId],
+    references: [organization.id],
+  }),
+}))
+
 export const authDatabaseSchema = {
   account,
   accountRelations,
+  invitation,
+  invitationRelations,
+  member,
+  memberRelations,
+  organization,
+  organizationRelations,
   session,
   sessionRelations,
   user,

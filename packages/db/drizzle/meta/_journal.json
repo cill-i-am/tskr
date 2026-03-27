@@ -15,6 +15,13 @@
       "when": 1773652380470,
       "tag": "0001_auth_schemas",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774647390499,
+      "tag": "0002_slippery_jasper_sitwell",
+      "breakpoints": true
     }
   ]
 }

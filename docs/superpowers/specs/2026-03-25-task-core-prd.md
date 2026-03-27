@@ -3,42 +3,42 @@
 ## Problem Statement
 
 The product needs a usable core task system inside a single workspace before it
- can support field execution, AI intake, cross-workspace delegation, or richer
- visibility rules.
+can support field execution, AI intake, cross-workspace delegation, or richer
+visibility rules.
 
 Right now, the product direction is clear but the central operational object is
- still missing. Users need a place to create work, see work, update work,
- assign work, and track work through a small reversible lifecycle. Without that
- core, later slices would be forced to invent task semantics indirectly through
- onboarding, intake, or notifications, which would create a weak foundation.
+still missing. Users need a place to create work, see work, update work,
+assign work, and track work through a small reversible lifecycle. Without that
+core, later slices would be forced to invent task semantics indirectly through
+onboarding, intake, or notifications, which would create a weak foundation.
 
 This slice should create a Linear-style task core adapted to operations work:
- a flat task list, a strong detail panel, inline editing, aging, labels,
- optional priority, optional due dates, internal notes, internal attachments,
- action history, and a shared composer. It should stay single-workspace only.
+a flat task list, a strong detail panel, inline editing, aging, labels,
+optional priority, optional due dates, internal notes, internal attachments,
+action history, and a shared composer. It should stay single-workspace only.
 
 ## Solution
 
 Build a dedicated `task-core` slice that establishes the canonical single-
- workspace task model and the default operational UI around it.
+workspace task model and the default operational UI around it.
 
 Each task has one canonical rich text body, structured location fields,
- optional assignee, optional labels, nullable priority, optional due date,
- optional planned start and end dates, lifecycle status, coordination state,
- internal notes, internal-only attachments, and action history. Tasks can be
- created as drafts, saved as ready, or created directly as assigned depending on
- completeness and assignee presence.
+optional assignee, optional labels, nullable priority, optional due date,
+optional planned start and end dates, lifecycle status, coordination state,
+internal notes, internal-only attachments, and action history. Tasks can be
+created as drafts, saved as ready, or created directly as assigned depending on
+completeness and assignee presence.
 
 The default home screen becomes a Linear-style flat task table with filtering,
- inline editing, and a side-panel detail view. A shared composer opens in a
- modal and supports both manual creation and later reuse by the intake slice.
- The product includes basic keyboard power-user interaction with TanStack
- Hotkeys plus a command bar for navigation/actions, but not bulk actions or
- grouping yet.
+inline editing, and a side-panel detail view. A shared composer opens in a
+modal and supports both manual creation and later reuse by the intake slice.
+The product includes basic keyboard power-user interaction with TanStack
+Hotkeys plus a command bar for navigation/actions, but not bulk actions or
+grouping yet.
 
 This PRD explicitly stays inside one workspace. Workspace-to-workspace
- connections, work requests, and hidden child-task delegation are separate
- later slices.
+connections, work requests, and hidden child-task delegation are separate
+later slices.
 
 ## User Stories
 
