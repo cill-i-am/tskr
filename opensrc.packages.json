@@ -1,12 +1,13 @@
 {
   "packages": [
-    "react",
-    "react-dom",
+    "@base-ui/react",
+    "@hono/node-server",
     "@tanstack/react-router",
     "@tanstack/react-start",
-    "zod",
-    "@base-ui/react",
+    "better-auth",
     "hono",
-    "@hono/node-server"
+    "react",
+    "react-dom",
+    "zod"
   ]
 }
