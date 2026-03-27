@@ -1,22 +1,16 @@
 import { useForm, useStore } from "@tanstack/react-form"
-import type { AnyFieldApi } from "@tanstack/react-form"
 import { Link, useNavigate } from "@tanstack/react-router"
 import { useEffectEvent, useState, useTransition } from "react"
-import type {
-  ChangeEvent,
-  FormEvent,
-  HTMLInputTypeAttribute,
-  ReactNode,
-} from "react"
+import type { ChangeEvent, FormEvent } from "react"
 
 import { Button } from "@workspace/ui/components/button"
 import {
   Field,
   FieldDescription,
-  FieldError,
   FieldGroup,
   FieldLabel,
 } from "@workspace/ui/components/field"
+import { FormMessage, FormTextField } from "@workspace/ui/components/form"
 import { Input } from "@workspace/ui/components/input"
 
 import { authClient } from "./auth-client"
@@ -34,23 +28,27 @@ const isEmailVerificationRequired = (
   (error.code === "EMAIL_NOT_VERIFIED" ||
     error.message === "Email not verified")
 
-interface LoginInputFieldProps {
-  autoComplete?: string
-  field: AnyFieldApi
-  label: string
-  labelAction?: ReactNode
-  placeholder?: string
-  type: HTMLInputTypeAttribute
+interface LoginPasswordFieldProps {
+  field: {
+    handleBlur: () => void
+    handleChange: (value: string) => void
+    name: string
+    state: {
+      meta: {
+        errors: (
+          | {
+              message?: string
+            }
+          | undefined
+        )[]
+        isTouched: boolean
+      }
+      value: string
+    }
+  }
 }
 
-const LoginInputField = ({
-  autoComplete,
-  field,
-  label,
-  labelAction,
-  placeholder,
-  type,
-}: LoginInputFieldProps) => {
+const LoginPasswordField = ({ field }: LoginPasswordFieldProps) => {
   const isInvalid =
     field.state.meta.isTouched && field.state.meta.errors.length > 0
   const handleChange = useEffectEvent(
@@ -61,26 +59,26 @@ const LoginInputField = ({
 
   return (
     <Field data-invalid={isInvalid || undefined}>
-      {labelAction ? (
-        <div className="flex items-center">
-          <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
-          {labelAction}
-        </div>
-      ) : (
-        <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
-      )}
+      <div className="flex items-center">
+        <FieldLabel htmlFor={field.name}>Password</FieldLabel>
+        <Link
+          className="text-sm ml-auto text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          to="/forgot-password"
+        >
+          Forgot your password?
+        </Link>
+      </div>
       <Input
         aria-invalid={isInvalid || undefined}
-        autoComplete={autoComplete}
+        autoComplete="current-password"
         id={field.name}
         name={field.name}
         onBlur={field.handleBlur}
         onChange={handleChange}
-        placeholder={placeholder}
-        type={type}
+        type="password"
         value={field.state.value}
       />
-      {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
+      {isInvalid ? <FormMessage errors={field.state.meta.errors} /> : null}
     </Field>
   )
 }
@@ -151,7 +149,7 @@ const LoginForm = () => {
       <FieldGroup>
         <form.Field name="email">
           {(field) => (
-            <LoginInputField
+            <FormTextField
               autoComplete="email"
               field={field}
               label="Email"
@@ -161,24 +159,9 @@ const LoginForm = () => {
           )}
         </form.Field>
         <form.Field name="password">
-          {(field) => (
-            <LoginInputField
-              autoComplete="current-password"
-              field={field}
-              label="Password"
-              labelAction={
-                <Link
-                  className="text-sm ml-auto text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-                  to="/forgot-password"
-                >
-                  Forgot your password?
-                </Link>
-              }
-              type="password"
-            />
-          )}
+          {(field) => <LoginPasswordField field={field} />}
         </form.Field>
-        {error ? <FieldError>{error}</FieldError> : null}
+        {error ? <FormMessage>{error}</FormMessage> : null}
         <Field>
           <Button disabled={isSubmitting || isNavigating} type="submit">
             {isSubmitting || isNavigating ? "Signing in..." : "Login"}

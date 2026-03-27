@@ -1,5 +1,4 @@
 import { useForm, useStore } from "@tanstack/react-form"
-import type { AnyFieldApi } from "@tanstack/react-form"
 import { Link, useNavigate } from "@tanstack/react-router"
 import { useEffectEvent, useState, useTransition } from "react"
 import type { FormEvent } from "react"
@@ -8,16 +7,15 @@ import { Button } from "@workspace/ui/components/button"
 import {
   Field,
   FieldDescription,
-  FieldError,
   FieldGroup,
   FieldLabel,
 } from "@workspace/ui/components/field"
-import { Input } from "@workspace/ui/components/input"
 import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@workspace/ui/components/input-otp"
+  FormActions,
+  FormMessage,
+  FormOtpField,
+} from "@workspace/ui/components/form"
+import { Input } from "@workspace/ui/components/input"
 
 import { authClient } from "./auth-client"
 import { verifyEmailFormSchema } from "./auth-form-schemas"
@@ -49,60 +47,6 @@ const getVerificationErrorMessage = (
       return error?.message ?? "Unable to verify that code."
     }
   }
-}
-
-interface VerifyEmailOtpFieldProps {
-  field: AnyFieldApi
-  hasServerError?: boolean
-  onChange?: (field: AnyFieldApi, value: string) => void
-}
-
-const VerifyEmailOtpField = ({
-  field,
-  hasServerError = false,
-  onChange,
-}: VerifyEmailOtpFieldProps) => {
-  const isInvalid =
-    hasServerError ||
-    (field.state.meta.isTouched && field.state.meta.errors.length > 0)
-  const handleChange = useEffectEvent((value: string) => {
-    if (onChange) {
-      onChange(field, value)
-      return
-    }
-
-    field.handleChange(value)
-  })
-
-  return (
-    <Field data-invalid={isInvalid || undefined}>
-      <FieldLabel htmlFor={field.name}>Verification code</FieldLabel>
-      <InputOTP
-        aria-invalid={isInvalid || undefined}
-        containerClassName="justify-center"
-        id={field.name}
-        inputMode="numeric"
-        maxLength={6}
-        name={field.name}
-        onBlur={field.handleBlur}
-        onChange={handleChange}
-        value={field.state.value}
-      >
-        <InputOTPGroup>
-          <InputOTPSlot index={0} />
-          <InputOTPSlot index={1} />
-          <InputOTPSlot index={2} />
-          <InputOTPSlot index={3} />
-          <InputOTPSlot index={4} />
-          <InputOTPSlot index={5} />
-        </InputOTPGroup>
-      </InputOTP>
-      <FieldDescription className="text-center">
-        Codes expire after 5 minutes.
-      </FieldDescription>
-      {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
-    </Field>
-  )
 }
 
 const VerifyEmailForm = ({
@@ -156,15 +100,11 @@ const VerifyEmailForm = ({
       await form.handleSubmit()
     }
   )
-  const handleOtpChange = useEffectEvent(
-    (field: AnyFieldApi, value: string) => {
-      if (hasVerifyError) {
-        setHasVerifyError(false)
-      }
-
-      field.handleChange(value)
+  const handleOtpChangeEffect = useEffectEvent(() => {
+    if (hasVerifyError) {
+      setHasVerifyError(false)
     }
-  )
+  })
   const clearOtpValidationState = useEffectEvent(() => {
     form.setFieldMeta("otp", (previous) => ({
       ...previous,
@@ -209,10 +149,13 @@ const VerifyEmailForm = ({
         </Field>
         <form.Field name="otp">
           {(field) => (
-            <VerifyEmailOtpField
+            <FormOtpField
+              description="Codes expire after 5 minutes."
               field={field}
-              hasServerError={hasVerifyError}
-              onChange={handleOtpChange}
+              inputMode="numeric"
+              invalid={hasVerifyError}
+              label="Verification code"
+              onChangeEffect={handleOtpChangeEffect}
             />
           )}
         </form.Field>
@@ -224,23 +167,21 @@ const VerifyEmailForm = ({
         {notice ? (
           <FieldDescription className="text-center">{notice}</FieldDescription>
         ) : null}
-        {error ? <FieldError>{error}</FieldError> : null}
-        <Field>
-          <div className="gap-3 flex flex-col">
-            <Button disabled={isSubmitting || isNavigating} type="submit">
-              {isSubmitting || isNavigating ? "Verifying..." : "Verify email"}
+        {error ? <FormMessage>{error}</FormMessage> : null}
+        <FormActions>
+          <Button disabled={isSubmitting || isNavigating} type="submit">
+            {isSubmitting || isNavigating ? "Verifying..." : "Verify email"}
+          </Button>
+          {canResend ? (
+            <Button
+              disabled={isResending}
+              onClick={handleResend}
+              type="button"
+              variant="outline"
+            >
+              {isResending ? "Sending..." : "Send a new code"}
             </Button>
-            {canResend ? (
-              <Button
-                disabled={isResending}
-                onClick={handleResend}
-                type="button"
-                variant="outline"
-              >
-                {isResending ? "Sending..." : "Send a new code"}
-              </Button>
-            ) : null}
-          </div>
+          ) : null}
           <FieldDescription className="text-center">
             Need a different address?{" "}
             <Link
@@ -250,7 +191,7 @@ const VerifyEmailForm = ({
               Start over
             </Link>
           </FieldDescription>
-        </Field>
+        </FormActions>
       </FieldGroup>
     </form>
   )
