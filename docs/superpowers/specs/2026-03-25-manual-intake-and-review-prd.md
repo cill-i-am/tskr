@@ -3,41 +3,41 @@
 ## Problem Statement
 
 The product needs a way to turn messy, human-provided text into structured
- tasks without forcing dispatchers and admins back into heavy manual data entry.
+tasks without forcing dispatchers and admins back into heavy manual data entry.
 
 The core problem is not just task creation. Real inbound work descriptions are
- often incomplete, ambiguous, duplicated, or batch-submitted. One pasted note
- may describe several separate jobs. Another may lack a dispatchable location.
- A parser may incorrectly split one real job into several drafts, or combine
- several jobs into one. If the product jumps straight from raw text to live
- tasks without a review step, users will lose trust in it quickly.
+often incomplete, ambiguous, duplicated, or batch-submitted. One pasted note
+may describe several separate jobs. Another may lack a dispatchable location.
+A parser may incorrectly split one real job into several drafts, or combine
+several jobs into one. If the product jumps straight from raw text to live
+tasks without a review step, users will lose trust in it quickly.
 
 This slice needs to introduce a human-in-the-loop intake workflow that makes AI
- useful without making it authoritative. It must let authorized office users
- submit free text, review one or more extracted drafts, merge and split drafts
- when the parser gets it wrong, override extracted fields, and finalize only
- when the resulting task data is good enough.
+useful without making it authoritative. It must let authorized office users
+submit free text, review one or more extracted drafts, merge and split drafts
+when the parser gets it wrong, override extracted fields, and finalize only
+when the resulting task data is good enough.
 
 ## Solution
 
 Build a dedicated manual intake and review slice with a separate intake queue
- and batch-review workflow.
+and batch-review workflow.
 
 Authorized users can submit free text manually. That submission becomes an
- intake batch. The parser may extract one or more draft tasks from the batch.
- Each draft includes the extracted task fields, overall confidence, optional
- per-field confidence, provenance showing what the AI suggested versus what the
- human later changed, and coordination state when clarification is needed.
+intake batch. The parser may extract one or more draft tasks from the batch.
+Each draft includes the extracted task fields, overall confidence, optional
+per-field confidence, provenance showing what the AI suggested versus what the
+human later changed, and coordination state when clarification is needed.
 
 Review happens in a dedicated queue rather than inside the normal task list.
- Reviewers can edit drafts, merge multiple drafts into one, split one draft into
- several, reject a single draft, reject the whole batch, or finalize drafts
- into real tasks. High-confidence complete drafts can be finalized in one click,
- but that approval must still be recorded explicitly as a reviewer action.
+Reviewers can edit drafts, merge multiple drafts into one, split one draft into
+several, reject a single draft, reject the whole batch, or finalize drafts
+into real tasks. High-confidence complete drafts can be finalized in one click,
+but that approval must still be recorded explicitly as a reviewer action.
 
 This PRD is text-only. It does not include inbound email/WhatsApp ingestion,
- screenshot parsing, image extraction, outbound clarification messaging, or
- assignment suggestions.
+screenshot parsing, image extraction, outbound clarification messaging, or
+assignment suggestions.
 
 ## User Stories
 
