@@ -1,5 +1,6 @@
+/* eslint-disable jest/expect-expect, jest/require-top-level-describe */
+
 import assert from "node:assert/strict"
-import test from "node:test"
 
 import { createConsoleTransport, createEmailService } from "./index.ts"
 
@@ -14,9 +15,9 @@ test("renders password reset subject, html, and text", async () => {
     replyTo: "support@tskr.app",
     signupVerificationOtpExpiryText: "5 minutes",
     transport: {
-      async send(message) {
+      send(message) {
         messages.push(message)
-        return { id: "mock-1" }
+        return Promise.resolve({ id: "mock-1" })
       },
     },
   })
@@ -51,9 +52,9 @@ test("renders verification subject, html, and text", async () => {
     replyTo: "support@tskr.app",
     signupVerificationOtpExpiryText: "5 minutes",
     transport: {
-      async send(message) {
+      send(message) {
         messages.push(message)
-        return { id: "mock-2" }
+        return Promise.resolve({ id: "mock-2" })
       },
     },
   })
@@ -88,9 +89,9 @@ test("renders signup verification OTP subject, html, and text", async () => {
     replyTo: "help@orbit.app",
     signupVerificationOtpExpiryText: "10 minutes",
     transport: {
-      async send(message) {
+      send(message) {
         messages.push(message)
-        return { id: "mock-otp" }
+        return Promise.resolve({ id: "mock-otp" })
       },
     },
   })
@@ -128,9 +129,9 @@ test("renders existing-user sign-up notice subject, html, and text", async () =>
     signupVerificationOtpExpiryText: "5 minutes",
     supportEmail: "support@tskr.app",
     transport: {
-      async send(message) {
+      send(message) {
         messages.push(message)
-        return { id: "mock-3" }
+        return Promise.resolve({ id: "mock-3" })
       },
     },
   })

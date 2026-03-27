@@ -1,8 +1,11 @@
+/* eslint-disable jest/expect-expect, jest/require-top-level-describe */
+
 import assert from "node:assert/strict"
-import test from "node:test"
 
 import { createResendTransport } from "./index.ts"
 import { EmailTransportError } from "./transports/resend.ts"
+
+const getRequestInit = (request?: RequestInit) => request ?? {}
 
 test("maps transport messages to resend request payload", async () => {
   const requests: {
@@ -13,13 +16,16 @@ test("maps transport messages to resend request payload", async () => {
     apiKey: "resend-key",
     fetch: async (url, request) => {
       requests.push({
-        request: request ?? {},
+        request: getRequestInit(request),
         url: String(url),
       })
 
-      return new Response(JSON.stringify({ id: "re_123" }), {
-        status: 200,
-      })
+      return await Response.json(
+        { id: "re_123" },
+        {
+          status: 200,
+        }
+      )
     },
   })
 
@@ -54,9 +60,12 @@ test("surfaces resend error details", async () => {
   const transport = createResendTransport({
     apiKey: "wrong-key",
     fetch: async () =>
-      new Response(JSON.stringify({ message: "invalid_api_key" }), {
-        status: 401,
-      }),
+      await Response.json(
+        { message: "invalid_api_key" },
+        {
+          status: 401,
+        }
+      ),
   })
 
   await assert.rejects(
@@ -84,9 +93,12 @@ test("throws when resend success response is missing id", async () => {
   const transport = createResendTransport({
     apiKey: "resend-key",
     fetch: async () =>
-      new Response(JSON.stringify({ ok: true }), {
-        status: 200,
-      }),
+      await Response.json(
+        { ok: true },
+        {
+          status: 200,
+        }
+      ),
   })
 
   await assert.rejects(

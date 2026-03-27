@@ -20,7 +20,9 @@ const findSignupEmail = async (
     if (contentType.includes("application/json")) {
       const body = (await request.json()) as { email?: unknown }
 
-      return typeof body.email === "string" ? normalizeEmail(body.email) : undefined
+      return typeof body.email === "string"
+        ? normalizeEmail(body.email)
+        : undefined
     }
 
     if (contentType.includes("application/x-www-form-urlencoded")) {
@@ -36,12 +38,22 @@ const findSignupEmail = async (
   return undefined
 }
 
-const acquireDuplicateSignupLock = async (email: string, client: { query: typeof pool.query }) => {
-  await client.query("SELECT pg_advisory_lock(hashtextextended($1, 0))", [email])
+const acquireDuplicateSignupLock = async (
+  email: string,
+  client: { query: typeof pool.query }
+) => {
+  await client.query("SELECT pg_advisory_lock(hashtextextended($1, 0))", [
+    email,
+  ])
 }
 
-const releaseDuplicateSignupLock = async (email: string, client: { query: typeof pool.query }) => {
-  await client.query("SELECT pg_advisory_unlock(hashtextextended($1, 0))", [email])
+const releaseDuplicateSignupLock = async (
+  email: string,
+  client: { query: typeof pool.query }
+) => {
+  await client.query("SELECT pg_advisory_unlock(hashtextextended($1, 0))", [
+    email,
+  ])
 }
 
 const hasExistingUserWithEmail = async (

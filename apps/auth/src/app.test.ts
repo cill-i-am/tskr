@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/consistent-type-imports */
+
 import { hc } from "hono/client"
 
 import { createPgPool } from "@workspace/db"
@@ -10,26 +12,18 @@ const {
   sendPasswordResetEmailMock,
   sendSignupVerificationOtpEmailMock,
 } = vi.hoisted(() => ({
-  sendEmailVerificationEmailMock: vi.fn(() =>
-    Promise.resolve({
-      id: "test-verification-id",
-    })
-  ),
-  sendExistingUserSignupNoticeMock: vi.fn(() =>
-    Promise.resolve({
-      id: "test-existing-user-id",
-    })
-  ),
-  sendPasswordResetEmailMock: vi.fn(() =>
-    Promise.resolve({
-      id: "test-password-reset-id",
-    })
-  ),
-  sendSignupVerificationOtpEmailMock: vi.fn(() =>
-    Promise.resolve({
-      id: "test-signup-otp-id",
-    })
-  ),
+  sendEmailVerificationEmailMock: vi.fn().mockResolvedValue({
+    id: "test-verification-id",
+  }),
+  sendExistingUserSignupNoticeMock: vi.fn().mockResolvedValue({
+    id: "test-existing-user-id",
+  }),
+  sendPasswordResetEmailMock: vi.fn().mockResolvedValue({
+    id: "test-password-reset-id",
+  }),
+  sendSignupVerificationOtpEmailMock: vi.fn().mockResolvedValue({
+    id: "test-signup-otp-id",
+  }),
 }))
 
 vi.mock<
@@ -136,15 +130,87 @@ const countUsersByEmail = async (email: string) => {
   }
 }
 
-describe("auth app", () => {
-  beforeEach(() => {
-    sendEmailVerificationEmailMock.mockClear()
-    sendExistingUserSignupNoticeMock.mockClear()
-    sendPasswordResetEmailMock.mockClear()
-    sendSignupVerificationOtpEmailMock.mockClear()
+const resetEmailMocks = () => {
+  sendEmailVerificationEmailMock.mockClear()
+  sendExistingUserSignupNoticeMock.mockClear()
+  sendPasswordResetEmailMock.mockClear()
+  sendSignupVerificationOtpEmailMock.mockClear()
+}
+
+const requireValue = <Value>(
+  value: Value | null | undefined,
+  message: string
+): Value => {
+  if (value === null || value === undefined) {
+    throw new Error(message)
+  }
+
+  return value
+}
+
+const expectLatestSignupVerificationOtp = (email: string) => {
+  const verificationOtpEmailInput = requireValue(
+    latestSignupVerificationOtpEmail(),
+    "Expected the latest signup verification OTP email"
+  )
+
+  expect(verificationOtpEmailInput).toMatchObject({
+    code: expect.stringMatching(/^\d{6}$/u),
+    to: email,
   })
 
+  return verificationOtpEmailInput
+}
+
+const expectSuccessfulVerifyEmailResponse = (
+  response: Awaited<ReturnType<typeof requestJson>>,
+  email: string
+) => {
+  expect(response.response.status).toBe(200)
+  expect(response.json).toMatchObject({
+    status: true,
+    token: expect.any(String),
+    user: {
+      email,
+      emailVerified: true,
+    },
+  })
+}
+
+const expectPasswordResetRequestAccepted = (
+  response: Awaited<ReturnType<typeof requestJson>>
+) => {
+  expect(response.response.status).toBe(200)
+  expect(response.json).toStrictEqual({
+    message:
+      "If this email exists in our system, check your email for the reset link",
+    status: true,
+  })
+}
+
+const expectPasswordResetEmailInput = (resetToken: string) => {
+  const emailInput = sendPasswordResetEmailMock.mock.calls.at(0)?.at(0) as
+    | {
+        resetUrl: string
+        to: string
+      }
+    | undefined
+
+  expect(sendPasswordResetEmailMock).toHaveBeenCalledOnce()
+  expect(emailInput).toMatchObject({
+    to: "grace@example.com",
+  })
+  expect(emailInput?.resetUrl).toContain("/api/auth/reset-password/")
+  expect(emailInput?.resetUrl).toContain(
+    encodeURIComponent("http://localhost:3000/reset-password")
+  )
+  expect(emailInput?.resetUrl).toContain(resetToken)
+}
+
+describe("auth app", () => {
   it("returns the expected /up healthcheck payload", async () => {
+    resetEmailMocks()
+
     await truncateAuthTables()
 
     const response = await app.request("/up")
@@ -154,12 +220,16 @@ describe("auth app", () => {
   })
 
   it("exports AppType for typed Hono clients", () => {
+    resetEmailMocks()
+
     const client = hc<AppType>("http://localhost")
 
     expectTypeOf(client.up.$get).toBeFunction()
   })
 
   it("exposes the Better Auth ok route", async () => {
+    resetEmailMocks()
+
     await truncateAuthTables()
 
     const { json, response } = await requestJson("/api/auth/ok")
@@ -171,6 +241,8 @@ describe("auth app", () => {
   })
 
   it("responds to auth CORS preflight requests for trusted origins", async () => {
+    resetEmailMocks()
+
     await truncateAuthTables()
 
     const response = await app.request("/api/auth/sign-in/email", {
@@ -192,6 +264,8 @@ describe("auth app", () => {
   })
 
   it("signs up with otp verification and auto-signs in after verification", async () => {
+    resetEmailMocks()
+
     await truncateAuthTables()
 
     const signUpResponse = await requestJson("/api/auth/sign-up/email", {
@@ -215,13 +289,11 @@ describe("auth app", () => {
         name: "Ada Lovelace",
       },
     })
-    expect(sendSignupVerificationOtpEmailMock).toHaveBeenCalledOnce()
+    expect(sendSignupVerificationOtpEmailMock).toHaveBeenCalledTimes(1)
     expect(sendEmailVerificationEmailMock).not.toHaveBeenCalled()
 
-    const verificationOtpEmailInput = latestSignupVerificationOtpEmail()
-
-    expect(verificationOtpEmailInput?.to).toBe("ada@example.com")
-    expect(verificationOtpEmailInput?.code).toMatch(/^\d{6}$/u)
+    const verificationOtpEmailInput =
+      expectLatestSignupVerificationOtp("ada@example.com")
 
     const verifyEmailResponse = await requestJson(
       "/api/auth/email-otp/verify-email",
@@ -237,18 +309,12 @@ describe("auth app", () => {
       }
     )
 
-    expect(verifyEmailResponse.response.status).toBe(200)
-    expect(verifyEmailResponse.json).toMatchObject({
-      status: true,
-      token: expect.any(String),
-      user: {
-        email: "ada@example.com",
-        emailVerified: true,
-      },
-    })
+    expectSuccessfulVerifyEmailResponse(verifyEmailResponse, "ada@example.com")
   })
 
   it("blocks password sign-in for unverified users and sends a fresh otp", async () => {
+    resetEmailMocks()
+
     await truncateAuthTables()
 
     await requestJson("/api/auth/sign-up/email", {
@@ -282,14 +348,14 @@ describe("auth app", () => {
     expect(signInResponse.json).toMatchObject({
       code: expect.any(String),
     })
-    expect(sendSignupVerificationOtpEmailMock).toHaveBeenCalledOnce()
+    expect(sendSignupVerificationOtpEmailMock).toHaveBeenCalledTimes(1)
     expect(sendExistingUserSignupNoticeMock).not.toHaveBeenCalled()
-    expect(latestSignupVerificationOtpEmail()).toMatchObject({
-      to: "ada@example.com",
-    })
+    expectLatestSignupVerificationOtp("ada@example.com")
   })
 
   it("rejects duplicate signup attempts when a signup email already exists", async () => {
+    resetEmailMocks()
+
     await truncateAuthTables()
 
     await requestJson("/api/auth/sign-up/email", {
@@ -333,6 +399,8 @@ describe("auth app", () => {
   })
 
   it("issues a password reset token", async () => {
+    resetEmailMocks()
+
     await truncateAuthTables()
 
     await requestJson("/api/auth/sign-up/email", {
@@ -363,37 +431,20 @@ describe("auth app", () => {
       }
     )
 
-    expect(requestResetResponse.response.status).toBe(200)
-    expect(requestResetResponse.json).toStrictEqual({
-      message:
-        "If this email exists in our system, check your email for the reset link",
-      status: true,
-    })
+    expectPasswordResetRequestAccepted(requestResetResponse)
 
-    const resetToken = await findLatestResetToken()
+    const resetToken = requireValue(
+      await findLatestResetToken(),
+      "Expected a reset token to be stored"
+    )
 
     expect(resetToken).toBeTruthy()
-    expect(sendPasswordResetEmailMock).toHaveBeenCalledTimes(1)
-    if (!resetToken) {
-      throw new Error("Expected a reset token to be stored")
-    }
-
-    const emailInput = sendPasswordResetEmailMock.mock.calls.at(0)?.at(0) as
-      | {
-          resetUrl: string
-          to: string
-        }
-      | undefined
-
-    expect(emailInput?.to).toBe("grace@example.com")
-    expect(emailInput?.resetUrl).toContain("/api/auth/reset-password/")
-    expect(emailInput?.resetUrl).toContain(
-      encodeURIComponent("http://localhost:3000/reset-password")
-    )
-    expect(emailInput?.resetUrl).toContain(resetToken)
+    expectPasswordResetEmailInput(resetToken)
   })
 
   it("resets the password and rejects the old credential", async () => {
+    resetEmailMocks()
+
     await truncateAuthTables()
 
     await requestJson("/api/auth/sign-up/email", {
@@ -442,9 +493,8 @@ describe("auth app", () => {
       status: true,
     })
 
-    const verificationOtpEmailInput = latestSignupVerificationOtpEmail()
-
-    expect(verificationOtpEmailInput?.code).toMatch(/^\d{6}$/u)
+    const verificationOtpEmailInput =
+      expectLatestSignupVerificationOtp("grace@example.com")
 
     const verifyEmailResponse = await requestJson(
       "/api/auth/email-otp/verify-email",
@@ -460,7 +510,10 @@ describe("auth app", () => {
       }
     )
 
-    expect(verifyEmailResponse.response.ok).toBeTruthy()
+    expectSuccessfulVerifyEmailResponse(
+      verifyEmailResponse,
+      "grace@example.com"
+    )
 
     const oldPasswordResponse = await requestJson("/api/auth/sign-in/email", {
       body: JSON.stringify({

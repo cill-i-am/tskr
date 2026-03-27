@@ -17,8 +17,8 @@ import type {
 } from "@workspace/email"
 
 const transport: EmailTransport = {
-  async send(message: EmailMessage): Promise<EmailSendResult> {
-    return { id: `${message.subject}:${Date.now()}` }
+  send(message: EmailMessage): Promise<EmailSendResult> {
+    return Promise.resolve({ id: `${message.subject}:${Date.now()}` })
   },
 }
 
@@ -48,17 +48,19 @@ const noticeInput: ExistingUserSignUpNoticeEmailInput = {
   to: "linus@example.com",
 }
 
-void service.sendPasswordResetEmail(resetInput)
-void service.sendEmailVerificationEmail(verifyInput)
-void service.sendExistingUserSignupNotice(noticeInput)
+await Promise.all([
+  service.sendPasswordResetEmail(resetInput),
+  service.sendEmailVerificationEmail(verifyInput),
+  service.sendExistingUserSignupNotice(noticeInput),
+])
 
 const consoleConfig: ConsoleTransportConfig = {
   logger: console,
 }
-void createConsoleTransport(consoleConfig)
+createConsoleTransport(consoleConfig)
 
 const resendConfig: ResendTransportConfig = {
   apiKey: "resend-key",
   fetch: globalThis.fetch,
 }
-void createResendTransport(resendConfig)
+createResendTransport(resendConfig)

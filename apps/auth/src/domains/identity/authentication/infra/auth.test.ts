@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/consistent-type-imports */
+
 const {
   betterAuthMock,
   createAuthenticationEmailServiceMock,
@@ -9,24 +11,16 @@ const {
   sendPasswordResetEmailMock,
   sendSignupVerificationOtpEmailMock,
 } = vi.hoisted(() => {
-  const sendEmailVerificationEmail = vi.fn(() =>
-    Promise.resolve({
-      id: "verification-id",
-    })
-  )
-  const sendExistingUserSignupNotice = vi.fn(() =>
-    Promise.resolve({
-      id: "existing-user-id",
-    })
-  )
-  const sendPasswordResetEmail = vi.fn(() =>
-    Promise.resolve({ id: "reset-id" })
-  )
-  const sendSignupVerificationOtpEmail = vi.fn(() =>
-    Promise.resolve({
-      id: "signup-otp-id",
-    })
-  )
+  const sendEmailVerificationEmail = vi.fn().mockResolvedValue({
+    id: "verification-id",
+  })
+  const sendExistingUserSignupNotice = vi.fn().mockResolvedValue({
+    id: "existing-user-id",
+  })
+  const sendPasswordResetEmail = vi.fn().mockResolvedValue({ id: "reset-id" })
+  const sendSignupVerificationOtpEmail = vi.fn().mockResolvedValue({
+    id: "signup-otp-id",
+  })
   const emailService = {
     sendEmailVerificationEmail,
     sendExistingUserSignupNotice,
@@ -152,50 +146,104 @@ const loadAuthConfiguration = async (): Promise<AuthConfiguration> => {
   return config as AuthConfiguration
 }
 
-describe("auth config", () => {
-  beforeEach(() => {
-    betterAuthMock.mockClear()
-    createAuthenticationEmailServiceMock.mockClear()
-    drizzleAdapterMock.mockClear()
-    emailOTPMock.mockClear()
-    resolveDefaultCookieAttributesMock.mockClear()
-    sendEmailVerificationEmailMock.mockClear()
-    sendExistingUserSignupNoticeMock.mockClear()
-    sendPasswordResetEmailMock.mockClear()
-    sendSignupVerificationOtpEmailMock.mockClear()
-    vi.resetModules()
+const resetAuthMocks = () => {
+  betterAuthMock.mockClear()
+  createAuthenticationEmailServiceMock.mockClear()
+  drizzleAdapterMock.mockClear()
+  emailOTPMock.mockClear()
+  resolveDefaultCookieAttributesMock.mockClear()
+  sendEmailVerificationEmailMock.mockClear()
+  sendExistingUserSignupNoticeMock.mockClear()
+  sendPasswordResetEmailMock.mockClear()
+  sendSignupVerificationOtpEmailMock.mockClear()
+  vi.resetModules()
+}
+
+const requireEmailOtpPlugin = (config: AuthConfiguration) => {
+  const plugin = config.plugins.at(0)
+
+  if (!plugin) {
+    throw new Error("Expected the email OTP plugin to be configured")
+  }
+
+  return plugin
+}
+
+const expectEmailServiceConfiguration = () => {
+  expect(createAuthenticationEmailServiceMock).toHaveBeenCalledWith({
+    betterAuthSecret: "test-secret",
+    betterAuthUrl: "http://localhost:3002",
+    emailFrom: "TSKR <noreply@tskr.app>",
+    emailProvider: "console",
+    emailReplyTo: "support@tskr.app",
+    resendApiKey: undefined,
+    trustedOrigins: ["http://localhost:3000"],
+    webBaseUrl: "https://app.example.com",
   })
+}
 
+const expectEmailAndPasswordConfiguration = (config: AuthConfiguration) => {
+  expect(config.emailAndPassword).toMatchObject({
+    autoSignIn: false,
+    requireEmailVerification: true,
+  })
+  expect("onExistingUserSignUp" in config.emailAndPassword).toBeFalsy()
+}
+
+const expectEmailVerificationConfiguration = (config: AuthConfiguration) => {
+  expect(config.emailVerification).toMatchObject({
+    autoSignInAfterVerification: true,
+    sendOnSignIn: true,
+    sendOnSignUp: true,
+  })
+}
+
+const expectEmailOtpPluginConfiguration = (
+  plugin: AuthConfiguration["plugins"][number]
+) => {
+  expect(emailOTPMock).toHaveBeenCalledTimes(1)
+  expect(plugin).toMatchObject({
+    id: "email-otp",
+    options: {
+      allowedAttempts: 3,
+      expiresIn: 300,
+      otpLength: 6,
+      overrideDefaultEmailVerification: true,
+      storeOTP: "hashed",
+    },
+  })
+}
+
+const expectPasswordResetEmailDispatch = () => {
+  expect(sendPasswordResetEmailMock).toHaveBeenCalledWith({
+    resetUrl: "http://localhost:3000/reset-password?token=reset-token",
+    to: "grace@example.com",
+  })
+}
+
+const expectSignupVerificationOtpDispatch = () => {
+  expect(sendSignupVerificationOtpEmailMock).toHaveBeenCalledWith({
+    code: "482913",
+    to: "grace@example.com",
+  })
+}
+
+const expectLegacyEmailHooksToStayIdle = () => {
+  expect(sendEmailVerificationEmailMock).not.toHaveBeenCalled()
+  expect(sendExistingUserSignupNoticeMock).not.toHaveBeenCalled()
+}
+
+describe("auth config", () => {
   it("wires the email otp auth flow to the auth email service", async () => {
+    resetAuthMocks()
+
     const config = await loadAuthConfiguration()
-    const emailOtpPlugin = config.plugins.at(0)
+    const emailOtpPlugin = requireEmailOtpPlugin(config)
 
-    expect(createAuthenticationEmailServiceMock).toHaveBeenCalledWith({
-      betterAuthSecret: "test-secret",
-      betterAuthUrl: "http://localhost:3002",
-      emailFrom: "TSKR <noreply@tskr.app>",
-      emailProvider: "console",
-      emailReplyTo: "support@tskr.app",
-      resendApiKey: undefined,
-      trustedOrigins: ["http://localhost:3000"],
-      webBaseUrl: "https://app.example.com",
-    })
-
-    expect(config.emailAndPassword.autoSignIn).toBeFalsy()
-    expect(config.emailAndPassword.requireEmailVerification).toBeTruthy()
-    expect("onExistingUserSignUp" in config.emailAndPassword).toBeFalsy()
-    expect(config.emailVerification.autoSignInAfterVerification).toBeTruthy()
-    expect(config.emailVerification.sendOnSignIn).toBeTruthy()
-    expect(config.emailVerification.sendOnSignUp).toBeTruthy()
-    expect(emailOTPMock).toHaveBeenCalledOnce()
-    expect(emailOtpPlugin?.id).toBe("email-otp")
-    expect(emailOtpPlugin?.options.allowedAttempts).toBe(3)
-    expect(emailOtpPlugin?.options.expiresIn).toBe(300)
-    expect(emailOtpPlugin?.options.otpLength).toBe(6)
-    expect(
-      emailOtpPlugin?.options.overrideDefaultEmailVerification
-    ).toBeTruthy()
-    expect(emailOtpPlugin?.options.storeOTP).toBe("hashed")
+    expectEmailServiceConfiguration()
+    expectEmailAndPasswordConfiguration(config)
+    expectEmailVerificationConfiguration(config)
+    expectEmailOtpPluginConfiguration(emailOtpPlugin)
 
     await config.emailAndPassword.sendResetPassword({
       url: "http://localhost:3000/reset-password?token=reset-token",
@@ -204,26 +252,21 @@ describe("auth config", () => {
       },
     })
 
-    expect(sendPasswordResetEmailMock).toHaveBeenCalledWith({
-      resetUrl: "http://localhost:3000/reset-password?token=reset-token",
-      to: "grace@example.com",
-    })
+    expectPasswordResetEmailDispatch()
 
-    await emailOtpPlugin?.options.sendVerificationOTP({
+    await emailOtpPlugin.options.sendVerificationOTP({
       email: "grace@example.com",
       otp: "482913",
       type: "email-verification",
     })
 
-    expect(sendSignupVerificationOtpEmailMock).toHaveBeenCalledWith({
-      code: "482913",
-      to: "grace@example.com",
-    })
-    expect(sendEmailVerificationEmailMock).not.toHaveBeenCalled()
-    expect(sendExistingUserSignupNoticeMock).not.toHaveBeenCalled()
+    expectSignupVerificationOtpDispatch()
+    expectLegacyEmailHooksToStayIdle()
   })
 
   it("logs password reset delivery errors without surfacing them", async () => {
+    resetAuthMocks()
+
     const consoleErrorMock = vi.spyOn(console, "error").mockReturnValue()
     sendPasswordResetEmailMock.mockRejectedValueOnce(new Error("reset failed"))
 
@@ -252,6 +295,8 @@ describe("auth config", () => {
   })
 
   it("logs delivery errors from fire-and-forget email hooks", async () => {
+    resetAuthMocks()
+
     const consoleErrorMock = vi.spyOn(console, "error").mockReturnValue()
     sendSignupVerificationOtpEmailMock.mockRejectedValueOnce(
       new Error("signup otp failed")
@@ -259,9 +304,9 @@ describe("auth config", () => {
 
     try {
       const config = await loadAuthConfiguration()
-      const emailOtpPlugin = config.plugins.at(0)
+      const emailOtpPlugin = requireEmailOtpPlugin(config)
 
-      await emailOtpPlugin?.options.sendVerificationOTP({
+      await emailOtpPlugin.options.sendVerificationOTP({
         email: "grace@example.com",
         otp: "482913",
         type: "sign-in",
@@ -269,7 +314,7 @@ describe("auth config", () => {
       await Promise.resolve()
       await Promise.resolve()
 
-      expect(consoleErrorMock).toHaveBeenCalledOnce()
+      expect(consoleErrorMock).toHaveBeenCalledTimes(1)
       expect(consoleErrorMock).toHaveBeenCalledWith(
         "[auth:email] failed to send signup verification otp email",
         expect.objectContaining({

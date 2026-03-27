@@ -57,14 +57,14 @@ const createEmailService = (config: EmailServiceConfig): EmailService => {
     })
 
   return {
-    sendEmailVerificationEmail: async ({ to, verificationUrl }) => {
+    sendEmailVerificationEmail: ({ to, verificationUrl }) => {
       const template = createEmailVerificationTemplate({
         appName: config.appName,
         verificationUrl,
       })
       return sendTransactionalEmail({ ...template, to })
     },
-    sendExistingUserSignupNotice: async ({ signInUrl, to }) => {
+    sendExistingUserSignupNotice: ({ signInUrl, to }) => {
       const template = createExistingUserSignUpNoticeTemplate({
         appName: config.appName,
         signInUrl,
@@ -72,14 +72,14 @@ const createEmailService = (config: EmailServiceConfig): EmailService => {
       })
       return sendTransactionalEmail({ ...template, to })
     },
-    sendPasswordResetEmail: async ({ resetUrl, to }) => {
+    sendPasswordResetEmail: ({ resetUrl, to }) => {
       const template = createPasswordResetTemplate({
         appName: config.appName,
         resetUrl,
       })
       return sendTransactionalEmail({ ...template, to })
     },
-    sendSignupVerificationOtpEmail: async ({ code, to }) => {
+    sendSignupVerificationOtpEmail: ({ code, to }) => {
       const template = createSignupVerificationOtpTemplate({
         appName: config.appName,
         code,

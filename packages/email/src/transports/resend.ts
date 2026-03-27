@@ -1,4 +1,4 @@
-import type { EmailSendResult, EmailTransport } from "../contracts.ts"
+import type { EmailSendResult, EmailTransport } from "@/contracts.ts"
 
 interface ResendTransportConfig {
   apiKey: string
@@ -23,68 +23,6 @@ class EmailTransportError extends Error {
     this.name = "EmailTransportError"
     this.details = details
     this.status = status
-  }
-}
-
-const createResendTransport = (
-  config: ResendTransportConfig
-): EmailTransport => {
-  const fetchImpl = config.fetch ?? globalThis.fetch
-  if (!fetchImpl) {
-    throw new Error(
-      "No fetch implementation available for createResendTransport"
-    )
-  }
-
-  const baseUrl = (config.baseUrl ?? "https://api.resend.com").replace(
-    /\/+$/u,
-    ""
-  )
-
-  return {
-    async send(message): Promise<EmailSendResult> {
-      const response = await fetchImpl(`${baseUrl}/emails`, {
-        body: JSON.stringify({
-          from: message.from,
-          html: message.html,
-          subject: message.subject,
-          text: message.text,
-          to: Array.isArray(message.to) ? message.to : [message.to],
-          ...(message.replyTo ? { reply_to: message.replyTo } : {}),
-        }),
-        headers: {
-          Authorization: `Bearer ${config.apiKey}`,
-          "Content-Type": "application/json",
-        },
-        method: "POST",
-      })
-
-      const responseBody = await parseResponseBody(response)
-      if (!response.ok) {
-        const errorMessage = resolveErrorMessage(
-          responseBody,
-          response.statusText
-        )
-        throw new EmailTransportError({
-          details: responseBody,
-          message: `Resend request failed (${response.status}): ${errorMessage}`,
-          status: response.status,
-        })
-      }
-
-      const responseId = resolveResponseId(responseBody)
-      if (!responseId) {
-        throw new EmailTransportError({
-          details: responseBody,
-          message: "Resend response missing email id",
-          status: 502,
-        })
-      }
-
-      return {
-        id: responseId,
-      }
-    },
   }
 }
 
@@ -147,6 +85,68 @@ const resolveErrorMessage = (body: unknown, fallback: string): string => {
   }
 
   return fallback || "Unknown resend error"
+}
+
+const createResendTransport = (
+  config: ResendTransportConfig
+): EmailTransport => {
+  const fetchImpl = config.fetch ?? globalThis.fetch
+  if (!fetchImpl) {
+    throw new Error(
+      "No fetch implementation available for createResendTransport"
+    )
+  }
+
+  const baseUrl = (config.baseUrl ?? "https://api.resend.com").replace(
+    /\/+$/u,
+    ""
+  )
+
+  return {
+    async send(message): Promise<EmailSendResult> {
+      const response = await fetchImpl(`${baseUrl}/emails`, {
+        body: JSON.stringify({
+          from: message.from,
+          html: message.html,
+          subject: message.subject,
+          text: message.text,
+          to: Array.isArray(message.to) ? message.to : [message.to],
+          ...(message.replyTo ? { reply_to: message.replyTo } : {}),
+        }),
+        headers: {
+          Authorization: `Bearer ${config.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      })
+
+      const responseBody = await parseResponseBody(response)
+      if (!response.ok) {
+        const errorMessage = resolveErrorMessage(
+          responseBody,
+          response.statusText
+        )
+        throw new EmailTransportError({
+          details: responseBody,
+          message: `Resend request failed (${response.status}): ${errorMessage}`,
+          status: response.status,
+        })
+      }
+
+      const responseId = resolveResponseId(responseBody)
+      if (!responseId) {
+        throw new EmailTransportError({
+          details: responseBody,
+          message: "Resend response missing email id",
+          status: 502,
+        })
+      }
+
+      return {
+        id: responseId,
+      }
+    },
+  }
 }
 
 export { EmailTransportError, createResendTransport }
