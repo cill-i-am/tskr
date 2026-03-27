@@ -19,3 +19,7 @@ guidance for the shared UI package in this subtree.
   `src/styles/globals.css`.
 - When adding components, prefer patterns that are reusable across apps rather
   than tuned only for `apps/web`.
+- Shared form adapters may live here when they are presentation-focused and
+  reused across auth and workspace flows.
+- Do not move TanStack form setup, Zod schemas, submit handlers, route
+  behavior, or product-specific server error mapping into this package.

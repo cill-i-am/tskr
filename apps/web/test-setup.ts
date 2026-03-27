@@ -1,10 +1,17 @@
-const ResizeObserverMock = class ResizeObserverMock {
-  disconnect = () => undefined
+const noop = () => null
 
-  observe = () => undefined
-
-  unobserve = () => undefined
+const ResizeObserverMock = function ResizeObserverMock(this: {
+  __resizeObserverMock?: boolean
+}) {
+  Object.defineProperty(this, "__resizeObserverMock", {
+    configurable: true,
+    value: true,
+  })
 }
+
+ResizeObserverMock.prototype.disconnect = noop
+ResizeObserverMock.prototype.observe = noop
+ResizeObserverMock.prototype.unobserve = noop
 
 Object.defineProperty(globalThis, "ResizeObserver", {
   configurable: true,

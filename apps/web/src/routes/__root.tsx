@@ -11,11 +11,9 @@ const resolveRuntimeAuthBaseUrl = () => {
     return process.env.VITE_AUTH_BASE_URL
   }
 
-  if (process.env.RAILWAY_SERVICE_AUTH_URL) {
-    return `https://${process.env.RAILWAY_SERVICE_AUTH_URL}`
-  }
+  const railwayServiceAuthUrl = process.env.RAILWAY_SERVICE_AUTH_URL
 
-  return
+  return railwayServiceAuthUrl ? `https://${railwayServiceAuthUrl}` : undefined
 }
 
 const RootDocument = ({ children }: { children: React.ReactNode }) => (

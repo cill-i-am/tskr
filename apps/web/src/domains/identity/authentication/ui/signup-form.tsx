@@ -1,72 +1,19 @@
 import { useForm, useStore } from "@tanstack/react-form"
-import type { AnyFieldApi } from "@tanstack/react-form"
 import { Link, useNavigate } from "@tanstack/react-router"
 import { useEffectEvent, useState, useTransition } from "react"
-import type {
-  ChangeEvent,
-  FormEvent,
-  HTMLInputTypeAttribute,
-  ReactNode,
-} from "react"
+import type { FormEvent } from "react"
 
 import { Button } from "@workspace/ui/components/button"
+import { FieldDescription, FieldGroup } from "@workspace/ui/components/field"
 import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@workspace/ui/components/field"
-import { Input } from "@workspace/ui/components/input"
+  FormActions,
+  FormMessage,
+  FormTextField,
+} from "@workspace/ui/components/form"
 
 import { authClient } from "./auth-client"
 import { signupFormSchema } from "./auth-form-schemas"
 import { persistEmailVerificationFlow } from "./email-verification-flow"
-
-interface SignupInputFieldProps {
-  autoComplete?: string
-  description?: ReactNode
-  field: AnyFieldApi
-  label: string
-  placeholder?: string
-  type: HTMLInputTypeAttribute
-}
-
-const SignupInputField = ({
-  autoComplete,
-  description,
-  field,
-  label,
-  placeholder,
-  type,
-}: SignupInputFieldProps) => {
-  const isInvalid =
-    field.state.meta.isTouched && field.state.meta.errors.length > 0
-  const handleChange = useEffectEvent(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      field.handleChange(event.target.value)
-    }
-  )
-
-  return (
-    <Field data-invalid={isInvalid || undefined}>
-      <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
-      <Input
-        aria-invalid={isInvalid || undefined}
-        autoComplete={autoComplete}
-        id={field.name}
-        name={field.name}
-        onBlur={field.handleBlur}
-        onChange={handleChange}
-        placeholder={placeholder}
-        type={type}
-        value={field.state.value}
-      />
-      {description ? <FieldDescription>{description}</FieldDescription> : null}
-      {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
-    </Field>
-  )
-}
 
 const SignupForm = () => {
   const navigate = useNavigate()
@@ -126,7 +73,7 @@ const SignupForm = () => {
       <FieldGroup>
         <form.Field name="name">
           {(field) => (
-            <SignupInputField
+            <FormTextField
               autoComplete="name"
               field={field}
               label="Full name"
@@ -137,7 +84,7 @@ const SignupForm = () => {
         </form.Field>
         <form.Field name="email">
           {(field) => (
-            <SignupInputField
+            <FormTextField
               autoComplete="email"
               description="This is the email Better Auth will use for login and password resets."
               field={field}
@@ -149,7 +96,7 @@ const SignupForm = () => {
         </form.Field>
         <form.Field name="password">
           {(field) => (
-            <SignupInputField
+            <FormTextField
               autoComplete="new-password"
               description="Use at least 8 characters."
               field={field}
@@ -160,7 +107,7 @@ const SignupForm = () => {
         </form.Field>
         <form.Field name="confirmPassword">
           {(field) => (
-            <SignupInputField
+            <FormTextField
               autoComplete="new-password"
               field={field}
               label="Confirm password"
@@ -168,8 +115,8 @@ const SignupForm = () => {
             />
           )}
         </form.Field>
-        {error ? <FieldError>{error}</FieldError> : null}
-        <Field>
+        {error ? <FormMessage>{error}</FormMessage> : null}
+        <FormActions>
           <Button disabled={isSubmitting || isNavigating} type="submit">
             {isSubmitting || isNavigating
               ? "Creating account..."
@@ -184,7 +131,7 @@ const SignupForm = () => {
               Sign in
             </Link>
           </FieldDescription>
-        </Field>
+        </FormActions>
       </FieldGroup>
     </form>
   )

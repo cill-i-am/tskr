@@ -1,15 +1,16 @@
+/* eslint-disable jest/expect-expect, jest/require-top-level-describe */
+
 import assert from "node:assert/strict"
-import test from "node:test"
 
 import { createConsoleTransport } from "./index.ts"
 
 test("console transport logs the full email payload for local development", async () => {
+  const calls: unknown[][] = []
   const logger = {
     info: (...args: unknown[]) => {
       calls.push(args)
     },
   }
-  const calls: unknown[][] = []
   const transport = createConsoleTransport({
     logger,
   })

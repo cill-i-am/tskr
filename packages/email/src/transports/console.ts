@@ -1,4 +1,4 @@
-import type { EmailSendResult, EmailTransport } from "../contracts.ts"
+import type { EmailSendResult, EmailTransport } from "@/contracts.ts"
 
 interface ConsoleTransportConfig {
   logger?: Pick<Console, "info">
@@ -10,7 +10,7 @@ const createConsoleTransport = (
   const logger = config.logger ?? console
 
   return {
-    async send(message): Promise<EmailSendResult> {
+    send(message): Promise<EmailSendResult> {
       logger.info("[email:console] send", {
         from: message.from,
         html: message.html,
@@ -19,9 +19,9 @@ const createConsoleTransport = (
         text: message.text,
         to: message.to,
       })
-      return {
+      return Promise.resolve({
         id: `console:${Date.now()}`,
-      }
+      })
     },
   }
 }

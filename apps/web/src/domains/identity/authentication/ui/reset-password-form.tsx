@@ -1,71 +1,21 @@
 import { useForm, useStore } from "@tanstack/react-form"
-import type { AnyFieldApi } from "@tanstack/react-form"
 import { Link, useNavigate } from "@tanstack/react-router"
 import { useEffectEvent, useState, useTransition } from "react"
-import type {
-  ChangeEvent,
-  FormEvent,
-  HTMLInputTypeAttribute,
-  ReactNode,
-} from "react"
+import type { FormEvent } from "react"
 
 import { Button } from "@workspace/ui/components/button"
+import { FieldDescription, FieldGroup } from "@workspace/ui/components/field"
 import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@workspace/ui/components/field"
-import { Input } from "@workspace/ui/components/input"
+  FormActions,
+  FormMessage,
+  FormTextField,
+} from "@workspace/ui/components/form"
 
 import { authClient } from "./auth-client"
 import { resetPasswordFormSchema } from "./auth-form-schemas"
 
 interface ResetPasswordFormProps {
   token: string
-}
-
-interface ResetPasswordInputFieldProps {
-  autoComplete?: string
-  description?: ReactNode
-  field: AnyFieldApi
-  label: string
-  type: HTMLInputTypeAttribute
-}
-
-const ResetPasswordInputField = ({
-  autoComplete,
-  description,
-  field,
-  label,
-  type,
-}: ResetPasswordInputFieldProps) => {
-  const isInvalid =
-    field.state.meta.isTouched && field.state.meta.errors.length > 0
-  const handleChange = useEffectEvent(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      field.handleChange(event.target.value)
-    }
-  )
-
-  return (
-    <Field data-invalid={isInvalid || undefined}>
-      <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
-      <Input
-        aria-invalid={isInvalid || undefined}
-        autoComplete={autoComplete}
-        id={field.name}
-        name={field.name}
-        onBlur={field.handleBlur}
-        onChange={handleChange}
-        type={type}
-        value={field.state.value}
-      />
-      {description ? <FieldDescription>{description}</FieldDescription> : null}
-      {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
-    </Field>
-  )
 }
 
 const ResetPasswordForm = ({ token }: ResetPasswordFormProps) => {
@@ -114,7 +64,7 @@ const ResetPasswordForm = ({ token }: ResetPasswordFormProps) => {
       <FieldGroup>
         <form.Field name="newPassword">
           {(field) => (
-            <ResetPasswordInputField
+            <FormTextField
               autoComplete="new-password"
               field={field}
               label="New password"
@@ -124,7 +74,7 @@ const ResetPasswordForm = ({ token }: ResetPasswordFormProps) => {
         </form.Field>
         <form.Field name="confirmPassword">
           {(field) => (
-            <ResetPasswordInputField
+            <FormTextField
               autoComplete="new-password"
               description="After reset, use this password on the login page."
               field={field}
@@ -133,8 +83,8 @@ const ResetPasswordForm = ({ token }: ResetPasswordFormProps) => {
             />
           )}
         </form.Field>
-        {error ? <FieldError>{error}</FieldError> : null}
-        <Field>
+        {error ? <FormMessage>{error}</FormMessage> : null}
+        <FormActions>
           <Button disabled={isSubmitting || isNavigating} type="submit">
             {isSubmitting || isNavigating
               ? "Resetting password..."
@@ -149,7 +99,7 @@ const ResetPasswordForm = ({ token }: ResetPasswordFormProps) => {
               Request another reset
             </Link>
           </FieldDescription>
-        </Field>
+        </FormActions>
       </FieldGroup>
     </form>
   )

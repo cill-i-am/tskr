@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/consistent-type-imports, jest/valid-title */
+
 import { createAuthenticationEmailService } from "./email-service.js"
 
 const {
@@ -9,26 +11,22 @@ const {
   resendTransportMock,
 } = vi.hoisted(() => {
   const consoleTransport = {
-    send: vi.fn(() => Promise.resolve({ id: "console-transport-id" })),
+    send: vi.fn().mockResolvedValue({ id: "console-transport-id" }),
   }
   const resendTransport = {
-    send: vi.fn(() => Promise.resolve({ id: "resend-transport-id" })),
+    send: vi.fn().mockResolvedValue({ id: "resend-transport-id" }),
   }
   const createEmailServiceResult = {
-    sendEmailVerificationEmail: vi.fn(() =>
-      Promise.resolve({ id: "verification-id" })
-    ),
-    sendExistingUserSignupNotice: vi.fn(() =>
-      Promise.resolve({
-        id: "existing-user-id",
-      })
-    ),
-    sendPasswordResetEmail: vi.fn(() => Promise.resolve({ id: "reset-id" })),
-    sendSignupVerificationOtpEmail: vi.fn(() =>
-      Promise.resolve({
-        id: "signup-otp-id",
-      })
-    ),
+    sendEmailVerificationEmail: vi.fn().mockResolvedValue({
+      id: "verification-id",
+    }),
+    sendExistingUserSignupNotice: vi.fn().mockResolvedValue({
+      id: "existing-user-id",
+    }),
+    sendPasswordResetEmail: vi.fn().mockResolvedValue({ id: "reset-id" }),
+    sendSignupVerificationOtpEmail: vi.fn().mockResolvedValue({
+      id: "signup-otp-id",
+    }),
   }
 
   return {
@@ -47,14 +45,16 @@ vi.mock<typeof import("@workspace/email")>(import("@workspace/email"), () => ({
   createResendTransport: createResendTransportMock as never,
 }))
 
-describe(createAuthenticationEmailService, () => {
-  beforeEach(() => {
-    createConsoleTransportMock.mockClear()
-    createEmailServiceMock.mockClear()
-    createResendTransportMock.mockClear()
-  })
+const resetEmailServiceMocks = () => {
+  createConsoleTransportMock.mockClear()
+  createEmailServiceMock.mockClear()
+  createResendTransportMock.mockClear()
+}
 
+describe(createAuthenticationEmailService, () => {
   it("uses the console transport outside resend", () => {
+    resetEmailServiceMocks()
+
     const result = createAuthenticationEmailService({
       emailFrom: "TSKR <noreply@tskr.app>",
       emailProvider: "console",
@@ -76,6 +76,8 @@ describe(createAuthenticationEmailService, () => {
   })
 
   it("uses the resend transport when configured", () => {
+    resetEmailServiceMocks()
+
     createAuthenticationEmailService({
       emailFrom: "TSKR <noreply@tskr.app>",
       emailProvider: "resend",
@@ -98,6 +100,8 @@ describe(createAuthenticationEmailService, () => {
   })
 
   it("requires a resend api key when resend is configured", () => {
+    resetEmailServiceMocks()
+
     expect(() =>
       createAuthenticationEmailService({
         emailFrom: "TSKR <noreply@tskr.app>",

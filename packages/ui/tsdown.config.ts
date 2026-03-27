@@ -37,6 +37,7 @@ export default defineConfig({
     "components/dropdown-menu": "src/components/dropdown-menu.tsx",
     "components/empty": "src/components/empty.tsx",
     "components/field": "src/components/field.tsx",
+    "components/form": "src/components/form.tsx",
     "components/hover-card": "src/components/hover-card.tsx",
     "components/input": "src/components/input.tsx",
     "components/input-group": "src/components/input-group.tsx",

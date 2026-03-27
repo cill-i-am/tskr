@@ -25,6 +25,8 @@ The slice currently covers:
    - `docs/architecture/identity-authentication/login-and-session.md`
    - `docs/architecture/identity-authentication/verify-email-and-otp.md`
    - `docs/architecture/identity-authentication/password-reset.md`
+4. The shared form pattern doc for auth and workspace-facing forms:
+   - `docs/architecture/identity-authentication/form-patterns.md`
 
 ## What This Slice Owns
 
