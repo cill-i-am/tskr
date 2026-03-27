@@ -5,6 +5,7 @@ const {
   createAuthenticationEmailServiceMock,
   drizzleAdapterMock,
   emailOTPMock,
+  organizationMock,
   resolveDefaultCookieAttributesMock,
   sendEmailVerificationEmailMock,
   sendExistingUserSignupNoticeMock,
@@ -39,6 +40,10 @@ const {
     createAuthenticationEmailServiceMock: vi.fn(() => emailService),
     drizzleAdapterMock: vi.fn(() => "drizzle-adapter"),
     emailOTPMock: emailOTP,
+    organizationMock: vi.fn((options) => ({
+      id: "organization",
+      options,
+    })),
     resolveDefaultCookieAttributesMock: vi.fn(() => ({
       sameSite: "none" as const,
     })),
@@ -64,6 +69,13 @@ vi.mock<typeof import("better-auth/plugins/email-otp")>(
   import("better-auth/plugins/email-otp"),
   () => ({
     emailOTP: emailOTPMock as never,
+  })
+)
+
+vi.mock<typeof import("better-auth/plugins/organization")>(
+  import("better-auth/plugins/organization"),
+  () => ({
+    organization: organizationMock as never,
   })
 )
 
@@ -115,7 +127,7 @@ interface AuthConfiguration {
   }
   plugins: {
     id: string
-    options: {
+    options?: {
       allowedAttempts: number
       expiresIn: number
       otpLength: number
@@ -151,6 +163,7 @@ const resetAuthMocks = () => {
   createAuthenticationEmailServiceMock.mockClear()
   drizzleAdapterMock.mockClear()
   emailOTPMock.mockClear()
+  organizationMock.mockClear()
   resolveDefaultCookieAttributesMock.mockClear()
   sendEmailVerificationEmailMock.mockClear()
   sendExistingUserSignupNoticeMock.mockClear()
@@ -159,11 +172,36 @@ const resetAuthMocks = () => {
   vi.resetModules()
 }
 
+const requireValue = <Value>(
+  value: Value | null | undefined,
+  message: string
+): Value => {
+  if (value === null || value === undefined) {
+    throw new Error(message)
+  }
+
+  return value
+}
+
 const requireEmailOtpPlugin = (config: AuthConfiguration) => {
-  const plugin = config.plugins.at(0)
+  const plugin = config.plugins.find(
+    (candidate) => candidate.id === "email-otp"
+  )
 
   if (!plugin) {
     throw new Error("Expected the email OTP plugin to be configured")
+  }
+
+  return plugin
+}
+
+const requireOrganizationPlugin = (config: AuthConfiguration) => {
+  const plugin = config.plugins.find(
+    (candidate) => candidate.id === "organization"
+  )
+
+  if (!plugin) {
+    throw new Error("Expected the organization plugin to be configured")
   }
 
   return plugin
@@ -214,6 +252,19 @@ const expectEmailOtpPluginConfiguration = (
   })
 }
 
+const expectOrganizationPluginConfiguration = (
+  plugin: AuthConfiguration["plugins"][number]
+) => {
+  expect(organizationMock).toHaveBeenCalledOnce()
+  expect(plugin).toMatchObject({
+    id: "organization",
+    options: {
+      allowUserToCreateOrganization: true,
+      creatorRole: "owner",
+    },
+  })
+}
+
 const expectPasswordResetEmailDispatch = () => {
   expect(sendPasswordResetEmailMock).toHaveBeenCalledWith({
     resetUrl: "http://localhost:3000/reset-password?token=reset-token",
@@ -239,11 +290,13 @@ describe("auth config", () => {
 
     const config = await loadAuthConfiguration()
     const emailOtpPlugin = requireEmailOtpPlugin(config)
+    const organizationPlugin = requireOrganizationPlugin(config)
 
     expectEmailServiceConfiguration()
     expectEmailAndPasswordConfiguration(config)
     expectEmailVerificationConfiguration(config)
     expectEmailOtpPluginConfiguration(emailOtpPlugin)
+    expectOrganizationPluginConfiguration(organizationPlugin)
 
     await config.emailAndPassword.sendResetPassword({
       url: "http://localhost:3000/reset-password?token=reset-token",
@@ -254,7 +307,12 @@ describe("auth config", () => {
 
     expectPasswordResetEmailDispatch()
 
-    await emailOtpPlugin.options.sendVerificationOTP({
+    const emailOtpOptions = requireValue(
+      emailOtpPlugin.options,
+      "Expected email OTP plugin options"
+    )
+
+    await emailOtpOptions.sendVerificationOTP({
       email: "grace@example.com",
       otp: "482913",
       type: "email-verification",
@@ -305,8 +363,12 @@ describe("auth config", () => {
     try {
       const config = await loadAuthConfiguration()
       const emailOtpPlugin = requireEmailOtpPlugin(config)
+      const emailOtpOptions = requireValue(
+        emailOtpPlugin.options,
+        "Expected email OTP plugin options"
+      )
 
-      await emailOtpPlugin.options.sendVerificationOTP({
+      await emailOtpOptions.sendVerificationOTP({
         email: "grace@example.com",
         otp: "482913",
         type: "sign-in",
