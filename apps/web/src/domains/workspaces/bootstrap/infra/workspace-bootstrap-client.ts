@@ -1,4 +1,4 @@
-import { fetchAuthService } from "@/domains/identity/authentication/ui/auth-client"
+import { fetchAuthService } from "@/domains/identity/authentication/infra/auth-service-client"
 import { workspaceBootstrapSchema } from "@/domains/workspaces/bootstrap/contracts/workspace-bootstrap"
 import type { WorkspaceBootstrap } from "@/domains/workspaces/bootstrap/contracts/workspace-bootstrap"
 
