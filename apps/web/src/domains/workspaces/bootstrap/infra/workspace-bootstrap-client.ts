@@ -2,8 +2,19 @@ import { fetchAuthService } from "@/domains/identity/authentication/infra/auth-s
 import { workspaceBootstrapSchema } from "@/domains/workspaces/bootstrap/contracts/workspace-bootstrap"
 import type { WorkspaceBootstrap } from "@/domains/workspaces/bootstrap/contracts/workspace-bootstrap"
 
-const getWorkspaceBootstrap = async (): Promise<WorkspaceBootstrap | null> => {
-  const response = await fetchAuthService("/api/workspaces/bootstrap")
+interface GetWorkspaceBootstrapOptions {
+  init?: RequestInit | undefined
+  request?: Request | undefined
+}
+
+const getWorkspaceBootstrap = async ({
+  init,
+  request,
+}: GetWorkspaceBootstrapOptions = {}): Promise<WorkspaceBootstrap | null> => {
+  const response = await fetchAuthService("/api/workspaces/bootstrap", {
+    init,
+    request,
+  })
 
   if (response.status === 401) {
     return null

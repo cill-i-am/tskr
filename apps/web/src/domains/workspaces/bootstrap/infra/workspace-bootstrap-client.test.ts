@@ -68,6 +68,49 @@ describe("workspace bootstrap client", () => {
     }
   })
 
+  it("preserves request headers when fetching workspace bootstrap", async () => {
+    const fetchMock = withAuthServiceFetch()
+
+    try {
+      fetchMock.mockResolvedValue(Response.json(bootstrapPayload))
+      const request = new Request("https://web.example.com", {
+        headers: {
+          cookie: "session=abc",
+        },
+      })
+
+      await expect(
+        getWorkspaceBootstrap({
+          init: {
+            headers: {
+              "x-request-id": "request-123",
+            },
+            method: "GET",
+          },
+          request,
+        })
+      ).resolves.toStrictEqual(bootstrapPayload)
+
+      const callInit = fetchMock.mock.calls[0]?.[1] as RequestInit
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        "https://auth.example.com/api/workspaces/bootstrap",
+        expect.objectContaining({
+          credentials: "include",
+          method: "GET",
+        })
+      )
+      expect(
+        Object.fromEntries(new Headers(callInit.headers).entries())
+      ).toStrictEqual({
+        cookie: "session=abc",
+        "x-request-id": "request-123",
+      })
+    } finally {
+      withoutAuthServiceFetch()
+    }
+  })
+
   it("returns null for an unauthorized auth response", async () => {
     const fetchMock = withAuthServiceFetch()
 

@@ -6,21 +6,35 @@ interface ResolveAuthBaseUrlOptions {
 
 interface ResolveRuntimeAuthBaseUrlOptions {
   authBaseUrl?: string | undefined
+  browserAuthBaseUrl?: string | undefined
+  serverAuthBaseUrl?: string | undefined
   runtimeAuthBaseUrl?: string | undefined
   railwayServiceAuthUrl?: string | undefined
 }
 
 const resolveRuntimeAuthBaseUrl = ({
   authBaseUrl = import.meta.env.VITE_AUTH_BASE_URL,
+  browserAuthBaseUrl = typeof document === "undefined"
+    ? undefined
+    : document.documentElement.dataset.authBaseUrl,
   railwayServiceAuthUrl = typeof process === "undefined"
     ? undefined
     : process.env.RAILWAY_SERVICE_AUTH_URL,
-  runtimeAuthBaseUrl = typeof document === "undefined"
+  serverAuthBaseUrl = typeof process === "undefined"
     ? undefined
-    : document.documentElement.dataset.authBaseUrl,
+    : process.env.VITE_AUTH_BASE_URL,
+  runtimeAuthBaseUrl,
 }: ResolveRuntimeAuthBaseUrlOptions = {}) => {
   if (runtimeAuthBaseUrl) {
     return runtimeAuthBaseUrl
+  }
+
+  if (browserAuthBaseUrl) {
+    return browserAuthBaseUrl
+  }
+
+  if (serverAuthBaseUrl) {
+    return serverAuthBaseUrl
   }
 
   if (authBaseUrl) {
@@ -30,8 +44,31 @@ const resolveRuntimeAuthBaseUrl = ({
   if (railwayServiceAuthUrl) {
     return `https://${railwayServiceAuthUrl}`
   }
+}
 
-  return
+interface FetchAuthServiceOptions extends ResolveAuthBaseUrlOptions {
+  init?: RequestInit | undefined
+  headers?: HeadersInit | undefined
+  request?: Request | undefined
+}
+
+const mergeHeaders = (
+  requestHeaders: HeadersInit | undefined,
+  headers: HeadersInit | undefined
+) => {
+  if (!requestHeaders && !headers) {
+    return
+  }
+
+  const mergedHeaders = new Headers(requestHeaders)
+
+  if (headers) {
+    for (const [key, value] of new Headers(headers)) {
+      mergedHeaders.set(key, value)
+    }
+  }
+
+  return mergedHeaders
 }
 
 const resolveAuthBaseUrl = ({
@@ -60,13 +97,17 @@ const resolveAuthBaseUrl = ({
 
 const fetchAuthService = (
   path: string,
-  init: RequestInit = {},
-  options?: ResolveAuthBaseUrlOptions
+  { headers, init = {}, request, ...options }: FetchAuthServiceOptions = {}
 ) =>
   fetch(new URL(path, resolveAuthBaseUrl(options)).toString(), {
     ...init,
     credentials: "include",
+    headers: mergeHeaders(request?.headers, headers ?? init.headers),
   })
 
 export { fetchAuthService, resolveAuthBaseUrl, resolveRuntimeAuthBaseUrl }
-export type { ResolveAuthBaseUrlOptions, ResolveRuntimeAuthBaseUrlOptions }
+export type {
+  FetchAuthServiceOptions,
+  ResolveAuthBaseUrlOptions,
+  ResolveRuntimeAuthBaseUrlOptions,
+}
