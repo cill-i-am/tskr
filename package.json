@@ -29,7 +29,6 @@
     "typecheck": "turbo run typecheck"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.5",
     "opensrc": "0.6.0",
     "oxfmt": "^0.40.0",
     "oxlint": "^1.55.0",
