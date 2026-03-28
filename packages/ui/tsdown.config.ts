@@ -20,7 +20,7 @@ export default defineConfig({
     "components/avatar": "src/components/avatar.tsx",
     "components/badge": "src/components/badge.tsx",
     "components/breadcrumb": "src/components/breadcrumb.tsx",
-    "components/button": "src/components/button-entry.ts",
+    "components/button": "src/components/button.tsx",
     "components/button-group": "src/components/button-group.tsx",
     "components/calendar": "src/components/calendar.tsx",
     "components/card": "src/components/card.tsx",

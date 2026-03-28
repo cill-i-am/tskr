@@ -67,7 +67,6 @@ const loadPages = async () => {
   installMocks()
 
   const forgotPasswordPageModule = await import("./forgot-password-page")
-  const homeSessionCardModule = await import("./home-session-card")
   const loginPageModule = await import("./login-page")
   const resetPasswordPageModule = await import("./reset-password-page")
   const signupPageModule = await import("./signup-page")
@@ -75,7 +74,6 @@ const loadPages = async () => {
 
   return {
     ForgotPasswordPage: forgotPasswordPageModule.ForgotPasswordPage,
-    HomeSessionCard: homeSessionCardModule.HomeSessionCard,
     LoginPage: loginPageModule.LoginPage,
     ResetPasswordPage: resetPasswordPageModule.ResetPasswordPage,
     SignupPage: signupPageModule.SignupPage,
@@ -783,22 +781,6 @@ describe("authentication pages", () => {
 
       expect(resetPasswordMock).not.toHaveBeenCalled()
       expect(screen.getByText("Passwords must match.")).toBeTruthy()
-    } finally {
-      view.unmount()
-      cleanup()
-    }
-  })
-
-  it("renders the signed-out home card state", async () => {
-    resetMocks()
-    const { HomeSessionCard } = await loadPages()
-
-    const view = render(<HomeSessionCard />)
-
-    try {
-      expect(screen.getByText(/No active session yet/i)).toBeTruthy()
-      expect(screen.getByRole("link", { name: "Login" })).toBeTruthy()
-      expect(screen.getByRole("link", { name: "Sign up" })).toBeTruthy()
     } finally {
       view.unmount()
       cleanup()

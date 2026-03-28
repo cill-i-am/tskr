@@ -162,7 +162,8 @@ const auth = betterAuth({
         invitation,
         inviter,
         organization: workspaceOrg,
-      }) => runEmailSideEffect(
+      }) =>
+        runEmailSideEffect(
           async () => {
             const code = await getWorkspaceInvitationCode(invitation.id)
 

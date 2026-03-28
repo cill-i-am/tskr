@@ -1,8 +1,8 @@
-import { spawn } from "node:child_process"
-import { once } from "node:events"
 import { readFile } from "node:fs/promises"
 import * as fs from "node:fs/promises"
 import { join } from "node:path"
+
+import { runCommand } from "./run-command.mjs"
 
 const MANIFEST_FILE = "opensrc.packages.json"
 const TRANSIENT_DIR = "opensrc"
@@ -234,29 +234,6 @@ const formatCommandOutput = (output) => {
   }
 
   return `: ${output.trim()}`
-}
-
-const runCommand = async (command, args, options) => {
-  const child = spawn(command, args, options)
-  let stdout = ""
-  let stderr = ""
-
-  child.stdout?.on("data", (chunk) => {
-    stdout += chunk
-  })
-
-  child.stderr?.on("data", (chunk) => {
-    stderr += chunk
-  })
-
-  const result = await Promise.race([
-    once(child, "close").then(([code]) => ({ code: code ?? 1 })),
-    once(child, "error").then(([error]) => {
-      throw error
-    }),
-  ])
-
-  return { code: result.code, stderr, stdout }
 }
 
 class SyncError extends Error {

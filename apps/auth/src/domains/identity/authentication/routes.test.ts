@@ -181,7 +181,7 @@ describe("authentication routes", () => {
       }
     )
 
-    expect(authHandlerMock).toHaveBeenCalledOnce()
+    expect(authHandlerMock).toHaveBeenCalledTimes(1)
     expect(response.status).toBe(400)
   })
 
@@ -227,7 +227,7 @@ describe("authentication routes", () => {
       secondResponsePromise,
     ])
 
-    expect(authHandlerMock).toHaveBeenCalledOnce()
+    expect(authHandlerMock).toHaveBeenCalledTimes(1)
     expect(firstResponse.status).toBe(200)
     expect(secondResponse.status).toBe(422)
     await expect(secondResponse.json()).resolves.toMatchObject({

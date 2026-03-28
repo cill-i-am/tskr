@@ -1,11 +1,10 @@
-import { spawn } from "node:child_process"
-import { once } from "node:events"
 import { realpath } from "node:fs/promises"
 import { dirname, join } from "node:path"
 import { setTimeout as delay } from "node:timers/promises"
 import { fileURLToPath } from "node:url"
 
 import { deriveWorktreeDbConfig } from "./local-postgres-config.mjs"
+import { runCommand } from "./run-command.mjs"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const DEFAULT_REPO_ROOT = join(__dirname, "../..")
@@ -31,34 +30,6 @@ export const deriveHealthTimeoutMs = ({
 } = {}) =>
   deriveHealthcheckWindowMs({ intervalMs, retries, startPeriodMs }) + bufferMs
 const DEFAULT_HEALTH_TIMEOUT_MS = deriveHealthTimeoutMs()
-
-const runCommand = async (command, args, options = {}) => {
-  const child = spawn(command, args, {
-    cwd: options.cwd,
-    env: options.env,
-    stdio: options.stdio ?? ["ignore", "pipe", "pipe"],
-  })
-
-  let stdout = ""
-  let stderr = ""
-
-  child.stdout?.on("data", (chunk) => {
-    stdout += chunk
-  })
-
-  child.stderr?.on("data", (chunk) => {
-    stderr += chunk
-  })
-
-  const result = await Promise.race([
-    once(child, "close").then(([code]) => code ?? 1),
-    once(child, "error").then(([error]) => {
-      throw error
-    }),
-  ])
-
-  return { code: result, stderr, stdout }
-}
 
 export const buildComposeArgs = (composeFile, projectName, args = []) => [
   "compose",
