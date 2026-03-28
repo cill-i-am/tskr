@@ -230,6 +230,17 @@ describe("workspace app shell routes", () => {
     })
   })
 
+  it("redirects direct /onboarding visits to /login when the user is signed out", async () => {
+    const router = await loadPath({
+      bootstrap: null,
+      path: "/onboarding",
+    })
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/login")
+    })
+  })
+
   it("renders the app shell with active workspace details from shared bootstrap state", async () => {
     const router = await renderPath({
       bootstrap: withRecoveryState("active_valid"),

@@ -75,11 +75,11 @@ describe("runtime auth base url resolution", () => {
   it("uses the railway auth host fallback on the server", () => {
     expect(
       resolveRuntimeAuthBaseUrl({
-        authBaseUrl: undefined,
+        authBaseUrl: "",
         browserAuthBaseUrl: undefined,
         railwayServiceAuthUrl: "auth-production-6a1e.up.railway.app",
         runtimeAuthBaseUrl: undefined,
-        serverAuthBaseUrl: undefined,
+        serverAuthBaseUrl: "",
       })
     ).toBe("https://auth-production-6a1e.up.railway.app")
   })
