@@ -44,7 +44,7 @@ export {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "./components/breadcrumb"
-export { Button, buttonVariants } from "./components/button-entry"
+export { Button, buttonVariants } from "./components/button"
 export {
   ButtonGroup,
   ButtonGroupSeparator,
