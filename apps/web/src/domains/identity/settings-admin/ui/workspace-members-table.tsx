@@ -1,0 +1,243 @@
+import type {
+  SettingsAdminMember,
+  SettingsAdminWorkspaceRole,
+} from "@/domains/identity/settings-admin/contracts/settings-admin-contract"
+import { removeWorkspaceMember } from "@/domains/identity/settings-admin/infra/remove-workspace-member"
+import { updateWorkspaceMemberRole } from "@/domains/identity/settings-admin/infra/update-workspace-member-role"
+import { useEffect, useEffectEvent, useState } from "react"
+import type { ChangeEvent, MouseEvent } from "react"
+
+import { Button } from "@workspace/ui/components/button"
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from "@workspace/ui/components/native-select"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@workspace/ui/components/table"
+
+interface WorkspaceMembersTableProps {
+  members: SettingsAdminMember[]
+  onClearError: () => void
+  onError: (message: string) => void
+  onRefresh: () => Promise<void>
+  workspaceId: string
+}
+
+const roleLabels: Record<SettingsAdminWorkspaceRole, string> = {
+  admin: "Admin",
+  dispatcher: "Dispatcher",
+  field_worker: "Field worker",
+  owner: "Owner",
+}
+
+const getDraftRoles = (members: SettingsAdminMember[]) =>
+  Object.fromEntries(
+    members.map((member) => [
+      member.id,
+      member.permissions.canChangeRole
+        ? member.role
+        : ("" as SettingsAdminWorkspaceRole | ""),
+    ])
+  )
+
+const getRoleOptions = (member: SettingsAdminMember) => [
+  ...new Set([member.role, ...member.permissions.assignableRoles]),
+]
+
+const WorkspaceMembersTable = ({
+  members,
+  onClearError,
+  onError,
+  onRefresh,
+  workspaceId,
+}: WorkspaceMembersTableProps) => {
+  const [draftRoles, setDraftRoles] = useState<Record<string, string>>(
+    getDraftRoles(members)
+  )
+  const [pendingMemberId, setPendingMemberId] = useState<string | null>(null)
+
+  useEffect(() => {
+    setDraftRoles(getDraftRoles(members))
+  }, [members])
+
+  const handleDraftRoleChange = useEffectEvent(
+    (event: ChangeEvent<HTMLSelectElement>) => {
+      const { memberId } = event.currentTarget.dataset
+
+      if (!memberId) {
+        return
+      }
+
+      setDraftRoles((current) => ({
+        ...current,
+        [memberId]: event.target.value,
+      }))
+    }
+  )
+
+  const handleRoleSave = useEffectEvent(
+    async (event: MouseEvent<HTMLButtonElement>) => {
+      const { memberId } = event.currentTarget.dataset
+
+      if (!memberId) {
+        return
+      }
+
+      const member = members.find((candidate) => candidate.id === memberId)
+
+      if (!member) {
+        return
+      }
+
+      const nextRole = draftRoles[member.id]
+
+      if (!nextRole || nextRole === member.role) {
+        return
+      }
+
+      onClearError()
+      setPendingMemberId(member.id)
+
+      try {
+        await updateWorkspaceMemberRole({
+          memberId: member.id,
+          role: nextRole as SettingsAdminWorkspaceRole,
+          workspaceId,
+        })
+        await onRefresh()
+      } catch (error) {
+        onError(
+          error instanceof Error
+            ? error.message
+            : "Unable to update the workspace member role."
+        )
+      } finally {
+        setPendingMemberId(null)
+      }
+    }
+  )
+
+  const handleRemove = useEffectEvent(
+    async (event: MouseEvent<HTMLButtonElement>) => {
+      const { memberId } = event.currentTarget.dataset
+
+      if (!memberId) {
+        return
+      }
+
+      const member = members.find((candidate) => candidate.id === memberId)
+
+      if (!member) {
+        return
+      }
+
+      onClearError()
+      setPendingMemberId(member.id)
+
+      try {
+        await removeWorkspaceMember({
+          memberId: member.id,
+          workspaceId,
+        })
+        await onRefresh()
+      } catch (error) {
+        onError(
+          error instanceof Error
+            ? error.message
+            : "Unable to update the workspace membership."
+        )
+      } finally {
+        setPendingMemberId(null)
+      }
+    }
+  )
+
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Member</TableHead>
+          <TableHead>Role</TableHead>
+          <TableHead className="w-full">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {members.map((member) => {
+          const isPending = pendingMemberId === member.id
+          const removeLabel = member.isCurrentUser
+            ? "Leave workspace"
+            : `Remove ${member.name}`
+
+          return (
+            <TableRow key={member.id}>
+              <TableCell>
+                <div className="min-w-0">
+                  <p className="font-medium">{member.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {member.email}
+                  </p>
+                </div>
+              </TableCell>
+              <TableCell>
+                {member.permissions.canChangeRole ? (
+                  <NativeSelect
+                    aria-label={`Role for ${member.name}`}
+                    data-member-id={member.id}
+                    disabled={isPending}
+                    onChange={handleDraftRoleChange}
+                    value={draftRoles[member.id] ?? member.role}
+                  >
+                    {getRoleOptions(member).map((role) => (
+                      <NativeSelectOption key={role} value={role}>
+                        {roleLabels[role]}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                ) : (
+                  <span>{roleLabels[member.role]}</span>
+                )}
+              </TableCell>
+              <TableCell>
+                <div className="gap-2 flex flex-wrap justify-end">
+                  {member.permissions.canChangeRole ? (
+                    <Button
+                      data-member-id={member.id}
+                      disabled={
+                        isPending || draftRoles[member.id] === member.role
+                      }
+                      onClick={handleRoleSave}
+                      size="sm"
+                      type="button"
+                    >
+                      {`Save role for ${member.name}`}
+                    </Button>
+                  ) : null}
+                  {member.permissions.canRemove ? (
+                    <Button
+                      data-member-id={member.id}
+                      disabled={isPending}
+                      onClick={handleRemove}
+                      size="sm"
+                      type="button"
+                      variant="outline"
+                    >
+                      {removeLabel}
+                    </Button>
+                  ) : null}
+                </div>
+              </TableCell>
+            </TableRow>
+          )
+        })}
+      </TableBody>
+    </Table>
+  )
+}
+
+export { WorkspaceMembersTable }
