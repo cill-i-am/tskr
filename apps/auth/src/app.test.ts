@@ -5,6 +5,7 @@ import { hc } from "hono/client"
 import { createPgPool } from "@workspace/db"
 
 import type { AppType } from "./app.js"
+import { requireValue } from "./test-helpers.js"
 
 const {
   sendEmailVerificationEmailMock,
@@ -144,17 +145,6 @@ const resetEmailMocks = () => {
   sendWorkspaceInvitationEmailMock.mockClear()
 }
 
-const requireValue = <Value>(
-  value: Value | null | undefined,
-  message: string
-): Value => {
-  if (value === null || value === undefined) {
-    throw new Error(message)
-  }
-
-  return value
-}
-
 const expectLatestSignupVerificationOtp = (email: string) => {
   const verificationOtpEmailInput = requireValue(
     latestSignupVerificationOtpEmail(),
@@ -203,7 +193,7 @@ const expectPasswordResetEmailInput = (resetToken: string) => {
       }
     | undefined
 
-  expect(sendPasswordResetEmailMock).toHaveBeenCalledOnce()
+  expect(sendPasswordResetEmailMock).toHaveBeenCalledTimes(1)
   expect(emailInput).toMatchObject({
     to: "grace@example.com",
   })
@@ -307,7 +297,7 @@ describe("auth app", () => {
         name: "Ada Lovelace",
       },
     })
-    expect(sendSignupVerificationOtpEmailMock).toHaveBeenCalledTimes(1)
+    expect(sendSignupVerificationOtpEmailMock).toHaveBeenCalledOnce()
     expect(sendEmailVerificationEmailMock).not.toHaveBeenCalled()
 
     const verificationOtpEmailInput =
@@ -366,7 +356,7 @@ describe("auth app", () => {
     expect(signInResponse.json).toMatchObject({
       code: expect.any(String),
     })
-    expect(sendSignupVerificationOtpEmailMock).toHaveBeenCalledTimes(1)
+    expect(sendSignupVerificationOtpEmailMock).toHaveBeenCalledOnce()
     expect(sendExistingUserSignupNoticeMock).not.toHaveBeenCalled()
     expectLatestSignupVerificationOtp("ada@example.com")
   })

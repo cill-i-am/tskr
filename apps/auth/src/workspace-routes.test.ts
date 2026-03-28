@@ -7,6 +7,7 @@ import type {
   WorkspaceBootstrap,
   WorkspaceSettingsSnapshot,
 } from "./domains/workspaces/contracts.js"
+import { requireValue } from "./test-helpers.js"
 
 const getSetCookieValues = (headers: Headers) => {
   if (typeof headers.getSetCookie === "function") {
@@ -143,17 +144,6 @@ const truncateAuthTables = async () => {
 const resetWorkspaceTestState = async () => {
   resetEmailMocks()
   await truncateAuthTables()
-}
-
-const requireValue = <Value>(
-  value: Value | null | undefined,
-  message: string
-): Value => {
-  if (value === null || value === undefined) {
-    throw new Error(message)
-  }
-
-  return value
 }
 
 const requestJson = async <Json>(
