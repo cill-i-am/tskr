@@ -1,7 +1,6 @@
 import { workspaceBootstrapSchema } from '@/domains/workspaces/bootstrap/contracts/workspace-bootstrap';
 import type { WorkspaceBootstrap } from '@/domains/workspaces/bootstrap/contracts/workspace-bootstrap';
 
-
 import { getWorkspaceBootstrap } from "./workspace-bootstrap-client"
 
 const bootstrapPayload: WorkspaceBootstrap = {
