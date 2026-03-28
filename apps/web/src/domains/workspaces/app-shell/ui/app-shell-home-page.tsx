@@ -9,7 +9,7 @@ import {
 } from "@workspace/ui/components/card"
 
 const AppShellHomePage = () => {
-  const { activeWorkspace, memberships, recoveryState } =
+  const { activeWorkspace, memberships, pendingInvites, recoveryState } =
     useWorkspaceBootstrap()
 
   return (
@@ -31,6 +31,10 @@ const AppShellHomePage = () => {
             This lightweight shell proves the authenticated product surface can
             read shared workspace bootstrap state without calling session hooks
             in each child route.
+          </p>
+          <p>
+            {pendingInvites.length} pending invite
+            {pendingInvites.length === 1 ? "" : "s"}
           </p>
           <p>Current recovery state: {recoveryState}</p>
         </CardContent>

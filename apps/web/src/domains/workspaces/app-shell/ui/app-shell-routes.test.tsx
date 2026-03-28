@@ -41,7 +41,18 @@ const activeWorkspaceBootstrap: WorkspaceBootstrap = {
       slug: "field-team",
     },
   ],
-  pendingInvites: [],
+  pendingInvites: [
+    {
+      email: "crew@example.com",
+      expiresAt: "2026-04-04T09:00:00.000Z",
+      id: "invite_123",
+      role: "dispatcher",
+      status: "pending",
+      workspaceId: "workspace_789",
+      workspaceName: "Logistics",
+      workspaceSlug: "logistics",
+    },
+  ],
   recoveryState: "active_valid",
 }
 
@@ -235,6 +246,7 @@ describe("workspace app shell routes", () => {
       })
     ).resolves.toBeTruthy()
     expect(screen.getAllByText("2 memberships available")).toHaveLength(2)
+    expect(screen.getByText("1 pending invite")).toBeTruthy()
   })
 
   it("renders the onboarding holding page from shared bootstrap state", async () => {

@@ -1,4 +1,5 @@
 import type {
+  PendingWorkspaceInvite,
   WorkspaceBootstrap,
   WorkspaceMembership,
   WorkspaceRecoveryState,
@@ -8,6 +9,7 @@ import { createContext, useMemo } from "react"
 interface WorkspaceBootstrapContextValue {
   activeWorkspace: WorkspaceMembership | null
   memberships: WorkspaceMembership[]
+  pendingInvites: PendingWorkspaceInvite[]
   recoveryState: WorkspaceRecoveryState
 }
 
@@ -27,9 +29,15 @@ const WorkspaceBootstrapProvider = ({
     () => ({
       activeWorkspace: bootstrap.activeWorkspace,
       memberships: bootstrap.memberships,
+      pendingInvites: bootstrap.pendingInvites,
       recoveryState: bootstrap.recoveryState,
     }),
-    [bootstrap.activeWorkspace, bootstrap.memberships, bootstrap.recoveryState]
+    [
+      bootstrap.activeWorkspace,
+      bootstrap.memberships,
+      bootstrap.pendingInvites,
+      bootstrap.recoveryState,
+    ]
   )
 
   return (
