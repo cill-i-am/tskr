@@ -13,13 +13,21 @@ import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as UpRouteImport } from './routes/up'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as OnboardingIndexRouteImport } from './routes/onboarding/index'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as OnboardingIndexRouteImport } from './routes/onboarding/index'
 import { Route as AppIndexRouteImport } from './routes/app/index'
+import { Route as AppSettingsRouteImport } from './routes/app/settings'
+import { Route as AppSettingsIndexRouteImport } from './routes/app/settings/index'
+import { Route as AppSettingsWorkspaceRouteImport } from './routes/app/settings/workspace'
+import { Route as AppSettingsServiceZonesRouteImport } from './routes/app/settings/service-zones'
+import { Route as AppSettingsPeopleRouteImport } from './routes/app/settings/people'
+import { Route as AppSettingsNotificationsRouteImport } from './routes/app/settings/notifications'
+import { Route as AppSettingsLabelsRouteImport } from './routes/app/settings/labels'
+import { Route as AppSettingsAccountRouteImport } from './routes/app/settings/account'
 
 const VerifyEmailRoute = VerifyEmailRouteImport.update({
   id: '/verify-email',
@@ -46,11 +54,6 @@ const OnboardingRoute = OnboardingRouteImport.update({
   path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
-const OnboardingIndexRoute = OnboardingIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => OnboardingRoute,
-} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -71,10 +74,56 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OnboardingIndexRoute = OnboardingIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OnboardingRoute,
+} as any)
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsWorkspaceRoute = AppSettingsWorkspaceRouteImport.update({
+  id: '/workspace',
+  path: '/workspace',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsServiceZonesRoute = AppSettingsServiceZonesRouteImport.update({
+  id: '/service-zones',
+  path: '/service-zones',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsPeopleRoute = AppSettingsPeopleRouteImport.update({
+  id: '/people',
+  path: '/people',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsNotificationsRoute =
+  AppSettingsNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AppSettingsRoute,
+  } as any)
+const AppSettingsLabelsRoute = AppSettingsLabelsRouteImport.update({
+  id: '/labels',
+  path: '/labels',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsAccountRoute = AppSettingsAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => AppSettingsRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -83,23 +132,38 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRouteWithChildren
-  '/onboarding/': typeof OnboardingIndexRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/up': typeof UpRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/app/settings': typeof AppSettingsRouteWithChildren
   '/app/': typeof AppIndexRoute
+  '/onboarding/': typeof OnboardingIndexRoute
+  '/app/settings/account': typeof AppSettingsAccountRoute
+  '/app/settings/labels': typeof AppSettingsLabelsRoute
+  '/app/settings/notifications': typeof AppSettingsNotificationsRoute
+  '/app/settings/people': typeof AppSettingsPeopleRoute
+  '/app/settings/service-zones': typeof AppSettingsServiceZonesRoute
+  '/app/settings/workspace': typeof AppSettingsWorkspaceRoute
+  '/app/settings/': typeof AppSettingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
-  '/onboarding': typeof OnboardingIndexRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/up': typeof UpRoute
   '/verify-email': typeof VerifyEmailRoute
   '/app': typeof AppIndexRoute
+  '/onboarding': typeof OnboardingIndexRoute
+  '/app/settings/account': typeof AppSettingsAccountRoute
+  '/app/settings/labels': typeof AppSettingsLabelsRoute
+  '/app/settings/notifications': typeof AppSettingsNotificationsRoute
+  '/app/settings/people': typeof AppSettingsPeopleRoute
+  '/app/settings/service-zones': typeof AppSettingsServiceZonesRoute
+  '/app/settings/workspace': typeof AppSettingsWorkspaceRoute
+  '/app/settings': typeof AppSettingsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -108,12 +172,20 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRouteWithChildren
-  '/onboarding/': typeof OnboardingIndexRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/up': typeof UpRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/app/settings': typeof AppSettingsRouteWithChildren
   '/app/': typeof AppIndexRoute
+  '/onboarding/': typeof OnboardingIndexRoute
+  '/app/settings/account': typeof AppSettingsAccountRoute
+  '/app/settings/labels': typeof AppSettingsLabelsRoute
+  '/app/settings/notifications': typeof AppSettingsNotificationsRoute
+  '/app/settings/people': typeof AppSettingsPeopleRoute
+  '/app/settings/service-zones': typeof AppSettingsServiceZonesRoute
+  '/app/settings/workspace': typeof AppSettingsWorkspaceRoute
+  '/app/settings/': typeof AppSettingsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -123,23 +195,38 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/onboarding'
-    | '/onboarding/'
     | '/reset-password'
     | '/signup'
     | '/up'
     | '/verify-email'
+    | '/app/settings'
     | '/app/'
+    | '/onboarding/'
+    | '/app/settings/account'
+    | '/app/settings/labels'
+    | '/app/settings/notifications'
+    | '/app/settings/people'
+    | '/app/settings/service-zones'
+    | '/app/settings/workspace'
+    | '/app/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/forgot-password'
     | '/login'
-    | '/onboarding'
     | '/reset-password'
     | '/signup'
     | '/up'
     | '/verify-email'
     | '/app'
+    | '/onboarding'
+    | '/app/settings/account'
+    | '/app/settings/labels'
+    | '/app/settings/notifications'
+    | '/app/settings/people'
+    | '/app/settings/service-zones'
+    | '/app/settings/workspace'
+    | '/app/settings'
   id:
     | '__root__'
     | '/'
@@ -147,12 +234,20 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/onboarding'
-    | '/onboarding/'
     | '/reset-password'
     | '/signup'
     | '/up'
     | '/verify-email'
+    | '/app/settings'
     | '/app/'
+    | '/onboarding/'
+    | '/app/settings/account'
+    | '/app/settings/labels'
+    | '/app/settings/notifications'
+    | '/app/settings/people'
+    | '/app/settings/service-zones'
+    | '/app/settings/workspace'
+    | '/app/settings/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -204,13 +299,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/onboarding/': {
-      id: '/onboarding/'
-      path: '/'
-      fullPath: '/onboarding/'
-      preLoaderRoute: typeof OnboardingIndexRouteImport
-      parentRoute: typeof OnboardingRoute
-    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -239,6 +327,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/onboarding/': {
+      id: '/onboarding/'
+      path: '/'
+      fullPath: '/onboarding/'
+      preLoaderRoute: typeof OnboardingIndexRouteImport
+      parentRoute: typeof OnboardingRoute
+    }
     '/app/': {
       id: '/app/'
       path: '/'
@@ -246,14 +341,96 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/settings': {
+      id: '/app/settings'
+      path: '/settings'
+      fullPath: '/app/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/settings/': {
+      id: '/app/settings/'
+      path: '/'
+      fullPath: '/app/settings/'
+      preLoaderRoute: typeof AppSettingsIndexRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/app/settings/workspace': {
+      id: '/app/settings/workspace'
+      path: '/workspace'
+      fullPath: '/app/settings/workspace'
+      preLoaderRoute: typeof AppSettingsWorkspaceRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/app/settings/service-zones': {
+      id: '/app/settings/service-zones'
+      path: '/service-zones'
+      fullPath: '/app/settings/service-zones'
+      preLoaderRoute: typeof AppSettingsServiceZonesRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/app/settings/people': {
+      id: '/app/settings/people'
+      path: '/people'
+      fullPath: '/app/settings/people'
+      preLoaderRoute: typeof AppSettingsPeopleRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/app/settings/notifications': {
+      id: '/app/settings/notifications'
+      path: '/notifications'
+      fullPath: '/app/settings/notifications'
+      preLoaderRoute: typeof AppSettingsNotificationsRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/app/settings/labels': {
+      id: '/app/settings/labels'
+      path: '/labels'
+      fullPath: '/app/settings/labels'
+      preLoaderRoute: typeof AppSettingsLabelsRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/app/settings/account': {
+      id: '/app/settings/account'
+      path: '/account'
+      fullPath: '/app/settings/account'
+      preLoaderRoute: typeof AppSettingsAccountRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
   }
 }
 
+interface AppSettingsRouteChildren {
+  AppSettingsAccountRoute: typeof AppSettingsAccountRoute
+  AppSettingsLabelsRoute: typeof AppSettingsLabelsRoute
+  AppSettingsNotificationsRoute: typeof AppSettingsNotificationsRoute
+  AppSettingsPeopleRoute: typeof AppSettingsPeopleRoute
+  AppSettingsServiceZonesRoute: typeof AppSettingsServiceZonesRoute
+  AppSettingsWorkspaceRoute: typeof AppSettingsWorkspaceRoute
+  AppSettingsIndexRoute: typeof AppSettingsIndexRoute
+}
+
+const AppSettingsRouteChildren: AppSettingsRouteChildren = {
+  AppSettingsAccountRoute: AppSettingsAccountRoute,
+  AppSettingsLabelsRoute: AppSettingsLabelsRoute,
+  AppSettingsNotificationsRoute: AppSettingsNotificationsRoute,
+  AppSettingsPeopleRoute: AppSettingsPeopleRoute,
+  AppSettingsServiceZonesRoute: AppSettingsServiceZonesRoute,
+  AppSettingsWorkspaceRoute: AppSettingsWorkspaceRoute,
+  AppSettingsIndexRoute: AppSettingsIndexRoute,
+}
+
+const AppSettingsRouteWithChildren = AppSettingsRoute._addFileChildren(
+  AppSettingsRouteChildren,
+)
+
 interface AppRouteChildren {
+  AppSettingsRoute: typeof AppSettingsRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppSettingsRoute: AppSettingsRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
 }
 
@@ -267,8 +444,9 @@ const OnboardingRouteChildren: OnboardingRouteChildren = {
   OnboardingIndexRoute: OnboardingIndexRoute,
 }
 
-const OnboardingRouteWithChildren =
-  OnboardingRoute._addFileChildren(OnboardingRouteChildren)
+const OnboardingRouteWithChildren = OnboardingRoute._addFileChildren(
+  OnboardingRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -284,12 +462,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

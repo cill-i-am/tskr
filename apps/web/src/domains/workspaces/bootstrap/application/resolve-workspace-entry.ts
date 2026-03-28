@@ -21,6 +21,7 @@ const resolveWorkspaceEntry = (
   }
 
   if (
+    !bootstrap.activeWorkspace ||
     bootstrap.recoveryState === "onboarding_required" ||
     bootstrap.recoveryState === "selection_required"
   ) {
