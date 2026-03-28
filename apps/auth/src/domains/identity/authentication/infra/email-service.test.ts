@@ -65,7 +65,7 @@ describe(createAuthenticationEmailService, () => {
       resendApiKey: undefined,
     })
 
-    expect(createConsoleTransportMock).toHaveBeenCalledTimes(1)
+    expect(createConsoleTransportMock).toHaveBeenCalledOnce()
     expect(createResendTransportMock).not.toHaveBeenCalled()
     expect(createEmailServiceMock).toHaveBeenCalledWith({
       appName: "tskr",

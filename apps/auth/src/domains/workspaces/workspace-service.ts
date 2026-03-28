@@ -4,13 +4,18 @@ import {
   canManageOwnerRole,
   canManageWorkspaceInvites,
   canManageWorkspaceMembers,
+  canManageWorkspaceSettings,
   hasRole,
 } from "./authorization-policy.js"
 import type {
   WorkspaceBootstrap,
   WorkspaceInvite,
+  WorkspaceProfile,
   WorkspaceRole,
   WorkspaceSession,
+  WorkspaceSettingsInvite,
+  WorkspaceSettingsMember,
+  WorkspaceSettingsSnapshot,
 } from "./contracts.js"
 import { recoverActiveWorkspace } from "./recovery-policy.js"
 import type { createWorkspaceRepository } from "./workspace-repository.js"
@@ -29,7 +34,76 @@ interface AuthSession {
 }
 
 interface AuthAdapter {
-  api: {
+  api: Record<string, unknown>
+}
+
+type WorkspaceRepository = ReturnType<typeof createWorkspaceRepository>
+
+interface CreateWorkspaceServiceOptions {
+  auth: AuthAdapter
+  buildWorkspaceInviteAcceptUrl: (code: string) => string
+  repository: WorkspaceRepository
+  verifyWorkspaceInviteToken: (token: string) => string | null
+}
+
+interface AcceptWorkspaceInviteInput {
+  code?: string
+  token?: string
+}
+
+interface UpdateAccountProfileInput {
+  image?: string | null
+  name?: string
+}
+
+interface UpdateWorkspaceProfileInput {
+  logo?: string | null
+  name?: string
+}
+
+const normalizeWorkspaceName = (name: string) => name.trim()
+
+const normalizeRequiredName = (name: string | undefined, label: string) => {
+  const normalized = name?.trim() ?? ""
+
+  if (!normalized) {
+    throw new HTTPException(400, {
+      message: `${label} is required.`,
+    })
+  }
+
+  return normalized
+}
+
+const normalizeOptionalImage = (value: string | null | undefined) => {
+  if (value === null || value === undefined) {
+    return null
+  }
+
+  const normalized = value.trim()
+
+  return normalized || null
+}
+
+const slugifyWorkspaceName = (name: string) => {
+  const slug = name
+    .toLowerCase()
+    .normalize("NFKD")
+    .replaceAll(/[\u0300-\u036F]/gu, "")
+    .replaceAll(/[^a-z0-9]+/g, "-")
+    .replaceAll(/^-+|-+$/g, "")
+    .slice(0, MAX_SLUG_LENGTH)
+
+  return slug || "workspace"
+}
+
+const createWorkspaceService = ({
+  auth,
+  buildWorkspaceInviteAcceptUrl,
+  repository,
+  verifyWorkspaceInviteToken,
+}: CreateWorkspaceServiceOptions) => {
+  const authApi = auth.api as {
     acceptInvitation(input: {
       body: {
         invitationId: string
@@ -60,7 +134,7 @@ interface AuthAdapter {
       }
       headers: Headers
     }): Promise<{
-      code: string
+      code?: string
       email: string
       id: string
       role: string
@@ -93,42 +167,7 @@ interface AuthAdapter {
       role: string
     }>
   }
-}
 
-type WorkspaceRepository = ReturnType<typeof createWorkspaceRepository>
-
-interface CreateWorkspaceServiceOptions {
-  auth: AuthAdapter
-  buildWorkspaceInviteAcceptUrl: (code: string) => string
-  repository: WorkspaceRepository
-  verifyWorkspaceInviteToken: (token: string) => string | null
-}
-
-interface AcceptWorkspaceInviteInput {
-  code?: string
-  token?: string
-}
-
-const normalizeWorkspaceName = (name: string) => name.trim()
-
-const slugifyWorkspaceName = (name: string) => {
-  const slug = name
-    .toLowerCase()
-    .normalize("NFKD")
-    .replaceAll(/[\u0300-\u036F]/gu, "")
-    .replaceAll(/[^a-z0-9]+/g, "-")
-    .replaceAll(/^-+|-+$/g, "")
-    .slice(0, MAX_SLUG_LENGTH)
-
-  return slug || "workspace"
-}
-
-const createWorkspaceService = ({
-  auth,
-  buildWorkspaceInviteAcceptUrl,
-  repository,
-  verifyWorkspaceInviteToken,
-}: CreateWorkspaceServiceOptions) => {
   const resolveAvailableWorkspaceSlug = async (name: string) => {
     const baseSlug = slugifyWorkspaceName(name)
     let slug = baseSlug
@@ -151,7 +190,7 @@ const createWorkspaceService = ({
   const getWorkspaceSession = async (
     headers: Headers
   ): Promise<WorkspaceSession | null> => {
-    const session = await auth.api.getSession({ headers })
+    const session = await authApi.getSession({ headers })
 
     if (!session) {
       return null
@@ -177,6 +216,18 @@ const createWorkspaceService = ({
     return workspaceSession
   }
 
+  const requireAccountProfile = async (userId: string) => {
+    const profile = await repository.getAccountProfile(userId)
+
+    if (!profile) {
+      throw new HTTPException(404, {
+        message: "Account profile not found.",
+      })
+    }
+
+    return profile
+  }
+
   const requireWorkspaceMember = async (
     userId: string,
     workspaceId: string
@@ -193,6 +244,28 @@ const createWorkspaceService = ({
     }
 
     return membership
+  }
+
+  const requireWorkspaceSettingsAccess = async (
+    headers: Headers,
+    workspaceId: string
+  ) => {
+    const workspaceSession = await requireWorkspaceSession(headers)
+    const membership = await requireWorkspaceMember(
+      workspaceSession.userId,
+      workspaceId
+    )
+
+    if (!canManageWorkspaceSettings(membership.role)) {
+      throw new HTTPException(403, {
+        message: "You are not allowed to manage settings for this workspace.",
+      })
+    }
+
+    return {
+      membership,
+      workspaceSession,
+    }
   }
 
   const buildWorkspaceInvite = ({
@@ -230,7 +303,25 @@ const createWorkspaceService = ({
       statusCode?: number
     }
 
-    throw new HTTPException(candidate.statusCode ?? candidate.status ?? 400, {
+    let status: 400 | 401 | 403 | 404 | 409 = 400
+
+    if (
+      candidate.statusCode === 401 ||
+      candidate.statusCode === 403 ||
+      candidate.statusCode === 404 ||
+      candidate.statusCode === 409
+    ) {
+      status = candidate.statusCode
+    } else if (
+      candidate.status === 401 ||
+      candidate.status === 403 ||
+      candidate.status === 404 ||
+      candidate.status === 409
+    ) {
+      ;({ status } = candidate)
+    }
+
+    throw new HTTPException(status, {
       message:
         candidate.body?.message ??
         candidate.message ??
@@ -290,7 +381,7 @@ const createWorkspaceService = ({
 
     const normalizedName = normalizeWorkspaceName(workspaceName)
     const slug = await resolveAvailableWorkspaceSlug(normalizedName)
-    const organization = await auth.api.createOrganization({
+    const organization = await authApi.createOrganization({
       body: {
         name: normalizedName,
         slug,
@@ -342,6 +433,278 @@ const createWorkspaceService = ({
     }
   }
 
+  const getAccountProfile = async (headers: Headers) => {
+    const workspaceSession = await requireWorkspaceSession(headers)
+
+    return requireAccountProfile(workspaceSession.userId)
+  }
+
+  const updateAccountProfile = async (
+    headers: Headers,
+    input: UpdateAccountProfileInput
+  ) => {
+    const workspaceSession = await requireWorkspaceSession(headers)
+    const name = normalizeRequiredName(input.name, "Account name")
+    const profile = await repository.updateAccountProfile(
+      workspaceSession.userId,
+      {
+        image: normalizeOptionalImage(input.image),
+        name,
+      }
+    )
+
+    if (!profile) {
+      throw new HTTPException(404, {
+        message: "Account profile not found.",
+      })
+    }
+
+    return profile
+  }
+
+  const resolveInvitableRoles = (actorRole: string): WorkspaceRole[] => {
+    if (!canManageWorkspaceInvites(actorRole)) {
+      return []
+    }
+
+    if (canManageOwnerRole(actorRole)) {
+      return ["owner", "admin", "dispatcher", "field_worker"]
+    }
+
+    return ["admin", "dispatcher", "field_worker"]
+  }
+
+  const resolveAssignableRoles = ({
+    actorRole,
+    ownerCount,
+    targetRole,
+    targetUserId,
+    workspaceSession,
+  }: {
+    actorRole: string
+    ownerCount: number
+    targetRole: string
+    targetUserId: string
+    workspaceSession: WorkspaceSession
+  }): WorkspaceRole[] => {
+    if (!canManageWorkspaceMembers(actorRole)) {
+      return []
+    }
+
+    const isCurrentUser = targetUserId === workspaceSession.userId
+    const targetIsOwner = hasRole(targetRole, "owner")
+
+    if (!canManageOwnerRole(actorRole)) {
+      if (targetIsOwner) {
+        return []
+      }
+
+      return ["admin", "dispatcher", "field_worker"]
+    }
+
+    if (isCurrentUser && targetIsOwner) {
+      return []
+    }
+
+    if (targetIsOwner && ownerCount <= 1) {
+      return []
+    }
+
+    return ["owner", "admin", "dispatcher", "field_worker"]
+  }
+
+  const canRemoveTargetMember = ({
+    actorRole,
+    ownerCount,
+    targetRole,
+    targetUserId,
+    workspaceSession,
+  }: {
+    actorRole: string
+    ownerCount: number
+    targetRole: string
+    targetUserId: string
+    workspaceSession: WorkspaceSession
+  }) => {
+    const isCurrentUser = targetUserId === workspaceSession.userId
+    const targetIsOwner = hasRole(targetRole, "owner")
+
+    if (isCurrentUser) {
+      if (targetIsOwner) {
+        return ownerCount > 1
+      }
+
+      return true
+    }
+
+    if (!canManageWorkspaceMembers(actorRole)) {
+      return false
+    }
+
+    if (!canManageOwnerRole(actorRole) && targetIsOwner) {
+      return false
+    }
+
+    return true
+  }
+
+  const buildWorkspaceSettingsInvite = ({
+    actorRole,
+    invite,
+  }: {
+    actorRole: string
+    invite: {
+      code: string
+      email: string
+      id: string
+      role: WorkspaceRole
+      status: string
+      workspaceId: string
+    }
+  }): WorkspaceSettingsInvite => {
+    const canManageInvite =
+      canManageWorkspaceInvites(actorRole) &&
+      (invite.role !== "owner" || canManageOwnerRole(actorRole))
+
+    return {
+      acceptUrl: buildWorkspaceInviteAcceptUrl(invite.code),
+      code: invite.code,
+      email: invite.email,
+      id: invite.id,
+      permissions: {
+        canResend: canManageInvite,
+        canRevoke: canManageInvite,
+      },
+      role: invite.role,
+      status: invite.status,
+      workspaceId: invite.workspaceId,
+    }
+  }
+
+  const buildWorkspaceSettingsSnapshot = async ({
+    membership,
+    workspaceSession,
+  }: {
+    membership: {
+      role: string
+    }
+    workspaceSession: WorkspaceSession
+  }): Promise<WorkspaceSettingsSnapshot> => {
+    const [
+      accountProfile,
+      workspaceProfile,
+      ownerCount,
+      members,
+      pendingInvites,
+    ] = await Promise.all([
+      requireAccountProfile(workspaceSession.userId),
+      repository.findWorkspaceProfile(workspaceSession.activeWorkspaceId ?? ""),
+      repository.countWorkspaceOwners(workspaceSession.activeWorkspaceId ?? ""),
+      repository.listWorkspaceMembers(workspaceSession.activeWorkspaceId ?? ""),
+      repository.listWorkspacePendingInvites(
+        workspaceSession.activeWorkspaceId ?? ""
+      ),
+    ])
+
+    if (!workspaceSession.activeWorkspaceId || !workspaceProfile) {
+      throw new HTTPException(404, {
+        message: "Workspace not found.",
+      })
+    }
+
+    const settingsMembers: WorkspaceSettingsMember[] = members.map((member) => {
+      const assignableRoles = resolveAssignableRoles({
+        actorRole: membership.role,
+        ownerCount,
+        targetRole: member.role,
+        targetUserId: member.userId,
+        workspaceSession,
+      })
+
+      return {
+        ...member,
+        isCurrentUser: member.userId === workspaceSession.userId,
+        permissions: {
+          assignableRoles,
+          canChangeRole: assignableRoles.length > 0,
+          canRemove: canRemoveTargetMember({
+            actorRole: membership.role,
+            ownerCount,
+            targetRole: member.role,
+            targetUserId: member.userId,
+            workspaceSession,
+          }),
+        },
+      }
+    })
+
+    return {
+      accountProfile,
+      members: settingsMembers,
+      pendingInvites: pendingInvites.map((invite) =>
+        buildWorkspaceSettingsInvite({
+          actorRole: membership.role,
+          invite: {
+            code: invite.code,
+            email: invite.email,
+            id: invite.id,
+            role: invite.role,
+            status: invite.status,
+            workspaceId: invite.workspaceId,
+          },
+        })
+      ),
+      permissions: {
+        canEditWorkspaceProfile: canManageWorkspaceSettings(membership.role),
+        canInviteRoles: resolveInvitableRoles(membership.role),
+        canManageInvites: canManageWorkspaceInvites(membership.role),
+        canManageMembers: canManageWorkspaceMembers(membership.role),
+      },
+      viewerRole: membership.role as WorkspaceRole,
+      workspaceProfile,
+    }
+  }
+
+  const getWorkspaceSettings = async (
+    headers: Headers,
+    workspaceId: string
+  ) => {
+    const { membership, workspaceSession } =
+      await requireWorkspaceSettingsAccess(headers, workspaceId)
+
+    return buildWorkspaceSettingsSnapshot({
+      membership,
+      workspaceSession: {
+        ...workspaceSession,
+        activeWorkspaceId: workspaceId,
+      },
+    })
+  }
+
+  const updateWorkspaceProfile = async (
+    headers: Headers,
+    workspaceId: string,
+    input: UpdateWorkspaceProfileInput
+  ): Promise<WorkspaceProfile> => {
+    await requireWorkspaceSettingsAccess(headers, workspaceId)
+
+    const workspaceProfile = await repository.updateWorkspaceProfile(
+      workspaceId,
+      {
+        logo: normalizeOptionalImage(input.logo),
+        name: normalizeRequiredName(input.name, "Workspace name"),
+      }
+    )
+
+    if (!workspaceProfile) {
+      throw new HTTPException(404, {
+        message: "Workspace not found.",
+      })
+    }
+
+    return workspaceProfile
+  }
+
   const createInvite = async (
     headers: Headers,
     workspaceId: string,
@@ -367,7 +730,7 @@ const createWorkspaceService = ({
     }
 
     try {
-      const invitation = await auth.api.createInvitation({
+      const invitation = await authApi.createInvitation({
         body: {
           email: email.trim().toLowerCase(),
           organizationId: workspaceId,
@@ -375,9 +738,22 @@ const createWorkspaceService = ({
         },
         headers,
       })
+      const existingInvitation = await repository.findInvitationById(
+        invitation.id
+      )
+      const invitationCode =
+        typeof invitation.code === "string" && invitation.code
+          ? invitation.code
+          : existingInvitation?.code
+
+      if (!invitationCode) {
+        throw new HTTPException(500, {
+          message: "Invite code not available.",
+        })
+      }
 
       return buildWorkspaceInvite({
-        code: invitation.code,
+        code: invitationCode,
         email: invitation.email,
         id: invitation.id,
         role,
@@ -426,7 +802,7 @@ const createWorkspaceService = ({
     }
 
     try {
-      await auth.api.createInvitation({
+      await authApi.createInvitation({
         body: {
           email: invitation.email,
           organizationId: workspaceId,
@@ -476,7 +852,7 @@ const createWorkspaceService = ({
     }
 
     try {
-      await auth.api.cancelInvitation({
+      await authApi.cancelInvitation({
         body: {
           invitationId: inviteId,
         },
@@ -528,7 +904,7 @@ const createWorkspaceService = ({
     }
 
     try {
-      await auth.api.acceptInvitation({
+      await authApi.acceptInvitation({
         body: {
           invitationId: invitation.id,
         },
@@ -579,7 +955,7 @@ const createWorkspaceService = ({
     }
 
     try {
-      const updatedMember = await auth.api.updateMemberRole({
+      const updatedMember = await authApi.updateMemberRole({
         body: {
           memberId,
           organizationId: workspaceId,
@@ -618,7 +994,7 @@ const createWorkspaceService = ({
 
     if (targetMembership.id === actorMembership.id) {
       try {
-        await auth.api.leaveOrganization({
+        await authApi.leaveOrganization({
           body: {
             organizationId: workspaceId,
           },
@@ -646,7 +1022,7 @@ const createWorkspaceService = ({
     }
 
     try {
-      await auth.api.removeMember({
+      await authApi.removeMember({
         body: {
           memberIdOrEmail: memberId,
           organizationId: workspaceId,
@@ -662,13 +1038,17 @@ const createWorkspaceService = ({
     acceptInvite,
     createInvite,
     createWorkspace,
+    getAccountProfile,
     getWorkspaceBootstrap,
+    getWorkspaceSettings,
     normalizeWorkspaceName,
     removeMember,
     resendInvite,
     revokeInvite,
+    updateAccountProfile,
     updateActiveWorkspace,
     updateMemberRole,
+    updateWorkspaceProfile,
   }
 }
 

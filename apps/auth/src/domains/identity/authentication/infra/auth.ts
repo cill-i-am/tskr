@@ -13,7 +13,7 @@ import {
 import { authDatabaseSchema } from "@workspace/db"
 
 import { resolveDefaultCookieAttributes } from "./cookie-attributes.js"
-import { database } from "./database.js"
+import { database, pool } from "./database.js"
 import { createAuthenticationEmailService } from "./email-service.js"
 import { parseAuthenticationEnv } from "./env.js"
 import {
@@ -57,6 +57,23 @@ const runEmailSideEffect = (
   })
 
   return Promise.resolve()
+}
+
+const getWorkspaceInvitationCode = async (invitationId: string) => {
+  const result = await pool.query<{ code: string }>(
+    `SELECT "code" AS code
+     FROM "auth"."invitation"
+     WHERE "id" = $1`,
+    [invitationId]
+  )
+
+  const code = result.rows.at(0)?.code
+
+  if (!code) {
+    throw new Error("Expected workspace invitation code to exist")
+  }
+
+  return code
 }
 
 const auth = betterAuth({
@@ -121,11 +138,12 @@ const auth = betterAuth({
       allowUserToCreateOrganization: true,
       creatorRole: "owner",
       organizationHooks: {
-        beforeCreateInvitation: () => ({
-          data: {
-            code: createWorkspaceInviteCode(),
-          },
-        }),
+        beforeCreateInvitation: async () =>
+          await Promise.resolve({
+            data: {
+              code: createWorkspaceInviteCode(),
+            },
+          }),
       },
       requireEmailVerificationOnInvitation: true,
       roles: workspaceRoles,
@@ -144,21 +162,23 @@ const auth = betterAuth({
         invitation,
         inviter,
         organization: workspaceOrg,
-      }) =>
-        runEmailSideEffect(
-          () =>
-            authenticationEmailService.sendWorkspaceInvitationEmail({
+      }) => runEmailSideEffect(
+          async () => {
+            const code = await getWorkspaceInvitationCode(invitation.id)
+
+            return authenticationEmailService.sendWorkspaceInvitationEmail({
               acceptUrl: buildWorkspaceInviteAcceptUrl({
-                code: invitation.code,
+                code,
                 secret: authenticationEnv.betterAuthSecret,
                 webBaseUrl: authenticationEnv.webBaseUrl,
               }),
-              code: invitation.code,
+              code,
               invitedByName: inviter.user.name,
               role: invitation.role,
               to: email,
               workspaceName: workspaceOrg.name,
-            }),
+            })
+          },
           "[auth:email] failed to send workspace invitation email",
           {
             invitationId: invitation.id,
