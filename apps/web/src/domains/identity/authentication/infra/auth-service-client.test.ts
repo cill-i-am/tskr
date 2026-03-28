@@ -35,7 +35,6 @@ describe("auth service fetching", () => {
     const fetchMock = vi.fn()
 
     vi.stubGlobal("fetch", fetchMock)
-    vi.stubGlobal("window", undefined)
 
     try {
       fetchMock.mockResolvedValue(new Response("", { status: 200 }))
