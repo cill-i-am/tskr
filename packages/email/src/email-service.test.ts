@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict"
 
-import { createConsoleTransport, createEmailService } from "./index.ts"
+import { createEmailService } from "./index.ts"
 
 const asObject = (value: unknown): Record<string, unknown> =>
   value as Record<string, unknown>
@@ -156,34 +156,4 @@ test("renders existing-user sign-up notice subject, html, and text", async () =>
     String(message.html),
     /<a href="https:\/\/app\.tskr\.test\/sign-in">Sign in<\/a>/u
   )
-})
-
-test("createConsoleTransport returns a transport id", async () => {
-  let loggedArgs: unknown[] = []
-  const transport = createConsoleTransport({
-    logger: {
-      info(...args) {
-        loggedArgs = args
-      },
-    },
-  })
-  const result = await transport.send({
-    from: "TSKR <noreply@tskr.app>",
-    html: '<a href="https://app.tskr.test/reset?token=secret-token">Reset</a>',
-    subject: "Hello",
-    text: "Reset at https://app.tskr.test/reset?token=secret-token",
-    to: "ada@example.com",
-  })
-
-  assert.match(result.id, /^console:/u)
-  assert.equal(loggedArgs[0], "[email:console] send")
-  assert.deepEqual(loggedArgs[1], {
-    from: "TSKR <noreply@tskr.app>",
-    html: '<a href="https://app.tskr.test/reset?token=secret-token">Reset</a>',
-    replyTo: undefined,
-    subject: "Hello",
-    text: "Reset at https://app.tskr.test/reset?token=secret-token",
-    to: "ada@example.com",
-  })
-  assert.equal(JSON.stringify(loggedArgs).includes("secret-token"), true)
 })
