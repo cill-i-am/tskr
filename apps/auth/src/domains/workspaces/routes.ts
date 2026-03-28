@@ -102,11 +102,70 @@ const requireRoleUpdate = async (request: Request) => {
   }
 }
 
+const requireAccountProfileUpdate = async (request: Request) => {
+  const body = await readJsonBody<{ image?: unknown; name?: unknown }>(request)
+
+  if (typeof body?.name !== "string") {
+    throw new HTTPException(400, {
+      message: "name must be a string.",
+    })
+  }
+
+  if (
+    body?.image !== undefined &&
+    body?.image !== null &&
+    typeof body.image !== "string"
+  ) {
+    throw new HTTPException(400, {
+      message: "image must be a string or null.",
+    })
+  }
+
+  return {
+    image: body.image as string | null | undefined,
+    name: body.name,
+  }
+}
+
+const requireWorkspaceProfileUpdate = async (request: Request) => {
+  const body = await readJsonBody<{ logo?: unknown; name?: unknown }>(request)
+
+  if (typeof body?.name !== "string") {
+    throw new HTTPException(400, {
+      message: "name must be a string.",
+    })
+  }
+
+  if (
+    body?.logo !== undefined &&
+    body?.logo !== null &&
+    typeof body.logo !== "string"
+  ) {
+    throw new HTTPException(400, {
+      message: "logo must be a string or null.",
+    })
+  }
+
+  return {
+    logo: body.logo as string | null | undefined,
+    name: body.name,
+  }
+}
+
 const createWorkspaceRoutes = ({
   service,
   trustedOrigins,
 }: CreateWorkspaceRoutesOptions) =>
   new Hono()
+    .use(
+      "/api/account/*",
+      cors({
+        allowHeaders: ["Content-Type", "Authorization"],
+        allowMethods: ["DELETE", "GET", "PATCH", "POST", "PUT", "OPTIONS"],
+        credentials: true,
+        origin: trustedOrigins,
+      })
+    )
     .use(
       "/api/workspaces/*",
       cors({
@@ -115,6 +174,17 @@ const createWorkspaceRoutes = ({
         credentials: true,
         origin: trustedOrigins,
       })
+    )
+    .get("/api/account/profile", async (context) =>
+      context.json(await service.getAccountProfile(context.req.raw.headers))
+    )
+    .patch("/api/account/profile", async (context) =>
+      context.json(
+        await service.updateAccountProfile(
+          context.req.raw.headers,
+          await requireAccountProfileUpdate(context.req.raw)
+        )
+      )
     )
     .get("/api/workspaces/bootstrap", async (context) => {
       const bootstrap = await service.getWorkspaceBootstrap(
@@ -167,6 +237,23 @@ const createWorkspaceRoutes = ({
 
       return context.json(result.bootstrap)
     })
+    .get("/api/workspaces/:workspaceId/settings", async (context) =>
+      context.json(
+        await service.getWorkspaceSettings(
+          context.req.raw.headers,
+          context.req.param("workspaceId")
+        )
+      )
+    )
+    .patch("/api/workspaces/:workspaceId/profile", async (context) =>
+      context.json(
+        await service.updateWorkspaceProfile(
+          context.req.raw.headers,
+          context.req.param("workspaceId"),
+          await requireWorkspaceProfileUpdate(context.req.raw)
+        )
+      )
+    )
     .post("/api/workspaces/:workspaceId/invites", async (context) => {
       const { email, role } = await requireInviteInput(context.req.raw)
       const invite = await service.createInvite(

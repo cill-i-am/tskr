@@ -121,11 +121,12 @@ const auth = betterAuth({
       allowUserToCreateOrganization: true,
       creatorRole: "owner",
       organizationHooks: {
-        beforeCreateInvitation: () => ({
-          data: {
-            code: createWorkspaceInviteCode(),
-          },
-        }),
+        beforeCreateInvitation: async () =>
+          await Promise.resolve({
+            data: {
+              code: createWorkspaceInviteCode(),
+            },
+          }),
       },
       requireEmailVerificationOnInvitation: true,
       roles: workspaceRoles,
@@ -144,16 +145,20 @@ const auth = betterAuth({
         invitation,
         inviter,
         organization: workspaceOrg,
-      }) =>
-        runEmailSideEffect(
+      }) => {
+        const invitationWithCode = invitation as typeof invitation & {
+          code?: string
+        }
+
+        return runEmailSideEffect(
           () =>
             authenticationEmailService.sendWorkspaceInvitationEmail({
               acceptUrl: buildWorkspaceInviteAcceptUrl({
-                code: invitation.code,
+                code: invitationWithCode.code ?? "",
                 secret: authenticationEnv.betterAuthSecret,
                 webBaseUrl: authenticationEnv.webBaseUrl,
               }),
-              code: invitation.code,
+              code: invitationWithCode.code ?? "",
               invitedByName: inviter.user.name,
               role: invitation.role,
               to: email,
@@ -165,7 +170,8 @@ const auth = betterAuth({
             recipient: email,
             workspaceId: workspaceOrg.id,
           }
-        ),
+        )
+      },
     }),
   ],
   secret: authenticationEnv.betterAuthSecret,

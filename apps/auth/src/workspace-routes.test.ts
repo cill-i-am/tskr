@@ -2,7 +2,11 @@
 
 import { createPgPool } from "@workspace/db"
 
-import type { WorkspaceBootstrap } from "./domains/workspaces/contracts.js"
+import type {
+  AccountProfile,
+  WorkspaceBootstrap,
+  WorkspaceSettingsSnapshot,
+} from "./domains/workspaces/contracts.js"
 
 const getSetCookieValues = (headers: Headers) => {
   if (typeof headers.getSetCookie === "function") {
@@ -394,6 +398,80 @@ const findMembershipByUserAndWorkspace = async (
 }
 
 describe("workspace routes", () => {
+  it("returns the authenticated account profile", async () => {
+    await resetWorkspaceTestState()
+
+    const { cookieJar, session } = await signUpAndVerifyEmail(
+      "ada@example.com",
+      "Ada Lovelace"
+    )
+
+    const response = await requestJson<AccountProfile>(
+      "/api/account/profile",
+      {
+        method: "GET",
+      },
+      cookieJar
+    )
+
+    expect(response.response.status).toBe(200)
+    expect(response.json).toStrictEqual({
+      email: "ada@example.com",
+      id: session.user.id,
+      image: null,
+      name: "Ada Lovelace",
+    })
+  })
+
+  it("updates the authenticated account profile and rejects unauthenticated access", async () => {
+    await resetWorkspaceTestState()
+
+    const { cookieJar, session } = await signUpAndVerifyEmail(
+      "ada@example.com",
+      "Ada Lovelace"
+    )
+
+    const unauthenticatedResponse = await requestJson("/api/account/profile", {
+      method: "GET",
+    })
+
+    expect(unauthenticatedResponse.response.status).toBe(401)
+
+    const updateResponse = await requestJson<AccountProfile>(
+      "/api/account/profile",
+      {
+        body: JSON.stringify({
+          image: "https://cdn.example.com/ada.png",
+          name: "Ada Byron",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "PATCH",
+      },
+      cookieJar
+    )
+
+    expect(updateResponse.response.status).toBe(200)
+    expect(updateResponse.json).toStrictEqual({
+      email: "ada@example.com",
+      id: session.user.id,
+      image: "https://cdn.example.com/ada.png",
+      name: "Ada Byron",
+    })
+
+    const refreshedProfileResponse = await requestJson<AccountProfile>(
+      "/api/account/profile",
+      {
+        method: "GET",
+      },
+      cookieJar
+    )
+
+    expect(refreshedProfileResponse.response.status).toBe(200)
+    expect(refreshedProfileResponse.json).toStrictEqual(updateResponse.json)
+  })
+
   it("creates a workspace, derives the slug, assigns owner membership, and returns bootstrap", async () => {
     await resetWorkspaceTestState()
 
@@ -1350,5 +1428,420 @@ describe("workspace routes", () => {
     )
 
     expect(ownerLeaveResponse.response.status).toBe(400)
+  })
+
+  it("returns the workspace settings snapshot for owners with member and invite actions", async () => {
+    await resetWorkspaceTestState()
+
+    const owner = await signUpAndVerifyEmail("owner@example.com", "Owner User")
+    const admin = await signUpAndVerifyEmail("admin@example.com", "Admin User")
+    const dispatcher = await signUpAndVerifyEmail(
+      "dispatcher@example.com",
+      "Dispatcher User"
+    )
+
+    const createWorkspaceResponse = await requestJson<WorkspaceBootstrap>(
+      "/api/workspaces",
+      {
+        body: JSON.stringify({
+          name: "Ops Control",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      owner.cookieJar
+    )
+    const activeWorkspace = requireValue(
+      createWorkspaceResponse.json?.activeWorkspace,
+      "Expected the created workspace response to include an active workspace"
+    )
+
+    const adminMembership = await insertMember({
+      organizationId: activeWorkspace.id,
+      role: "admin",
+      userId: admin.session.user.id,
+    })
+    const dispatcherMembership = await insertMember({
+      organizationId: activeWorkspace.id,
+      role: "dispatcher",
+      userId: dispatcher.session.user.id,
+    })
+
+    const pendingInvite = await requestJson<{
+      id: string
+    }>(
+      `/api/workspaces/${activeWorkspace.id}/invites`,
+      {
+        body: JSON.stringify({
+          email: "worker@example.com",
+          role: "field_worker",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      owner.cookieJar
+    )
+
+    expect(pendingInvite.response.status).toBe(200)
+
+    const settingsResponse = await requestJson<WorkspaceSettingsSnapshot>(
+      `/api/workspaces/${activeWorkspace.id}/settings`,
+      {
+        method: "GET",
+      },
+      owner.cookieJar
+    )
+
+    expect(settingsResponse.response.status).toBe(200)
+    expect(settingsResponse.json).toMatchObject({
+      accountProfile: {
+        email: "owner@example.com",
+        id: owner.session.user.id,
+        image: null,
+        name: "Owner User",
+      },
+      permissions: {
+        canEditWorkspaceProfile: true,
+        canInviteRoles: ["owner", "admin", "dispatcher", "field_worker"],
+        canManageInvites: true,
+        canManageMembers: true,
+      },
+      viewerRole: "owner",
+      workspaceProfile: {
+        id: activeWorkspace.id,
+        logo: null,
+        name: "Ops Control",
+        slug: "ops-control",
+      },
+    })
+    expect(settingsResponse.json?.members).toStrictEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          email: "admin@example.com",
+          id: adminMembership.id,
+          permissions: {
+            assignableRoles: ["owner", "admin", "dispatcher", "field_worker"],
+            canChangeRole: true,
+            canRemove: true,
+          },
+          role: "admin",
+        }),
+        expect.objectContaining({
+          email: "dispatcher@example.com",
+          id: dispatcherMembership.id,
+          permissions: {
+            assignableRoles: ["owner", "admin", "dispatcher", "field_worker"],
+            canChangeRole: true,
+            canRemove: true,
+          },
+          role: "dispatcher",
+        }),
+        expect.objectContaining({
+          email: "owner@example.com",
+          isCurrentUser: true,
+          permissions: {
+            assignableRoles: [],
+            canChangeRole: false,
+            canRemove: false,
+          },
+          role: "owner",
+        }),
+      ])
+    )
+    expect(settingsResponse.json?.pendingInvites).toStrictEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          email: "worker@example.com",
+          permissions: {
+            canResend: true,
+            canRevoke: true,
+          },
+          role: "field_worker",
+          status: "pending",
+          workspaceId: activeWorkspace.id,
+        }),
+      ])
+    )
+  })
+
+  it("returns the workspace settings snapshot for admins but blocks member-level roles", async () => {
+    await resetWorkspaceTestState()
+
+    const owner = await signUpAndVerifyEmail("owner@example.com", "Owner User")
+    const admin = await signUpAndVerifyEmail("admin@example.com", "Admin User")
+    const dispatcher = await signUpAndVerifyEmail(
+      "dispatcher@example.com",
+      "Dispatcher User"
+    )
+
+    const createWorkspaceResponse = await requestJson<WorkspaceBootstrap>(
+      "/api/workspaces",
+      {
+        body: JSON.stringify({
+          name: "Ops Control",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      owner.cookieJar
+    )
+    const activeWorkspace = requireValue(
+      createWorkspaceResponse.json?.activeWorkspace,
+      "Expected the created workspace response to include an active workspace"
+    )
+
+    await insertMember({
+      organizationId: activeWorkspace.id,
+      role: "admin",
+      userId: admin.session.user.id,
+    })
+    await insertMember({
+      organizationId: activeWorkspace.id,
+      role: "dispatcher",
+      userId: dispatcher.session.user.id,
+    })
+
+    const inviteResponse = await requestJson(
+      `/api/workspaces/${activeWorkspace.id}/invites`,
+      {
+        body: JSON.stringify({
+          email: "coowner@example.com",
+          role: "owner",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      owner.cookieJar
+    )
+
+    expect(inviteResponse.response.status).toBe(200)
+
+    const adminSettingsResponse = await requestJson<WorkspaceSettingsSnapshot>(
+      `/api/workspaces/${activeWorkspace.id}/settings`,
+      {
+        method: "GET",
+      },
+      admin.cookieJar
+    )
+
+    expect(adminSettingsResponse.response.status).toBe(200)
+    expect(adminSettingsResponse.json).toMatchObject({
+      permissions: {
+        canEditWorkspaceProfile: true,
+        canInviteRoles: ["admin", "dispatcher", "field_worker"],
+        canManageInvites: true,
+        canManageMembers: true,
+      },
+      viewerRole: "admin",
+    })
+    expect(adminSettingsResponse.json?.members).toStrictEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          email: "owner@example.com",
+          permissions: {
+            assignableRoles: [],
+            canChangeRole: false,
+            canRemove: false,
+          },
+          role: "owner",
+        }),
+        expect.objectContaining({
+          email: "dispatcher@example.com",
+          permissions: {
+            assignableRoles: ["admin", "dispatcher", "field_worker"],
+            canChangeRole: true,
+            canRemove: true,
+          },
+          role: "dispatcher",
+        }),
+      ])
+    )
+    expect(adminSettingsResponse.json?.pendingInvites).toStrictEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          permissions: {
+            canResend: false,
+            canRevoke: false,
+          },
+          role: "owner",
+        }),
+      ])
+    )
+  })
+
+  it("rejects workspace settings access for dispatcher and field worker roles", async () => {
+    await resetWorkspaceTestState()
+
+    const owner = await signUpAndVerifyEmail("owner@example.com", "Owner User")
+    const dispatcher = await signUpAndVerifyEmail(
+      "dispatcher@example.com",
+      "Dispatcher User"
+    )
+    const worker = await signUpAndVerifyEmail(
+      "worker@example.com",
+      "Worker User"
+    )
+
+    const createWorkspaceResponse = await requestJson<WorkspaceBootstrap>(
+      "/api/workspaces",
+      {
+        body: JSON.stringify({
+          name: "Ops Control",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      owner.cookieJar
+    )
+    const activeWorkspace = requireValue(
+      createWorkspaceResponse.json?.activeWorkspace,
+      "Expected the created workspace response to include an active workspace"
+    )
+
+    await insertMember({
+      organizationId: activeWorkspace.id,
+      role: "dispatcher",
+      userId: dispatcher.session.user.id,
+    })
+    await insertMember({
+      organizationId: activeWorkspace.id,
+      role: "field_worker",
+      userId: worker.session.user.id,
+    })
+
+    const dispatcherSettingsResponse = await requestJson(
+      `/api/workspaces/${activeWorkspace.id}/settings`,
+      {
+        method: "GET",
+      },
+      dispatcher.cookieJar
+    )
+
+    expect(dispatcherSettingsResponse.response.status).toBe(403)
+
+    const workerSettingsResponse = await requestJson(
+      `/api/workspaces/${activeWorkspace.id}/settings`,
+      {
+        method: "GET",
+      },
+      worker.cookieJar
+    )
+
+    expect(workerSettingsResponse.response.status).toBe(403)
+  })
+
+  it("updates the workspace profile for owners and keeps the slug stable", async () => {
+    await resetWorkspaceTestState()
+
+    const owner = await signUpAndVerifyEmail("owner@example.com", "Owner User")
+
+    const createWorkspaceResponse = await requestJson<WorkspaceBootstrap>(
+      "/api/workspaces",
+      {
+        body: JSON.stringify({
+          name: "Ops Control",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      owner.cookieJar
+    )
+    const activeWorkspace = requireValue(
+      createWorkspaceResponse.json?.activeWorkspace,
+      "Expected the created workspace response to include an active workspace"
+    )
+
+    const updateResponse = await requestJson<
+      WorkspaceSettingsSnapshot["workspaceProfile"]
+    >(
+      `/api/workspaces/${activeWorkspace.id}/profile`,
+      {
+        body: JSON.stringify({
+          logo: "https://cdn.example.com/ops-control.png",
+          name: "Ops Control North",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "PATCH",
+      },
+      owner.cookieJar
+    )
+
+    expect(updateResponse.response.status).toBe(200)
+    expect(updateResponse.json).toStrictEqual({
+      id: activeWorkspace.id,
+      logo: "https://cdn.example.com/ops-control.png",
+      name: "Ops Control North",
+      slug: "ops-control",
+    })
+  })
+
+  it("allows admins to update the workspace profile", async () => {
+    await resetWorkspaceTestState()
+
+    const owner = await signUpAndVerifyEmail("owner@example.com", "Owner User")
+    const admin = await signUpAndVerifyEmail("admin@example.com", "Admin User")
+
+    const createWorkspaceResponse = await requestJson<WorkspaceBootstrap>(
+      "/api/workspaces",
+      {
+        body: JSON.stringify({
+          name: "Ops Control",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      owner.cookieJar
+    )
+    const activeWorkspace = requireValue(
+      createWorkspaceResponse.json?.activeWorkspace,
+      "Expected the created workspace response to include an active workspace"
+    )
+
+    await insertMember({
+      organizationId: activeWorkspace.id,
+      role: "admin",
+      userId: admin.session.user.id,
+    })
+
+    const updateResponse = await requestJson<
+      WorkspaceSettingsSnapshot["workspaceProfile"]
+    >(
+      `/api/workspaces/${activeWorkspace.id}/profile`,
+      {
+        body: JSON.stringify({
+          logo: "https://cdn.example.com/admin-update.png",
+          name: "Ops Control Admin",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "PATCH",
+      },
+      admin.cookieJar
+    )
+
+    expect(updateResponse.response.status).toBe(200)
+    expect(updateResponse.json).toStrictEqual({
+      id: activeWorkspace.id,
+      logo: "https://cdn.example.com/admin-update.png",
+      name: "Ops Control Admin",
+      slug: "ops-control",
+    })
   })
 })

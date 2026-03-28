@@ -19,12 +19,16 @@ const canManageWorkspaceInvites = (role: string) =>
 const canManageWorkspaceMembers = (role: string) =>
   hasRole(role, "owner") || hasRole(role, "admin")
 
+const canManageWorkspaceSettings = (role: string) =>
+  hasRole(role, "owner") || hasRole(role, "admin")
+
 const canManageOwnerRole = (role: string) => hasRole(role, "owner")
 
 export {
   canManageOwnerRole,
   canManageWorkspaceInvites,
   canManageWorkspaceMembers,
+  canManageWorkspaceSettings,
   hasRole,
   isWorkspaceRole,
 }
