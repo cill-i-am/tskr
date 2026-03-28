@@ -1,5 +1,5 @@
-import { workspaceBootstrapSchema } from '@/domains/workspaces/bootstrap/contracts/workspace-bootstrap';
-import type { WorkspaceBootstrap } from '@/domains/workspaces/bootstrap/contracts/workspace-bootstrap';
+import { workspaceBootstrapSchema } from "@/domains/workspaces/bootstrap/contracts/workspace-bootstrap"
+import type { WorkspaceBootstrap } from "@/domains/workspaces/bootstrap/contracts/workspace-bootstrap"
 
 import { getWorkspaceBootstrap } from "./workspace-bootstrap-client"
 
@@ -84,17 +84,10 @@ describe(getWorkspaceBootstrap, () => {
     const fetchMock = withAuthServiceFetch()
 
     try {
-      fetchMock.mockResolvedValue(
-        Response.json({
-          activeWorkspace: null,
-          memberships: [],
-          pendingInvites: [],
-          recoveryState: "not-a-real-state",
-        })
-      )
+      fetchMock.mockResolvedValue(new Response("{", { status: 200 }))
 
       await expect(getWorkspaceBootstrap()).rejects.toThrow(
-        "Invalid workspace bootstrap payload."
+        "Malformed workspace bootstrap JSON."
       )
     } finally {
       withoutAuthServiceFetch()

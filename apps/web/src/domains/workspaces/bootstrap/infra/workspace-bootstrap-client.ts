@@ -1,6 +1,6 @@
 import { fetchAuthService } from "@/domains/identity/authentication/ui/auth-client"
-import { workspaceBootstrapSchema } from '@/domains/workspaces/bootstrap/contracts/workspace-bootstrap';
-import type { WorkspaceBootstrap } from '@/domains/workspaces/bootstrap/contracts/workspace-bootstrap';
+import { workspaceBootstrapSchema } from "@/domains/workspaces/bootstrap/contracts/workspace-bootstrap"
+import type { WorkspaceBootstrap } from "@/domains/workspaces/bootstrap/contracts/workspace-bootstrap"
 
 const getWorkspaceBootstrap = async (): Promise<WorkspaceBootstrap | null> => {
   const response = await fetchAuthService("/api/workspaces/bootstrap")
@@ -15,21 +15,24 @@ const getWorkspaceBootstrap = async (): Promise<WorkspaceBootstrap | null> => {
     )
   }
 
-  let payload: unknown
-
   try {
-    payload = await response.json()
-  } catch {
-    throw new Error("Invalid workspace bootstrap payload.")
+    const payload = await response.json()
+    const parsed = workspaceBootstrapSchema.safeParse(payload)
+
+    if (!parsed.success) {
+      throw new Error("Invalid workspace bootstrap payload.")
+    }
+
+    return parsed.data
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      throw new TypeError("Malformed workspace bootstrap JSON.", {
+        cause: error,
+      })
+    }
+
+    throw error
   }
-
-  const parsed = workspaceBootstrapSchema.safeParse(payload)
-
-  if (!parsed.success) {
-    throw new Error("Invalid workspace bootstrap payload.")
-  }
-
-  return parsed.data
 }
 
 export { getWorkspaceBootstrap }
