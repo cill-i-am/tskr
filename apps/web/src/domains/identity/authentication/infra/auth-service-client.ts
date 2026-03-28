@@ -53,6 +53,20 @@ interface FetchAuthServiceOptions extends ResolveAuthBaseUrlOptions {
   request?: Request | undefined
 }
 
+const getCurrentStartRequest = async (request: Request | undefined) => {
+  if (request || typeof window !== "undefined") {
+    return request
+  }
+
+  try {
+    const { getRequest } = await import("@tanstack/react-start/server")
+
+    return getRequest()
+  } catch {
+    return request
+  }
+}
+
 const getForwardedRequestHeaders = (request: Request | undefined) => {
   if (!request) {
     return
@@ -120,28 +134,31 @@ const resolveAuthBaseUrl = (options: ResolveAuthBaseUrlOptions = {}) => {
   return "https://auth.tskr.localhost:1355"
 }
 
-const fetchAuthService = (
+const fetchAuthService = async (
   path: string,
   { headers, init = {}, request, ...options }: FetchAuthServiceOptions = {}
-) =>
-  fetch(
+) => {
+  const currentRequest = await getCurrentStartRequest(request)
+
+  return fetch(
     new URL(
       path,
       resolveAuthBaseUrl({
         ...options,
-        request,
+        request: currentRequest,
       })
     ).toString(),
     {
       ...init,
       credentials: "include",
       headers: mergeHeaders(
-        getForwardedRequestHeaders(request),
+        getForwardedRequestHeaders(currentRequest),
         init.headers,
         headers
       ),
     }
   )
+}
 
 export { fetchAuthService, resolveAuthBaseUrl, resolveRuntimeAuthBaseUrl }
 export type {

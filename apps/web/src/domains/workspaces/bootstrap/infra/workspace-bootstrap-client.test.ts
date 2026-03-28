@@ -1,7 +1,35 @@
 import { workspaceBootstrapSchema } from "@/domains/workspaces/bootstrap/contracts/workspace-bootstrap"
 import type { WorkspaceBootstrap } from "@/domains/workspaces/bootstrap/contracts/workspace-bootstrap"
+import { getRequest } from "@tanstack/react-start/server"
 
 import { getWorkspaceBootstrap } from "./workspace-bootstrap-client"
+
+vi.mock<typeof import("@tanstack/react-start/server")>(
+  import("@tanstack/react-start/server"),
+  () => ({
+    getRequest: vi.fn(),
+  })
+)
+
+const getRequestMock = vi.mocked(getRequest)
+
+const withoutWindow = async <T>(run: () => Promise<T>) => {
+  const previousWindow = globalThis.window
+
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: undefined,
+  })
+
+  try {
+    return await run()
+  } finally {
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: previousWindow,
+    })
+  }
+}
 
 const bootstrapPayload: WorkspaceBootstrap = {
   activeWorkspace: {
@@ -47,6 +75,36 @@ describe("workspace bootstrap schema", () => {
 })
 
 describe("workspace bootstrap client", () => {
+  it("forwards cookies from the current Start request during server-side bootstrap reads", async () => {
+    const fetchMock = withAuthServiceFetch()
+
+    try {
+      fetchMock.mockResolvedValue(Response.json(bootstrapPayload))
+      getRequestMock.mockReturnValue(
+        new Request("https://web.example.com/app", {
+          headers: {
+            cookie: "session=from-start-request",
+          },
+        })
+      )
+
+      await expect(
+        withoutWindow(() => getWorkspaceBootstrap())
+      ).resolves.toStrictEqual(bootstrapPayload)
+
+      const callInit = fetchMock.mock.calls[0]?.[1] as RequestInit
+
+      expect(
+        Object.fromEntries(new Headers(callInit.headers).entries())
+      ).toStrictEqual({
+        cookie: "session=from-start-request",
+      })
+    } finally {
+      getRequestMock.mockReset()
+      withoutAuthServiceFetch()
+    }
+  })
+
   it("loads workspace bootstrap from the auth service", async () => {
     const fetchMock = withAuthServiceFetch()
 
@@ -64,6 +122,7 @@ describe("workspace bootstrap client", () => {
         }
       )
     } finally {
+      getRequestMock.mockReset()
       withoutAuthServiceFetch()
     }
   })
@@ -107,6 +166,7 @@ describe("workspace bootstrap client", () => {
         "x-request-id": "request-123",
       })
     } finally {
+      getRequestMock.mockReset()
       withoutAuthServiceFetch()
     }
   })
@@ -119,6 +179,7 @@ describe("workspace bootstrap client", () => {
 
       await expect(getWorkspaceBootstrap()).resolves.toBeNull()
     } finally {
+      getRequestMock.mockReset()
       withoutAuthServiceFetch()
     }
   })
@@ -133,6 +194,7 @@ describe("workspace bootstrap client", () => {
         "Malformed workspace bootstrap JSON."
       )
     } finally {
+      getRequestMock.mockReset()
       withoutAuthServiceFetch()
     }
   })
@@ -154,6 +216,7 @@ describe("workspace bootstrap client", () => {
         "Invalid workspace bootstrap payload."
       )
     } finally {
+      getRequestMock.mockReset()
       withoutAuthServiceFetch()
     }
   })
@@ -173,6 +236,7 @@ describe("workspace bootstrap client", () => {
         "Auth service request failed with status 503."
       )
     } finally {
+      getRequestMock.mockReset()
       withoutAuthServiceFetch()
     }
   })

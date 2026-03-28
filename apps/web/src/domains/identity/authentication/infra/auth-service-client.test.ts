@@ -1,8 +1,37 @@
+import { getRequest } from "@tanstack/react-start/server"
+
 import {
   fetchAuthService,
   resolveAuthBaseUrl,
   resolveRuntimeAuthBaseUrl,
 } from "./auth-service-client"
+
+vi.mock<typeof import("@tanstack/react-start/server")>(
+  import("@tanstack/react-start/server"),
+  () => ({
+    getRequest: vi.fn(),
+  })
+)
+
+const getRequestMock = vi.mocked(getRequest)
+
+const withoutWindow = async <T>(run: () => Promise<T>) => {
+  const previousWindow = globalThis.window
+
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: undefined,
+  })
+
+  try {
+    return await run()
+  } finally {
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: previousWindow,
+    })
+  }
+}
 
 describe("runtime auth base url resolution", () => {
   it("prefers the server auth base url over the railway fallback", () => {
@@ -31,6 +60,40 @@ describe("runtime auth base url resolution", () => {
 })
 
 describe("auth service fetching", () => {
+  it("forwards cookies from the current Start request when no explicit request is passed", async () => {
+    const fetchMock = vi.fn()
+
+    vi.stubGlobal("fetch", fetchMock)
+
+    try {
+      fetchMock.mockResolvedValue(new Response("", { status: 200 }))
+      getRequestMock.mockReturnValue(
+        new Request("https://web.example.com/app", {
+          headers: {
+            cookie: "session=from-start-request",
+          },
+        })
+      )
+
+      await withoutWindow(async () => {
+        await fetchAuthService("/api/workspaces/bootstrap", {
+          authBaseUrl: "https://auth.example.com",
+        })
+      })
+
+      const callInit = fetchMock.mock.calls[0]?.[1] as RequestInit
+
+      expect(
+        Object.fromEntries(new Headers(callInit.headers).entries())
+      ).toStrictEqual({
+        cookie: "session=from-start-request",
+      })
+    } finally {
+      vi.unstubAllGlobals()
+      getRequestMock.mockReset()
+    }
+  })
+
   it("resolves direct localhost server requests to the localhost auth base url", async () => {
     const fetchMock = vi.fn()
 
@@ -52,6 +115,7 @@ describe("auth service fetching", () => {
       )
     } finally {
       vi.unstubAllGlobals()
+      getRequestMock.mockReset()
     }
   })
 
@@ -84,6 +148,7 @@ describe("auth service fetching", () => {
       })
     } finally {
       vi.unstubAllGlobals()
+      getRequestMock.mockReset()
     }
   })
 
@@ -136,6 +201,7 @@ describe("auth service fetching", () => {
       })
     } finally {
       vi.unstubAllGlobals()
+      getRequestMock.mockReset()
     }
   })
 })
