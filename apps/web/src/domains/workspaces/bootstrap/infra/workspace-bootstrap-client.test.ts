@@ -38,7 +38,7 @@ const withoutAuthServiceFetch = () => {
   delete document.documentElement.dataset.authBaseUrl
 }
 
-describe("workspaceBootstrapSchema", () => {
+describe("workspace bootstrap schema", () => {
   it("accepts the auth bootstrap payload", () => {
     expect(workspaceBootstrapSchema.parse(bootstrapPayload)).toStrictEqual(
       bootstrapPayload
@@ -46,7 +46,7 @@ describe("workspaceBootstrapSchema", () => {
   })
 })
 
-describe("getWorkspaceBootstrap", () => {
+describe("workspace bootstrap client", () => {
   it("loads workspace bootstrap from the auth service", async () => {
     const fetchMock = withAuthServiceFetch()
 
