@@ -52,6 +52,22 @@ interface FetchAuthServiceOptions extends ResolveAuthBaseUrlOptions {
   request?: Request | undefined
 }
 
+const getForwardedRequestHeaders = (request: Request | undefined) => {
+  if (!request) {
+    return
+  }
+
+  const cookie = request.headers.get("cookie")
+
+  if (!cookie) {
+    return
+  }
+
+  return new Headers({
+    cookie,
+  })
+}
+
 const mergeHeaders = (...sources: (HeadersInit | undefined)[]) => {
   if (!sources.some(Boolean)) {
     return
@@ -106,7 +122,11 @@ const fetchAuthService = (
   fetch(new URL(path, resolveAuthBaseUrl(options)).toString(), {
     ...init,
     credentials: "include",
-    headers: mergeHeaders(request?.headers, init.headers, headers),
+    headers: mergeHeaders(
+      getForwardedRequestHeaders(request),
+      init.headers,
+      headers
+    ),
   })
 
 export { fetchAuthService, resolveAuthBaseUrl, resolveRuntimeAuthBaseUrl }

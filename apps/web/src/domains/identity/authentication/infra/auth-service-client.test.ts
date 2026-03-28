@@ -31,6 +31,38 @@ describe("runtime auth base url resolution", () => {
 })
 
 describe("auth service fetching", () => {
+  it("forwards only whitelisted request headers when fetching the auth service", async () => {
+    const fetchMock = vi.fn()
+
+    vi.stubGlobal("fetch", fetchMock)
+
+    try {
+      fetchMock.mockResolvedValue(new Response("", { status: 200 }))
+      const request = new Request("https://web.example.com", {
+        headers: {
+          authorization: "Bearer request-token",
+          cookie: "session=abc",
+          "x-request-id": "request-from-request",
+        },
+      })
+
+      await fetchAuthService("/api/workspaces/bootstrap", {
+        authBaseUrl: "https://auth.example.com",
+        request,
+      })
+
+      const callInit = fetchMock.mock.calls[0]?.[1] as RequestInit
+
+      expect(
+        Object.fromEntries(new Headers(callInit.headers).entries())
+      ).toStrictEqual({
+        cookie: "session=abc",
+      })
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
   it("merges request, init, and helper headers when fetching the auth service", async () => {
     const fetchMock = vi.fn()
 
