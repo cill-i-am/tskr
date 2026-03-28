@@ -4,14 +4,42 @@ interface ResolveAuthBaseUrlOptions {
   runtimeAuthBaseUrl?: string | undefined
 }
 
+interface ResolveRuntimeAuthBaseUrlOptions {
+  authBaseUrl?: string | undefined
+  runtimeAuthBaseUrl?: string | undefined
+  railwayServiceAuthUrl?: string | undefined
+}
+
+const resolveRuntimeAuthBaseUrl = ({
+  authBaseUrl = import.meta.env.VITE_AUTH_BASE_URL,
+  railwayServiceAuthUrl = typeof process === "undefined"
+    ? undefined
+    : process.env.RAILWAY_SERVICE_AUTH_URL,
+  runtimeAuthBaseUrl = typeof document === "undefined"
+    ? undefined
+    : document.documentElement.dataset.authBaseUrl,
+}: ResolveRuntimeAuthBaseUrlOptions = {}) => {
+  if (runtimeAuthBaseUrl) {
+    return runtimeAuthBaseUrl
+  }
+
+  if (authBaseUrl) {
+    return authBaseUrl
+  }
+
+  if (railwayServiceAuthUrl) {
+    return `https://${railwayServiceAuthUrl}`
+  }
+
+  return
+}
+
 const resolveAuthBaseUrl = ({
   authBaseUrl = import.meta.env.VITE_AUTH_BASE_URL,
   hostname = typeof window === "undefined"
     ? undefined
     : window.location.hostname,
-  runtimeAuthBaseUrl = typeof document === "undefined"
-    ? undefined
-    : document.documentElement.dataset.authBaseUrl,
+  runtimeAuthBaseUrl = resolveRuntimeAuthBaseUrl({ authBaseUrl }),
 }: ResolveAuthBaseUrlOptions = {}) => {
   if (runtimeAuthBaseUrl) {
     return runtimeAuthBaseUrl
@@ -40,5 +68,5 @@ const fetchAuthService = (
     credentials: "include",
   })
 
-export { fetchAuthService, resolveAuthBaseUrl }
-export type { ResolveAuthBaseUrlOptions }
+export { fetchAuthService, resolveAuthBaseUrl, resolveRuntimeAuthBaseUrl }
+export type { ResolveAuthBaseUrlOptions, ResolveRuntimeAuthBaseUrlOptions }
