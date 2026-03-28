@@ -37,6 +37,15 @@ interface ExistingUserSignUpNoticeEmailInput {
   to: string
 }
 
+interface WorkspaceInvitationEmailInput {
+  acceptUrl: string
+  code: string
+  invitedByName: string
+  role: string
+  to: string
+  workspaceName: string
+}
+
 export type {
   EmailMessage,
   EmailRecipient,
@@ -46,4 +55,5 @@ export type {
   ExistingUserSignUpNoticeEmailInput,
   PasswordResetEmailInput,
   SignupVerificationOtpEmailInput,
+  WorkspaceInvitationEmailInput,
 }

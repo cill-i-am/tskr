@@ -19,4 +19,5 @@ export type {
   ExistingUserSignUpNoticeEmailInput,
   PasswordResetEmailInput,
   SignupVerificationOtpEmailInput,
+  WorkspaceInvitationEmailInput,
 } from "./contracts.ts"

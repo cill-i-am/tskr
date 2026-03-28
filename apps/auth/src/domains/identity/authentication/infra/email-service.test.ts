@@ -27,6 +27,9 @@ const {
     sendSignupVerificationOtpEmail: vi.fn().mockResolvedValue({
       id: "signup-otp-id",
     }),
+    sendWorkspaceInvitationEmail: vi.fn().mockResolvedValue({
+      id: "workspace-invite-id",
+    }),
   }
 
   return {
@@ -62,7 +65,7 @@ describe(createAuthenticationEmailService, () => {
       resendApiKey: undefined,
     })
 
-    expect(createConsoleTransportMock).toHaveBeenCalledOnce()
+    expect(createConsoleTransportMock).toHaveBeenCalledTimes(1)
     expect(createResendTransportMock).not.toHaveBeenCalled()
     expect(createEmailServiceMock).toHaveBeenCalledWith({
       appName: "tskr",

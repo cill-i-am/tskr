@@ -239,7 +239,7 @@ const expectEmailVerificationConfiguration = (config: AuthConfiguration) => {
 const expectEmailOtpPluginConfiguration = (
   plugin: AuthConfiguration["plugins"][number]
 ) => {
-  expect(emailOTPMock).toHaveBeenCalledOnce()
+  expect(emailOTPMock).toHaveBeenCalledTimes(1)
   expect(plugin).toMatchObject({
     id: "email-otp",
     options: {
@@ -255,7 +255,7 @@ const expectEmailOtpPluginConfiguration = (
 const expectOrganizationPluginConfiguration = (
   plugin: AuthConfiguration["plugins"][number]
 ) => {
-  expect(organizationMock).toHaveBeenCalledOnce()
+  expect(organizationMock).toHaveBeenCalledTimes(1)
   expect(plugin).toMatchObject({
     id: "organization",
     options: {
@@ -376,7 +376,7 @@ describe("auth config", () => {
       await Promise.resolve()
       await Promise.resolve()
 
-      expect(consoleErrorMock).toHaveBeenCalledOnce()
+      expect(consoleErrorMock).toHaveBeenCalledTimes(1)
       expect(consoleErrorMock).toHaveBeenCalledWith(
         "[auth:email] failed to send signup verification otp email",
         expect.objectContaining({

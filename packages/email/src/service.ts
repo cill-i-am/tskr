@@ -5,11 +5,13 @@ import type {
   ExistingUserSignUpNoticeEmailInput,
   PasswordResetEmailInput,
   SignupVerificationOtpEmailInput,
+  WorkspaceInvitationEmailInput,
 } from "./contracts.ts"
 import { createEmailVerificationTemplate } from "./templates/email-verification.ts"
 import { createExistingUserSignUpNoticeTemplate } from "./templates/existing-user-sign-up-notice.ts"
 import { createPasswordResetTemplate } from "./templates/password-reset.ts"
 import { createSignupVerificationOtpTemplate } from "./templates/signup-verification-otp.ts"
+import { createWorkspaceInvitationTemplate } from "./templates/workspace-invitation.ts"
 
 interface EmailServiceConfig {
   appName: string
@@ -32,6 +34,9 @@ interface EmailService {
   ): Promise<EmailSendResult>
   sendSignupVerificationOtpEmail(
     input: SignupVerificationOtpEmailInput
+  ): Promise<EmailSendResult>
+  sendWorkspaceInvitationEmail(
+    input: WorkspaceInvitationEmailInput
   ): Promise<EmailSendResult>
 }
 
@@ -84,6 +89,24 @@ const createEmailService = (config: EmailServiceConfig): EmailService => {
         appName: config.appName,
         code,
         expiryText: config.signupVerificationOtpExpiryText,
+      })
+      return sendTransactionalEmail({ ...template, to })
+    },
+    sendWorkspaceInvitationEmail: ({
+      acceptUrl,
+      code,
+      invitedByName,
+      role,
+      to,
+      workspaceName,
+    }) => {
+      const template = createWorkspaceInvitationTemplate({
+        acceptUrl,
+        appName: config.appName,
+        code,
+        invitedByName,
+        role,
+        workspaceName,
       })
       return sendTransactionalEmail({ ...template, to })
     },

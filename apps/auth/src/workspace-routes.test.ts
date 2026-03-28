@@ -19,6 +19,7 @@ const {
   sendExistingUserSignupNoticeMock,
   sendPasswordResetEmailMock,
   sendSignupVerificationOtpEmailMock,
+  sendWorkspaceInvitationEmailMock,
 } = vi.hoisted(() => ({
   sendEmailVerificationEmailMock: vi.fn().mockResolvedValue({
     id: "test-verification-id",
@@ -32,6 +33,9 @@ const {
   sendSignupVerificationOtpEmailMock: vi.fn().mockResolvedValue({
     id: "test-signup-otp-id",
   }),
+  sendWorkspaceInvitationEmailMock: vi.fn().mockResolvedValue({
+    id: "test-workspace-invite-id",
+  }),
 }))
 
 vi.mock<
@@ -42,6 +46,7 @@ vi.mock<
     sendExistingUserSignupNotice: sendExistingUserSignupNoticeMock,
     sendPasswordResetEmail: sendPasswordResetEmailMock,
     sendSignupVerificationOtpEmail: sendSignupVerificationOtpEmailMock,
+    sendWorkspaceInvitationEmail: sendWorkspaceInvitationEmailMock,
   }),
 }))
 
@@ -97,11 +102,24 @@ const latestSignupVerificationOtpEmail = () =>
       }
     | undefined
 
+const latestWorkspaceInvitationEmail = () =>
+  sendWorkspaceInvitationEmailMock.mock.calls.at(-1)?.at(0) as
+    | {
+        acceptUrl: string
+        code: string
+        invitedByName: string
+        role: string
+        to: string
+        workspaceName: string
+      }
+    | undefined
+
 const resetEmailMocks = () => {
   sendEmailVerificationEmailMock.mockClear()
   sendExistingUserSignupNoticeMock.mockClear()
   sendPasswordResetEmailMock.mockClear()
   sendSignupVerificationOtpEmailMock.mockClear()
+  sendWorkspaceInvitationEmailMock.mockClear()
 }
 
 const truncateAuthTables = async () => {
@@ -280,6 +298,99 @@ const setSessionActiveWorkspace = async (
      WHERE "token" = $1`,
     [sessionToken, organizationId]
   )
+}
+
+const insertMember = async ({
+  organizationId,
+  role,
+  userId,
+}: {
+  organizationId: string
+  role: string
+  userId: string
+}) => {
+  const id = crypto.randomUUID()
+
+  await pool.query(
+    `INSERT INTO "auth"."member" ("id", "organization_id", "role", "user_id", "created_at")
+     VALUES ($1, $2, $3, $4, NOW())`,
+    [id, organizationId, role, userId]
+  )
+
+  return {
+    id,
+    organizationId,
+    role,
+    userId,
+  }
+}
+
+const findInvitationById = async (invitationId: string) => {
+  const result = await pool.query<{
+    code: string
+    email: string
+    id: string
+    organizationId: string
+    role: string | null
+    status: string
+  }>(
+    `SELECT
+       "code" AS code,
+       "email" AS email,
+       "id" AS id,
+       "organization_id" AS "organizationId",
+       "role" AS role,
+       "status" AS status
+     FROM "auth"."invitation"
+     WHERE "id" = $1`,
+    [invitationId]
+  )
+
+  return result.rows.at(0) ?? null
+}
+
+const findMembership = async (memberId: string) => {
+  const result = await pool.query<{
+    id: string
+    organizationId: string
+    role: string
+    userId: string
+  }>(
+    `SELECT
+       "id" AS id,
+       "organization_id" AS "organizationId",
+       "role" AS role,
+       "user_id" AS "userId"
+     FROM "auth"."member"
+     WHERE "id" = $1`,
+    [memberId]
+  )
+
+  return result.rows.at(0) ?? null
+}
+
+const findMembershipByUserAndWorkspace = async (
+  userId: string,
+  organizationId: string
+) => {
+  const result = await pool.query<{
+    id: string
+    organizationId: string
+    role: string
+    userId: string
+  }>(
+    `SELECT
+       "id" AS id,
+       "organization_id" AS "organizationId",
+       "role" AS role,
+       "user_id" AS "userId"
+     FROM "auth"."member"
+     WHERE "user_id" = $1
+       AND "organization_id" = $2`,
+    [userId, organizationId]
+  )
+
+  return result.rows.at(0) ?? null
 }
 
 describe("workspace routes", () => {
@@ -665,5 +776,579 @@ describe("workspace routes", () => {
     )
 
     expect(forbiddenResponse.response.status).toBe(403)
+  })
+
+  it("lets an owner issue an invite with a code and signed accept link", async () => {
+    await resetWorkspaceTestState()
+
+    const owner = await signUpAndVerifyEmail("owner@example.com", "Owner User")
+
+    const createWorkspaceResponse = await requestJson<WorkspaceBootstrap>(
+      "/api/workspaces",
+      {
+        body: JSON.stringify({
+          name: "Ops Control",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      owner.cookieJar
+    )
+    const activeWorkspace = requireValue(
+      createWorkspaceResponse.json?.activeWorkspace,
+      "Expected the created workspace response to include an active workspace"
+    )
+
+    const inviteResponse = await requestJson<{
+      acceptUrl: string
+      code: string
+      email: string
+      id: string
+      role: string
+      status: string
+      workspaceId: string
+    }>(
+      `/api/workspaces/${activeWorkspace.id}/invites`,
+      {
+        body: JSON.stringify({
+          email: "worker@example.com",
+          role: "dispatcher",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      owner.cookieJar
+    )
+
+    expect(inviteResponse.response.status).toBe(200)
+    expect(inviteResponse.json).toMatchObject({
+      acceptUrl: expect.stringContaining("token="),
+      code: expect.any(String),
+      email: "worker@example.com",
+      role: "dispatcher",
+      status: "pending",
+      workspaceId: activeWorkspace.id,
+    })
+
+    const invitationEmail = requireValue(
+      latestWorkspaceInvitationEmail(),
+      "Expected the latest workspace invitation email"
+    )
+
+    expect(invitationEmail).toMatchObject({
+      acceptUrl: inviteResponse.json?.acceptUrl,
+      code: inviteResponse.json?.code,
+      invitedByName: "Owner User",
+      role: "dispatcher",
+      to: "worker@example.com",
+      workspaceName: "Ops Control",
+    })
+  })
+
+  it("allows admins to invite non-owner roles but forbids owner invites and dispatcher invite management", async () => {
+    await resetWorkspaceTestState()
+
+    const owner = await signUpAndVerifyEmail("owner@example.com", "Owner User")
+    const admin = await signUpAndVerifyEmail("admin@example.com", "Admin User")
+    const dispatcher = await signUpAndVerifyEmail(
+      "dispatcher@example.com",
+      "Dispatcher User"
+    )
+
+    const createWorkspaceResponse = await requestJson<WorkspaceBootstrap>(
+      "/api/workspaces",
+      {
+        body: JSON.stringify({
+          name: "Ops Control",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      owner.cookieJar
+    )
+    const activeWorkspace = requireValue(
+      createWorkspaceResponse.json?.activeWorkspace,
+      "Expected the created workspace response to include an active workspace"
+    )
+
+    await insertMember({
+      organizationId: activeWorkspace.id,
+      role: "admin",
+      userId: admin.session.user.id,
+    })
+    await insertMember({
+      organizationId: activeWorkspace.id,
+      role: "dispatcher",
+      userId: dispatcher.session.user.id,
+    })
+
+    const adminInviteResponse = await requestJson(
+      `/api/workspaces/${activeWorkspace.id}/invites`,
+      {
+        body: JSON.stringify({
+          email: "field@example.com",
+          role: "field_worker",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      admin.cookieJar
+    )
+
+    expect(adminInviteResponse.response.status).toBe(200)
+
+    const forbiddenOwnerInviteResponse = await requestJson(
+      `/api/workspaces/${activeWorkspace.id}/invites`,
+      {
+        body: JSON.stringify({
+          email: "coowner@example.com",
+          role: "owner",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      admin.cookieJar
+    )
+
+    expect(forbiddenOwnerInviteResponse.response.status).toBe(403)
+
+    const dispatcherInviteResponse = await requestJson(
+      `/api/workspaces/${activeWorkspace.id}/invites`,
+      {
+        body: JSON.stringify({
+          email: "other@example.com",
+          role: "field_worker",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      dispatcher.cookieJar
+    )
+
+    expect(dispatcherInviteResponse.response.status).toBe(403)
+  })
+
+  it("resends an invite without changing the canonical code", async () => {
+    await resetWorkspaceTestState()
+
+    const owner = await signUpAndVerifyEmail("owner@example.com", "Owner User")
+
+    const createWorkspaceResponse = await requestJson<WorkspaceBootstrap>(
+      "/api/workspaces",
+      {
+        body: JSON.stringify({
+          name: "Ops Control",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      owner.cookieJar
+    )
+    const activeWorkspace = requireValue(
+      createWorkspaceResponse.json?.activeWorkspace,
+      "Expected the created workspace response to include an active workspace"
+    )
+
+    const inviteResponse = await requestJson<{
+      code: string
+      id: string
+    }>(
+      `/api/workspaces/${activeWorkspace.id}/invites`,
+      {
+        body: JSON.stringify({
+          email: "worker@example.com",
+          role: "dispatcher",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      owner.cookieJar
+    )
+
+    sendWorkspaceInvitationEmailMock.mockClear()
+
+    const resendResponse = await requestJson(
+      `/api/workspaces/${activeWorkspace.id}/invites/${inviteResponse.json?.id}/resend`,
+      {
+        method: "POST",
+      },
+      owner.cookieJar
+    )
+
+    expect(resendResponse.response.status).toBe(204)
+
+    const resentInvitation = requireValue(
+      await findInvitationById(
+        requireValue(inviteResponse.json?.id, "Expected invite id")
+      ),
+      "Expected invitation to exist after resend"
+    )
+    const invitationEmail = requireValue(
+      latestWorkspaceInvitationEmail(),
+      "Expected a resent invitation email"
+    )
+
+    expect(resentInvitation.code).toBe(inviteResponse.json?.code)
+    expect(invitationEmail.code).toBe(inviteResponse.json?.code)
+  })
+
+  it("accepts an invite by code for an existing verified account and switches the active workspace", async () => {
+    await resetWorkspaceTestState()
+
+    const owner = await signUpAndVerifyEmail("owner@example.com", "Owner User")
+    const invitedUser = await signUpAndVerifyEmail(
+      "worker@example.com",
+      "Worker User"
+    )
+
+    const createWorkspaceResponse = await requestJson<WorkspaceBootstrap>(
+      "/api/workspaces",
+      {
+        body: JSON.stringify({
+          name: "Ops Control",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      owner.cookieJar
+    )
+    const activeWorkspace = requireValue(
+      createWorkspaceResponse.json?.activeWorkspace,
+      "Expected the created workspace response to include an active workspace"
+    )
+
+    const inviteResponse = await requestJson<{
+      code: string
+      workspaceId: string
+    }>(
+      `/api/workspaces/${activeWorkspace.id}/invites`,
+      {
+        body: JSON.stringify({
+          email: "worker@example.com",
+          role: "dispatcher",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      owner.cookieJar
+    )
+
+    const acceptResponse = await requestJson<WorkspaceBootstrap>(
+      "/api/workspaces/invites/accept",
+      {
+        body: JSON.stringify({
+          code: inviteResponse.json?.code,
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      invitedUser.cookieJar
+    )
+
+    expect(acceptResponse.response.status).toBe(200)
+    expect(acceptResponse.json).toMatchObject({
+      activeWorkspace: {
+        id: activeWorkspace.id,
+        role: "dispatcher",
+        slug: "ops-control",
+      },
+      memberships: [
+        {
+          id: activeWorkspace.id,
+          role: "dispatcher",
+          slug: "ops-control",
+        },
+      ],
+      pendingInvites: [],
+      recoveryState: "active_valid",
+    })
+  })
+
+  it("accepts an invite by signed token and rejects revoked invites", async () => {
+    await resetWorkspaceTestState()
+
+    const owner = await signUpAndVerifyEmail("owner@example.com", "Owner User")
+    const invitedUser = await signUpAndVerifyEmail(
+      "worker@example.com",
+      "Worker User"
+    )
+
+    const createWorkspaceResponse = await requestJson<WorkspaceBootstrap>(
+      "/api/workspaces",
+      {
+        body: JSON.stringify({
+          name: "Ops Control",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      owner.cookieJar
+    )
+    const activeWorkspace = requireValue(
+      createWorkspaceResponse.json?.activeWorkspace,
+      "Expected the created workspace response to include an active workspace"
+    )
+
+    const inviteResponse = await requestJson<{
+      acceptUrl: string
+      code: string
+      id: string
+    }>(
+      `/api/workspaces/${activeWorkspace.id}/invites`,
+      {
+        body: JSON.stringify({
+          email: "worker@example.com",
+          role: "dispatcher",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      owner.cookieJar
+    )
+    const acceptUrl = new URL(
+      requireValue(inviteResponse.json?.acceptUrl, "Expected acceptUrl")
+    )
+
+    const tokenAcceptResponse = await requestJson<WorkspaceBootstrap>(
+      "/api/workspaces/invites/accept",
+      {
+        body: JSON.stringify({
+          token: acceptUrl.searchParams.get("token"),
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      invitedUser.cookieJar
+    )
+
+    expect(tokenAcceptResponse.response.status).toBe(200)
+
+    const secondInvitedUser = await signUpAndVerifyEmail(
+      "another@example.com",
+      "Another User"
+    )
+    const secondInviteResponse = await requestJson<{
+      code: string
+      id: string
+    }>(
+      `/api/workspaces/${activeWorkspace.id}/invites`,
+      {
+        body: JSON.stringify({
+          email: "another@example.com",
+          role: "field_worker",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      owner.cookieJar
+    )
+
+    const revokeResponse = await requestJson(
+      `/api/workspaces/${activeWorkspace.id}/invites/${secondInviteResponse.json?.id}`,
+      {
+        method: "DELETE",
+      },
+      owner.cookieJar
+    )
+
+    expect(revokeResponse.response.status).toBe(204)
+
+    const revokedAcceptResponse = await requestJson(
+      "/api/workspaces/invites/accept",
+      {
+        body: JSON.stringify({
+          code: secondInviteResponse.json?.code,
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      secondInvitedUser.cookieJar
+    )
+
+    expect(revokedAcceptResponse.response.status).toBe(400)
+  })
+
+  it("lets an owner change roles but blocks admins from mutating owners", async () => {
+    await resetWorkspaceTestState()
+
+    const owner = await signUpAndVerifyEmail("owner@example.com", "Owner User")
+    const admin = await signUpAndVerifyEmail("admin@example.com", "Admin User")
+    const worker = await signUpAndVerifyEmail(
+      "worker@example.com",
+      "Worker User"
+    )
+
+    const createWorkspaceResponse = await requestJson<WorkspaceBootstrap>(
+      "/api/workspaces",
+      {
+        body: JSON.stringify({
+          name: "Ops Control",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      owner.cookieJar
+    )
+    const activeWorkspace = requireValue(
+      createWorkspaceResponse.json?.activeWorkspace,
+      "Expected the created workspace response to include an active workspace"
+    )
+
+    const adminMembership = await insertMember({
+      organizationId: activeWorkspace.id,
+      role: "admin",
+      userId: admin.session.user.id,
+    })
+    const workerMembership = await insertMember({
+      organizationId: activeWorkspace.id,
+      role: "field_worker",
+      userId: worker.session.user.id,
+    })
+
+    const ownerPromoteResponse = await requestJson<{
+      memberId: string
+      role: string
+      workspaceId: string
+    }>(
+      `/api/workspaces/${activeWorkspace.id}/members/${workerMembership.id}/role`,
+      {
+        body: JSON.stringify({
+          role: "owner",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "PATCH",
+      },
+      owner.cookieJar
+    )
+
+    expect(ownerPromoteResponse.response.status).toBe(200)
+    expect(ownerPromoteResponse.json).toMatchObject({
+      memberId: workerMembership.id,
+      role: "owner",
+      workspaceId: activeWorkspace.id,
+    })
+
+    const adminDemoteOwnerResponse = await requestJson(
+      `/api/workspaces/${activeWorkspace.id}/members/${workerMembership.id}/role`,
+      {
+        body: JSON.stringify({
+          role: "dispatcher",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "PATCH",
+      },
+      admin.cookieJar
+    )
+
+    expect(adminDemoteOwnerResponse.response.status).toBe(403)
+
+    const adminRemoveOwnerResponse = await requestJson(
+      `/api/workspaces/${activeWorkspace.id}/members/${workerMembership.id}`,
+      {
+        method: "DELETE",
+      },
+      admin.cookieJar
+    )
+
+    expect(adminRemoveOwnerResponse.response.status).toBe(403)
+    await expect(findMembership(adminMembership.id)).resolves.not.toBeNull()
+  })
+
+  it("allows self-leave for non-last-owner members and blocks the last owner from leaving", async () => {
+    await resetWorkspaceTestState()
+
+    const owner = await signUpAndVerifyEmail("owner@example.com", "Owner User")
+    const admin = await signUpAndVerifyEmail("admin@example.com", "Admin User")
+
+    const createWorkspaceResponse = await requestJson<WorkspaceBootstrap>(
+      "/api/workspaces",
+      {
+        body: JSON.stringify({
+          name: "Ops Control",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      owner.cookieJar
+    )
+    const activeWorkspace = requireValue(
+      createWorkspaceResponse.json?.activeWorkspace,
+      "Expected the created workspace response to include an active workspace"
+    )
+
+    const adminMembership = await insertMember({
+      organizationId: activeWorkspace.id,
+      role: "admin",
+      userId: admin.session.user.id,
+    })
+
+    const adminLeaveResponse = await requestJson(
+      `/api/workspaces/${activeWorkspace.id}/members/${adminMembership.id}`,
+      {
+        method: "DELETE",
+      },
+      admin.cookieJar
+    )
+
+    expect(adminLeaveResponse.response.status).toBe(204)
+    await expect(findMembership(adminMembership.id)).resolves.toBeNull()
+
+    const ownerMembership = requireValue(
+      await findMembershipByUserAndWorkspace(
+        owner.session.user.id,
+        activeWorkspace.id
+      ),
+      "Expected the owner membership to exist"
+    )
+
+    const ownerLeaveResponse = await requestJson(
+      `/api/workspaces/${activeWorkspace.id}/members/${ownerMembership.id}`,
+      {
+        method: "DELETE",
+      },
+      owner.cookieJar
+    )
+
+    expect(ownerLeaveResponse.response.status).toBe(400)
   })
 })

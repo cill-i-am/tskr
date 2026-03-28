@@ -6,6 +6,10 @@ import {
   auth,
 } from "./domains/identity/authentication/infra/auth.js"
 import { pool } from "./domains/identity/authentication/infra/database.js"
+import {
+  buildWorkspaceInviteAcceptUrl,
+  verifyWorkspaceInviteToken,
+} from "./domains/identity/authentication/infra/workspace-invite-token.js"
 import { healthcheckRoutes } from "./domains/system/healthcheck/index.js"
 import {
   createWorkspaceRepository,
@@ -17,7 +21,15 @@ const app = new Hono()
 const workspaceRepository = createWorkspaceRepository(pool)
 const workspaceService = createWorkspaceService({
   auth,
+  buildWorkspaceInviteAcceptUrl: (code) =>
+    buildWorkspaceInviteAcceptUrl({
+      code,
+      secret: authenticationEnv.betterAuthSecret,
+      webBaseUrl: authenticationEnv.webBaseUrl,
+    }),
   repository: workspaceRepository,
+  verifyWorkspaceInviteToken: (token) =>
+    verifyWorkspaceInviteToken(token, authenticationEnv.betterAuthSecret),
 })
 const workspaceRoutes = createWorkspaceRoutes({
   service: workspaceService,
