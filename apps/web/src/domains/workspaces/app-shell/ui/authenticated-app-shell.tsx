@@ -1,6 +1,6 @@
 import { useWorkspaceBootstrap } from "@/domains/workspaces/bootstrap/ui/use-workspace-bootstrap"
 import { Link } from "@tanstack/react-router"
-import { LayoutDashboardIcon, RocketIcon } from "lucide-react"
+import { LayoutDashboardIcon } from "lucide-react"
 
 import {
   Breadcrumb,
@@ -10,7 +10,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@workspace/ui/components/breadcrumb"
-import { Button } from "@workspace/ui/components/button"
 import { Separator } from "@workspace/ui/components/separator"
 import {
   Sidebar,
@@ -64,15 +63,6 @@ const AuthenticatedAppShell = ({ children }: { children: React.ReactNode }) => {
                     <span>Overview</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    render={<Link to="/onboarding" />}
-                    tooltip="Onboarding"
-                  >
-                    <RocketIcon />
-                    <span>Onboarding</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -102,13 +92,6 @@ const AuthenticatedAppShell = ({ children }: { children: React.ReactNode }) => {
               </BreadcrumbList>
             </Breadcrumb>
           </div>
-          <Button
-            nativeButton={false}
-            render={<Link to="/onboarding" />}
-            variant="outline"
-          >
-            Review onboarding
-          </Button>
         </header>
         <main className="p-4 md:p-6">{children}</main>
       </SidebarInset>

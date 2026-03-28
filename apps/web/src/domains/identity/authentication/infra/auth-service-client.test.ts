@@ -1,19 +1,45 @@
-import { getRequest } from "@tanstack/react-start/server"
-
 import {
   fetchAuthService,
   resolveAuthBaseUrl,
   resolveRuntimeAuthBaseUrl,
 } from "./auth-service-client"
 
-vi.mock<typeof import("@tanstack/react-start/server")>(
-  import("@tanstack/react-start/server"),
-  () => ({
-    getRequest: vi.fn(),
-  })
-)
+const START_EVENT_STORAGE_KEY = Symbol.for("tanstack-start:event-storage")
 
-const getRequestMock = vi.mocked(getRequest)
+interface StartRequestStore {
+  getStore?: () =>
+    | {
+        h3Event?: {
+          req?: Request | undefined
+        }
+      }
+    | undefined
+}
+
+const setCurrentStartRequest = (request: Request | undefined) => {
+  ;(
+    globalThis as typeof globalThis & {
+      [START_EVENT_STORAGE_KEY]?: StartRequestStore | undefined
+    }
+  )[START_EVENT_STORAGE_KEY] = {
+    getStore: () =>
+      request
+        ? {
+            h3Event: {
+              req: request,
+            },
+          }
+        : undefined,
+  }
+}
+
+const clearCurrentStartRequest = () => {
+  ;(
+    globalThis as typeof globalThis & {
+      [START_EVENT_STORAGE_KEY]?: StartRequestStore | undefined
+    }
+  )[START_EVENT_STORAGE_KEY] = undefined
+}
 
 const withoutWindow = async <T>(run: () => Promise<T>) => {
   const previousWindow = globalThis.window
@@ -67,7 +93,7 @@ describe("auth service fetching", () => {
 
     try {
       fetchMock.mockResolvedValue(new Response("", { status: 200 }))
-      getRequestMock.mockReturnValue(
+      setCurrentStartRequest(
         new Request("https://web.example.com/app", {
           headers: {
             cookie: "session=from-start-request",
@@ -90,7 +116,7 @@ describe("auth service fetching", () => {
       })
     } finally {
       vi.unstubAllGlobals()
-      getRequestMock.mockReset()
+      clearCurrentStartRequest()
     }
   })
 
@@ -115,7 +141,7 @@ describe("auth service fetching", () => {
       )
     } finally {
       vi.unstubAllGlobals()
-      getRequestMock.mockReset()
+      clearCurrentStartRequest()
     }
   })
 
@@ -148,7 +174,7 @@ describe("auth service fetching", () => {
       })
     } finally {
       vi.unstubAllGlobals()
-      getRequestMock.mockReset()
+      clearCurrentStartRequest()
     }
   })
 
@@ -201,7 +227,7 @@ describe("auth service fetching", () => {
       })
     } finally {
       vi.unstubAllGlobals()
-      getRequestMock.mockReset()
+      clearCurrentStartRequest()
     }
   })
 })

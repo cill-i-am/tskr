@@ -8,8 +8,8 @@ import {
 } from "@tanstack/react-router"
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react"
 
-vi.mock<typeof import('@/domains/workspaces/bootstrap/infra/workspace-bootstrap-client')>(
-  import('@/domains/workspaces/bootstrap/infra/workspace-bootstrap-client'),
+vi.mock(
+  import("@/domains/workspaces/bootstrap/infra/workspace-bootstrap-client"),
   () => ({
     getWorkspaceBootstrap: vi.fn(),
   })

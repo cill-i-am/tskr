@@ -1,17 +1,44 @@
 import { workspaceBootstrapSchema } from "@/domains/workspaces/bootstrap/contracts/workspace-bootstrap"
 import type { WorkspaceBootstrap } from "@/domains/workspaces/bootstrap/contracts/workspace-bootstrap"
-import { getRequest } from "@tanstack/react-start/server"
 
 import { getWorkspaceBootstrap } from "./workspace-bootstrap-client"
 
-vi.mock<typeof import("@tanstack/react-start/server")>(
-  import("@tanstack/react-start/server"),
-  () => ({
-    getRequest: vi.fn(),
-  })
-)
+const START_EVENT_STORAGE_KEY = Symbol.for("tanstack-start:event-storage")
 
-const getRequestMock = vi.mocked(getRequest)
+interface StartRequestStore {
+  getStore?: () =>
+    | {
+        h3Event?: {
+          req?: Request | undefined
+        }
+      }
+    | undefined
+}
+
+const setCurrentStartRequest = (request: Request | undefined) => {
+  ;(
+    globalThis as typeof globalThis & {
+      [START_EVENT_STORAGE_KEY]?: StartRequestStore | undefined
+    }
+  )[START_EVENT_STORAGE_KEY] = {
+    getStore: () =>
+      request
+        ? {
+            h3Event: {
+              req: request,
+            },
+          }
+        : undefined,
+  }
+}
+
+const clearCurrentStartRequest = () => {
+  ;(
+    globalThis as typeof globalThis & {
+      [START_EVENT_STORAGE_KEY]?: StartRequestStore | undefined
+    }
+  )[START_EVENT_STORAGE_KEY] = undefined
+}
 
 const withoutWindow = async <T>(run: () => Promise<T>) => {
   const previousWindow = globalThis.window
@@ -80,7 +107,7 @@ describe("workspace bootstrap client", () => {
 
     try {
       fetchMock.mockResolvedValue(Response.json(bootstrapPayload))
-      getRequestMock.mockReturnValue(
+      setCurrentStartRequest(
         new Request("https://web.example.com/app", {
           headers: {
             cookie: "session=from-start-request",
@@ -100,7 +127,7 @@ describe("workspace bootstrap client", () => {
         cookie: "session=from-start-request",
       })
     } finally {
-      getRequestMock.mockReset()
+      clearCurrentStartRequest()
       withoutAuthServiceFetch()
     }
   })
@@ -122,7 +149,7 @@ describe("workspace bootstrap client", () => {
         }
       )
     } finally {
-      getRequestMock.mockReset()
+      clearCurrentStartRequest()
       withoutAuthServiceFetch()
     }
   })
@@ -166,7 +193,7 @@ describe("workspace bootstrap client", () => {
         "x-request-id": "request-123",
       })
     } finally {
-      getRequestMock.mockReset()
+      clearCurrentStartRequest()
       withoutAuthServiceFetch()
     }
   })
@@ -179,7 +206,7 @@ describe("workspace bootstrap client", () => {
 
       await expect(getWorkspaceBootstrap()).resolves.toBeNull()
     } finally {
-      getRequestMock.mockReset()
+      clearCurrentStartRequest()
       withoutAuthServiceFetch()
     }
   })
@@ -194,7 +221,7 @@ describe("workspace bootstrap client", () => {
         "Malformed workspace bootstrap JSON."
       )
     } finally {
-      getRequestMock.mockReset()
+      clearCurrentStartRequest()
       withoutAuthServiceFetch()
     }
   })
@@ -216,7 +243,7 @@ describe("workspace bootstrap client", () => {
         "Invalid workspace bootstrap payload."
       )
     } finally {
-      getRequestMock.mockReset()
+      clearCurrentStartRequest()
       withoutAuthServiceFetch()
     }
   })
@@ -236,7 +263,7 @@ describe("workspace bootstrap client", () => {
         "Auth service request failed with status 503."
       )
     } finally {
-      getRequestMock.mockReset()
+      clearCurrentStartRequest()
       withoutAuthServiceFetch()
     }
   })

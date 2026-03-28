@@ -53,18 +53,30 @@ interface FetchAuthServiceOptions extends ResolveAuthBaseUrlOptions {
   request?: Request | undefined
 }
 
-const getCurrentStartRequest = async (request: Request | undefined) => {
+const START_EVENT_STORAGE_KEY = Symbol.for("tanstack-start:event-storage")
+
+interface StartRequestStore {
+  getStore?: () =>
+    | {
+        h3Event?: {
+          req?: Request | undefined
+        }
+      }
+    | undefined
+}
+
+const getCurrentStartRequest = (request: Request | undefined) => {
   if (request || typeof window !== "undefined") {
     return request
   }
 
-  try {
-    const { getRequest } = await import("@tanstack/react-start/server")
+  const startRequestStore = (
+    globalThis as typeof globalThis & {
+      [START_EVENT_STORAGE_KEY]?: StartRequestStore | undefined
+    }
+  )[START_EVENT_STORAGE_KEY]
 
-    return getRequest()
-  } catch {
-    return request
-  }
+  return startRequestStore?.getStore?.()?.h3Event?.req ?? request
 }
 
 const getForwardedRequestHeaders = (request: Request | undefined) => {
@@ -134,11 +146,11 @@ const resolveAuthBaseUrl = (options: ResolveAuthBaseUrlOptions = {}) => {
   return "https://auth.tskr.localhost:1355"
 }
 
-const fetchAuthService = async (
+const fetchAuthService = (
   path: string,
   { headers, init = {}, request, ...options }: FetchAuthServiceOptions = {}
 ) => {
-  const currentRequest = await getCurrentStartRequest(request)
+  const currentRequest = getCurrentStartRequest(request)
 
   return fetch(
     new URL(
