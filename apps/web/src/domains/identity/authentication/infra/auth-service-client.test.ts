@@ -31,6 +31,31 @@ describe("runtime auth base url resolution", () => {
 })
 
 describe("auth service fetching", () => {
+  it("resolves direct localhost server requests to the localhost auth base url", async () => {
+    const fetchMock = vi.fn()
+
+    vi.stubGlobal("fetch", fetchMock)
+    vi.stubGlobal("window", undefined)
+
+    try {
+      fetchMock.mockResolvedValue(new Response("", { status: 200 }))
+      const request = new Request("http://localhost:5173/workspaces")
+
+      await fetchAuthService("/api/workspaces/bootstrap", {
+        request,
+      })
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        "http://localhost:3002/api/workspaces/bootstrap",
+        expect.objectContaining({
+          credentials: "include",
+        })
+      )
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
   it("forwards only whitelisted request headers when fetching the auth service", async () => {
     const fetchMock = vi.fn()
 

@@ -1,6 +1,7 @@
 interface ResolveAuthBaseUrlOptions {
   authBaseUrl?: string | undefined
   hostname?: string | undefined
+  request?: Request | undefined
   runtimeAuthBaseUrl?: string | undefined
 }
 
@@ -89,8 +90,12 @@ const mergeHeaders = (...sources: (HeadersInit | undefined)[]) => {
 }
 
 const resolveAuthBaseUrl = (options: ResolveAuthBaseUrlOptions = {}) => {
+  const requestHostname = options.request
+    ? new URL(options.request.url).hostname
+    : undefined
   const hostname =
     options.hostname ??
+    requestHostname ??
     (typeof window === "undefined" ? undefined : window.location.hostname)
   const runtimeAuthBaseUrl =
     options.runtimeAuthBaseUrl ??
@@ -119,15 +124,24 @@ const fetchAuthService = (
   path: string,
   { headers, init = {}, request, ...options }: FetchAuthServiceOptions = {}
 ) =>
-  fetch(new URL(path, resolveAuthBaseUrl(options)).toString(), {
-    ...init,
-    credentials: "include",
-    headers: mergeHeaders(
-      getForwardedRequestHeaders(request),
-      init.headers,
-      headers
-    ),
-  })
+  fetch(
+    new URL(
+      path,
+      resolveAuthBaseUrl({
+        ...options,
+        request,
+      })
+    ).toString(),
+    {
+      ...init,
+      credentials: "include",
+      headers: mergeHeaders(
+        getForwardedRequestHeaders(request),
+        init.headers,
+        headers
+      ),
+    }
+  )
 
 export { fetchAuthService, resolveAuthBaseUrl, resolveRuntimeAuthBaseUrl }
 export type {
