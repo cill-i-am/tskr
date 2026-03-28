@@ -1,6 +1,7 @@
 import type {
   PendingWorkspaceInvite,
   WorkspaceMembership,
+  WorkspaceRole,
 } from "./contracts.js"
 
 interface Queryable {
@@ -10,6 +11,23 @@ interface Queryable {
   ): Promise<{
     rows: Result[]
   }>
+}
+
+interface WorkspaceMemberRecord {
+  id: string
+  role: string
+  userId: string
+  workspaceId: string
+}
+
+interface WorkspaceInvitationRecord {
+  code: string
+  email: string
+  expiresAt: Date
+  id: string
+  role: WorkspaceRole | null
+  status: string
+  workspaceId: string
 }
 
 const createWorkspaceRepository = (database: Queryable) => {
@@ -71,6 +89,82 @@ const createWorkspaceRepository = (database: Queryable) => {
     }))
   }
 
+  const findInvitationByCode = async (
+    code: string
+  ): Promise<WorkspaceInvitationRecord | null> => {
+    const result = await database.query<WorkspaceInvitationRecord>(
+      `SELECT
+         invitation.code AS code,
+         invitation.email AS email,
+         invitation.expires_at AS "expiresAt",
+         invitation.id AS id,
+         invitation.role AS role,
+         invitation.status AS status,
+         invitation.organization_id AS "workspaceId"
+       FROM "auth"."invitation" AS invitation
+       WHERE invitation.code = $1`,
+      [code]
+    )
+
+    return result.rows.at(0) ?? null
+  }
+
+  const findInvitationById = async (
+    invitationId: string
+  ): Promise<WorkspaceInvitationRecord | null> => {
+    const result = await database.query<WorkspaceInvitationRecord>(
+      `SELECT
+         invitation.code AS code,
+         invitation.email AS email,
+         invitation.expires_at AS "expiresAt",
+         invitation.id AS id,
+         invitation.role AS role,
+         invitation.status AS status,
+         invitation.organization_id AS "workspaceId"
+       FROM "auth"."invitation" AS invitation
+       WHERE invitation.id = $1`,
+      [invitationId]
+    )
+
+    return result.rows.at(0) ?? null
+  }
+
+  const findMembershipById = async (
+    memberId: string
+  ): Promise<WorkspaceMemberRecord | null> => {
+    const result = await database.query<WorkspaceMemberRecord>(
+      `SELECT
+         member.id AS id,
+         member.role AS role,
+         member.user_id AS "userId",
+         member.organization_id AS "workspaceId"
+       FROM "auth"."member" AS member
+       WHERE member.id = $1`,
+      [memberId]
+    )
+
+    return result.rows.at(0) ?? null
+  }
+
+  const findMembershipByUserAndWorkspace = async (
+    userId: string,
+    workspaceId: string
+  ): Promise<WorkspaceMemberRecord | null> => {
+    const result = await database.query<WorkspaceMemberRecord>(
+      `SELECT
+         member.id AS id,
+         member.role AS role,
+         member.user_id AS "userId",
+         member.organization_id AS "workspaceId"
+       FROM "auth"."member" AS member
+       WHERE member.user_id = $1
+         AND member.organization_id = $2`,
+      [userId, workspaceId]
+    )
+
+    return result.rows.at(0) ?? null
+  }
+
   const setActiveWorkspace = async (
     sessionToken: string,
     workspaceId: string | null
@@ -97,6 +191,10 @@ const createWorkspaceRepository = (database: Queryable) => {
   }
 
   return {
+    findInvitationByCode,
+    findInvitationById,
+    findMembershipById,
+    findMembershipByUserAndWorkspace,
     listMemberships,
     listPendingInvites,
     setActiveWorkspace,

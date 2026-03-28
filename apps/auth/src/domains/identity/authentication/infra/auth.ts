@@ -1,7 +1,14 @@
 import { betterAuth } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
+import { createAccessControl } from "better-auth/plugins/access"
 import { emailOTP } from "better-auth/plugins/email-otp"
 import { organization } from "better-auth/plugins/organization"
+import {
+  adminAc,
+  defaultStatements,
+  memberAc,
+  ownerAc,
+} from "better-auth/plugins/organization/access"
 
 import { authDatabaseSchema } from "@workspace/db"
 
@@ -9,10 +16,22 @@ import { resolveDefaultCookieAttributes } from "./cookie-attributes.js"
 import { database } from "./database.js"
 import { createAuthenticationEmailService } from "./email-service.js"
 import { parseAuthenticationEnv } from "./env.js"
+import {
+  buildWorkspaceInviteAcceptUrl,
+  createWorkspaceInviteCode,
+} from "./workspace-invite-token.js"
 
 const authenticationEnv = parseAuthenticationEnv()
 const authenticationEmailService =
   createAuthenticationEmailService(authenticationEnv)
+const workspaceAccessControl = createAccessControl(defaultStatements)
+const workspaceRoles = {
+  admin: adminAc,
+  dispatcher: workspaceAccessControl.newRole(memberAc.statements),
+  field_worker: workspaceAccessControl.newRole(memberAc.statements),
+  member: memberAc,
+  owner: ownerAc,
+}
 
 const logEmailDeliveryFailure = (
   message: string,
@@ -98,8 +117,55 @@ const auth = betterAuth({
       storeOTP: "hashed",
     }),
     organization({
+      ac: workspaceAccessControl,
       allowUserToCreateOrganization: true,
       creatorRole: "owner",
+      organizationHooks: {
+        beforeCreateInvitation: () => ({
+          data: {
+            code: createWorkspaceInviteCode(),
+          },
+        }),
+      },
+      requireEmailVerificationOnInvitation: true,
+      roles: workspaceRoles,
+      schema: {
+        invitation: {
+          additionalFields: {
+            code: {
+              required: false,
+              type: "string",
+            },
+          },
+        },
+      },
+      sendInvitationEmail: ({
+        email,
+        invitation,
+        inviter,
+        organization: workspaceOrg,
+      }) =>
+        runEmailSideEffect(
+          () =>
+            authenticationEmailService.sendWorkspaceInvitationEmail({
+              acceptUrl: buildWorkspaceInviteAcceptUrl({
+                code: invitation.code,
+                secret: authenticationEnv.betterAuthSecret,
+                webBaseUrl: authenticationEnv.webBaseUrl,
+              }),
+              code: invitation.code,
+              invitedByName: inviter.user.name,
+              role: invitation.role,
+              to: email,
+              workspaceName: workspaceOrg.name,
+            }),
+          "[auth:email] failed to send workspace invitation email",
+          {
+            invitationId: invitation.id,
+            recipient: email,
+            workspaceId: workspaceOrg.id,
+          }
+        ),
     }),
   ],
   secret: authenticationEnv.betterAuthSecret,

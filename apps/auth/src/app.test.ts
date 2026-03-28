@@ -11,6 +11,7 @@ const {
   sendExistingUserSignupNoticeMock,
   sendPasswordResetEmailMock,
   sendSignupVerificationOtpEmailMock,
+  sendWorkspaceInvitationEmailMock,
 } = vi.hoisted(() => ({
   sendEmailVerificationEmailMock: vi.fn().mockResolvedValue({
     id: "test-verification-id",
@@ -24,6 +25,9 @@ const {
   sendSignupVerificationOtpEmailMock: vi.fn().mockResolvedValue({
     id: "test-signup-otp-id",
   }),
+  sendWorkspaceInvitationEmailMock: vi.fn().mockResolvedValue({
+    id: "test-workspace-invite-id",
+  }),
 }))
 
 vi.mock<
@@ -34,6 +38,7 @@ vi.mock<
     sendExistingUserSignupNotice: sendExistingUserSignupNoticeMock,
     sendPasswordResetEmail: sendPasswordResetEmailMock,
     sendSignupVerificationOtpEmail: sendSignupVerificationOtpEmailMock,
+    sendWorkspaceInvitationEmail: sendWorkspaceInvitationEmailMock,
   }),
 }))
 
@@ -46,6 +51,7 @@ process.env.EMAIL_PROVIDER ??= "console"
 process.env.WEB_BASE_URL ??= "http://localhost:3000"
 
 const { app } = await import("./app.js")
+const { auth } = await import("./auth.js")
 const { upResponse } = await import("./domains/system/healthcheck/index.js")
 
 const pool = createPgPool()
@@ -135,6 +141,7 @@ const resetEmailMocks = () => {
   sendExistingUserSignupNoticeMock.mockClear()
   sendPasswordResetEmailMock.mockClear()
   sendSignupVerificationOtpEmailMock.mockClear()
+  sendWorkspaceInvitationEmailMock.mockClear()
 }
 
 const requireValue = <Value>(
@@ -196,7 +203,7 @@ const expectPasswordResetEmailInput = (resetToken: string) => {
       }
     | undefined
 
-  expect(sendPasswordResetEmailMock).toHaveBeenCalledOnce()
+  expect(sendPasswordResetEmailMock).toHaveBeenCalledTimes(1)
   expect(emailInput).toMatchObject({
     to: "grace@example.com",
   })
@@ -225,6 +232,17 @@ describe("auth app", () => {
     const client = hc<AppType>("http://localhost")
 
     expectTypeOf(client.up.$get).toBeFunction()
+  })
+
+  it("registers the Better Auth organization plugin api methods", () => {
+    resetEmailMocks()
+
+    expectTypeOf(auth.api.createInvitation).toBeFunction()
+    expectTypeOf(auth.api.acceptInvitation).toBeFunction()
+    expectTypeOf(auth.api.cancelInvitation).toBeFunction()
+    expectTypeOf(auth.api.updateMemberRole).toBeFunction()
+    expectTypeOf(auth.api.removeMember).toBeFunction()
+    expectTypeOf(auth.api.leaveOrganization).toBeFunction()
   })
 
   it("exposes the Better Auth ok route", async () => {
@@ -289,7 +307,7 @@ describe("auth app", () => {
         name: "Ada Lovelace",
       },
     })
-    expect(sendSignupVerificationOtpEmailMock).toHaveBeenCalledTimes(1)
+    expect(sendSignupVerificationOtpEmailMock).toHaveBeenCalledOnce()
     expect(sendEmailVerificationEmailMock).not.toHaveBeenCalled()
 
     const verificationOtpEmailInput =
@@ -348,7 +366,7 @@ describe("auth app", () => {
     expect(signInResponse.json).toMatchObject({
       code: expect.any(String),
     })
-    expect(sendSignupVerificationOtpEmailMock).toHaveBeenCalledTimes(1)
+    expect(sendSignupVerificationOtpEmailMock).toHaveBeenCalledOnce()
     expect(sendExistingUserSignupNoticeMock).not.toHaveBeenCalled()
     expectLatestSignupVerificationOtp("ada@example.com")
   })

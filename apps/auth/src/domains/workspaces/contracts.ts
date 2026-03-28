@@ -1,3 +1,7 @@
+type WorkspaceRole = "owner" | "admin" | "dispatcher" | "field_worker"
+
+const workspaceRoles = ["owner", "admin", "dispatcher", "field_worker"] as const
+
 type RecoveryState =
   | "active_valid"
   | "auto_switched"
@@ -8,7 +12,7 @@ interface WorkspaceMembership {
   id: string
   logo: string | null
   name: string
-  role: string
+  role: WorkspaceRole
   slug: string
 }
 
@@ -16,11 +20,21 @@ interface PendingWorkspaceInvite {
   email: string
   expiresAt: string
   id: string
-  role: string | null
+  role: WorkspaceRole | null
   status: string
   workspaceId: string
   workspaceName: string
   workspaceSlug: string
+}
+
+interface WorkspaceInvite {
+  acceptUrl: string
+  code: string
+  email: string
+  id: string
+  role: WorkspaceRole
+  status: string
+  workspaceId: string
 }
 
 interface WorkspaceBootstrap {
@@ -41,6 +55,9 @@ export type {
   PendingWorkspaceInvite,
   RecoveryState,
   WorkspaceBootstrap,
+  WorkspaceInvite,
   WorkspaceMembership,
+  WorkspaceRole,
   WorkspaceSession,
 }
+export { workspaceRoles }
