@@ -3,6 +3,13 @@ import { cors } from "hono/cors"
 import { HTTPException } from "hono/http-exception"
 
 import { isWorkspaceRole } from "./authorization-policy.js"
+import type {
+  AcceptWorkspaceInviteRequest,
+  CreateWorkspaceInviteRequest,
+  UpdateAccountProfileRequest,
+  UpdateWorkspaceMemberRoleRequest,
+  UpdateWorkspaceProfileRequest,
+} from "./contracts.js"
 import { normalizeWorkspaceName } from "./workspace-service.js"
 import type { createWorkspaceService } from "./workspace-service.js"
 
@@ -50,7 +57,10 @@ const requireWorkspaceId = async (request: Request) => {
 }
 
 const requireInviteInput = async (request: Request) => {
-  const body = await readJsonBody<{ email?: unknown; role?: unknown }>(request)
+  const body =
+    await readJsonBody<
+      Partial<Record<keyof CreateWorkspaceInviteRequest, unknown>>
+    >(request)
   const email = typeof body?.email === "string" ? body.email.trim() : ""
 
   if (!email) {
@@ -72,7 +82,10 @@ const requireInviteInput = async (request: Request) => {
 }
 
 const requireAcceptInviteInput = async (request: Request) => {
-  const body = await readJsonBody<{ code?: unknown; token?: unknown }>(request)
+  const body =
+    await readJsonBody<
+      Partial<Record<keyof AcceptWorkspaceInviteRequest, unknown>>
+    >(request)
   const code = typeof body?.code === "string" ? body.code.trim() : undefined
   const token = typeof body?.token === "string" ? body.token.trim() : undefined
 
@@ -89,7 +102,10 @@ const requireAcceptInviteInput = async (request: Request) => {
 }
 
 const requireRoleUpdate = async (request: Request) => {
-  const body = await readJsonBody<{ role?: unknown }>(request)
+  const body =
+    await readJsonBody<
+      Partial<Record<keyof UpdateWorkspaceMemberRoleRequest, unknown>>
+    >(request)
 
   if (typeof body?.role !== "string" || !isWorkspaceRole(body.role)) {
     throw new HTTPException(400, {
@@ -103,7 +119,10 @@ const requireRoleUpdate = async (request: Request) => {
 }
 
 const requireAccountProfileUpdate = async (request: Request) => {
-  const body = await readJsonBody<{ image?: unknown; name?: unknown }>(request)
+  const body =
+    await readJsonBody<
+      Partial<Record<keyof UpdateAccountProfileRequest, unknown>>
+    >(request)
 
   if (typeof body?.name !== "string") {
     throw new HTTPException(400, {
@@ -133,7 +152,10 @@ const requireAccountProfileUpdate = async (request: Request) => {
 }
 
 const requireWorkspaceProfileUpdate = async (request: Request) => {
-  const body = await readJsonBody<{ logo?: unknown; name?: unknown }>(request)
+  const body =
+    await readJsonBody<
+      Partial<Record<keyof UpdateWorkspaceProfileRequest, unknown>>
+    >(request)
 
   if (typeof body?.name !== "string") {
     throw new HTTPException(400, {

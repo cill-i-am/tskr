@@ -44,11 +44,35 @@ interface AccountProfile {
   name: string
 }
 
+interface UpdateAccountProfileRequest {
+  image?: string | null
+  name: string
+}
+
 interface WorkspaceProfile {
   id: string
   logo: string | null
   name: string
   slug: string
+}
+
+interface UpdateWorkspaceProfileRequest {
+  logo?: string | null
+  name: string
+}
+
+interface CreateWorkspaceInviteRequest {
+  email: string
+  role: WorkspaceRole
+}
+
+interface AcceptWorkspaceInviteRequest {
+  code?: string
+  token?: string
+}
+
+interface UpdateWorkspaceMemberRoleRequest {
+  role: WorkspaceRole
 }
 
 interface WorkspaceSettingsPermissions {
@@ -107,6 +131,12 @@ interface WorkspaceBootstrap {
   recoveryState: RecoveryState
 }
 
+interface UpdateWorkspaceMemberRoleResponse {
+  memberId: string
+  role: WorkspaceRole
+  workspaceId: string
+}
+
 interface WorkspaceSession {
   activeWorkspaceId: string | null
   email: string
@@ -115,9 +145,15 @@ interface WorkspaceSession {
 }
 
 export type {
+  AcceptWorkspaceInviteRequest,
   AccountProfile,
+  CreateWorkspaceInviteRequest,
   PendingWorkspaceInvite,
   RecoveryState,
+  UpdateAccountProfileRequest,
+  UpdateWorkspaceMemberRoleRequest,
+  UpdateWorkspaceMemberRoleResponse,
+  UpdateWorkspaceProfileRequest,
   WorkspaceProfile,
   WorkspaceBootstrap,
   WorkspaceInvite,
