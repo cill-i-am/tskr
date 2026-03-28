@@ -38,7 +38,7 @@ const withoutAuthServiceFetch = () => {
   delete document.documentElement.dataset.authBaseUrl
 }
 
-describe(workspaceBootstrapSchema, () => {
+describe("workspaceBootstrapSchema", () => {
   it("accepts the auth bootstrap payload", () => {
     expect(workspaceBootstrapSchema.parse(bootstrapPayload)).toStrictEqual(
       bootstrapPayload
@@ -46,7 +46,7 @@ describe(workspaceBootstrapSchema, () => {
   })
 })
 
-describe(getWorkspaceBootstrap, () => {
+describe("getWorkspaceBootstrap", () => {
   it("loads workspace bootstrap from the auth service", async () => {
     const fetchMock = withAuthServiceFetch()
 
@@ -88,6 +88,27 @@ describe(getWorkspaceBootstrap, () => {
 
       await expect(getWorkspaceBootstrap()).rejects.toThrow(
         "Malformed workspace bootstrap JSON."
+      )
+    } finally {
+      withoutAuthServiceFetch()
+    }
+  })
+
+  it("rejects schema-invalid bootstrap payloads", async () => {
+    const fetchMock = withAuthServiceFetch()
+
+    try {
+      fetchMock.mockResolvedValue(
+        Response.json({
+          activeWorkspace: null,
+          memberships: [],
+          pendingInvites: [],
+          recoveryState: "not-a-real-state",
+        })
+      )
+
+      await expect(getWorkspaceBootstrap()).rejects.toThrow(
+        "Invalid workspace bootstrap payload."
       )
     } finally {
       withoutAuthServiceFetch()
