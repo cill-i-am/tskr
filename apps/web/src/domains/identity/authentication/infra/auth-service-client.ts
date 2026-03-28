@@ -52,18 +52,19 @@ interface FetchAuthServiceOptions extends ResolveAuthBaseUrlOptions {
   request?: Request | undefined
 }
 
-const mergeHeaders = (
-  requestHeaders: HeadersInit | undefined,
-  headers: HeadersInit | undefined
-) => {
-  if (!requestHeaders && !headers) {
+const mergeHeaders = (...sources: (HeadersInit | undefined)[]) => {
+  if (!sources.some(Boolean)) {
     return
   }
 
-  const mergedHeaders = new Headers(requestHeaders)
+  const mergedHeaders = new Headers()
 
-  if (headers) {
-    for (const [key, value] of new Headers(headers)) {
+  for (const source of sources) {
+    if (!source) {
+      continue
+    }
+
+    for (const [key, value] of new Headers(source)) {
       mergedHeaders.set(key, value)
     }
   }
@@ -71,19 +72,22 @@ const mergeHeaders = (
   return mergedHeaders
 }
 
-const resolveAuthBaseUrl = ({
-  authBaseUrl = import.meta.env.VITE_AUTH_BASE_URL,
-  hostname = typeof window === "undefined"
-    ? undefined
-    : window.location.hostname,
-  runtimeAuthBaseUrl = resolveRuntimeAuthBaseUrl({ authBaseUrl }),
-}: ResolveAuthBaseUrlOptions = {}) => {
-  if (runtimeAuthBaseUrl) {
-    return runtimeAuthBaseUrl
+const resolveAuthBaseUrl = (options: ResolveAuthBaseUrlOptions = {}) => {
+  const hostname =
+    options.hostname ??
+    (typeof window === "undefined" ? undefined : window.location.hostname)
+  const runtimeAuthBaseUrl =
+    options.runtimeAuthBaseUrl ??
+    resolveRuntimeAuthBaseUrl({
+      authBaseUrl: options.authBaseUrl,
+    })
+
+  if (options.authBaseUrl) {
+    return options.authBaseUrl
   }
 
-  if (authBaseUrl) {
-    return authBaseUrl
+  if (runtimeAuthBaseUrl) {
+    return runtimeAuthBaseUrl
   }
 
   const isDirectLocalhost = hostname === "localhost" || hostname === "127.0.0.1"
@@ -102,7 +106,7 @@ const fetchAuthService = (
   fetch(new URL(path, resolveAuthBaseUrl(options)).toString(), {
     ...init,
     credentials: "include",
-    headers: mergeHeaders(request?.headers, headers ?? init.headers),
+    headers: mergeHeaders(request?.headers, init.headers, headers),
   })
 
 export { fetchAuthService, resolveAuthBaseUrl, resolveRuntimeAuthBaseUrl }

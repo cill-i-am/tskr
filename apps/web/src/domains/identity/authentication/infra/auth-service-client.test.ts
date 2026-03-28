@@ -4,7 +4,7 @@ import {
   resolveRuntimeAuthBaseUrl,
 } from "./auth-service-client"
 
-describe(resolveRuntimeAuthBaseUrl, () => {
+describe("runtime auth base url resolution", () => {
   it("prefers the server auth base url over the railway fallback", () => {
     expect(
       resolveRuntimeAuthBaseUrl({
@@ -30,8 +30,8 @@ describe(resolveRuntimeAuthBaseUrl, () => {
   })
 })
 
-describe(fetchAuthService, () => {
-  it("preserves the caller init and request headers when fetching the auth service", async () => {
+describe("auth service fetching", () => {
+  it("merges request, init, and helper headers when fetching the auth service", async () => {
     const fetchMock = vi.fn()
 
     vi.stubGlobal("fetch", fetchMock)
@@ -41,14 +41,20 @@ describe(fetchAuthService, () => {
       const request = new Request("https://web.example.com", {
         headers: {
           cookie: "session=abc",
+          "x-request-id": "request-from-request",
         },
       })
 
       await fetchAuthService("/api/workspaces/bootstrap", {
         authBaseUrl: "https://auth.example.com",
+        headers: {
+          "x-request-id": "request-from-helper",
+          "x-trace-id": "trace-from-helper",
+        },
         init: {
           headers: {
-            "x-request-id": "request-123",
+            "x-request-id": "request-from-init",
+            "x-session-id": "session-from-init",
           },
           method: "GET",
         },
@@ -68,7 +74,9 @@ describe(fetchAuthService, () => {
         Object.fromEntries(new Headers(callInit.headers).entries())
       ).toStrictEqual({
         cookie: "session=abc",
-        "x-request-id": "request-123",
+        "x-request-id": "request-from-helper",
+        "x-session-id": "session-from-init",
+        "x-trace-id": "trace-from-helper",
       })
     } finally {
       vi.unstubAllGlobals()
@@ -76,7 +84,7 @@ describe(fetchAuthService, () => {
   })
 })
 
-describe(resolveAuthBaseUrl, () => {
+describe("auth base url resolution", () => {
   it("still falls back to localhost when no runtime auth base url is available", () => {
     expect(
       resolveAuthBaseUrl({
@@ -85,5 +93,21 @@ describe(resolveAuthBaseUrl, () => {
         runtimeAuthBaseUrl: undefined,
       })
     ).toBe("http://localhost:3002")
+  })
+
+  it("keeps an explicit auth base url override ahead of the server runtime fallback", () => {
+    vi.stubEnv("VITE_AUTH_BASE_URL", "https://auth.server.example.com")
+
+    try {
+      expect(
+        resolveAuthBaseUrl({
+          authBaseUrl: "https://auth.override.example.com",
+          hostname: "example.com",
+          runtimeAuthBaseUrl: undefined,
+        })
+      ).toBe("https://auth.override.example.com")
+    } finally {
+      vi.unstubAllEnvs()
+    }
   })
 })
