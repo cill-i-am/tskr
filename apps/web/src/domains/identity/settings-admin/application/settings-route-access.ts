@@ -1,4 +1,7 @@
-import type { SettingsAdminSnapshot } from "@/domains/identity/settings-admin/contracts/settings-admin-contract"
+import type {
+  SettingsAdminPermissions,
+  SettingsAdminSnapshot,
+} from "@/domains/identity/settings-admin/contracts/settings-admin-contract"
 import { getSettingsSnapshot } from "@/domains/identity/settings-admin/infra/get-settings-snapshot"
 import { resolveWorkspaceEntry } from "@/domains/workspaces/bootstrap/application/resolve-workspace-entry"
 import type { WorkspaceRole } from "@/domains/workspaces/bootstrap/contracts/workspace-bootstrap"
@@ -6,12 +9,42 @@ import { getWorkspaceBootstrap } from "@/domains/workspaces/bootstrap/infra/work
 import { redirect } from "@tanstack/react-router"
 
 interface SettingsRouteLoaderData {
-  isAdmin: boolean
   snapshot: SettingsAdminSnapshot | null
 }
 
-const isSettingsAdminRole = (role: WorkspaceRole) =>
+const forbiddenSettingsSnapshotMessage =
+  "You are not allowed to manage settings for this workspace."
+
+const hasWorkspaceAdminAccess = (permissions: SettingsAdminPermissions) =>
+  permissions.canEditWorkspaceProfile ||
+  permissions.canManageInvites ||
+  permissions.canManageMembers ||
+  permissions.canInviteRoles.length > 0
+
+const hasPeopleSettingsAccess = (permissions: SettingsAdminPermissions) =>
+  permissions.canManageInvites ||
+  permissions.canManageMembers ||
+  permissions.canInviteRoles.length > 0
+
+const canRequestSettingsSnapshot = (role: WorkspaceRole) =>
   role === "owner" || role === "admin"
+
+const loadSettingsSnapshot = async (workspaceId: string) => {
+  try {
+    return await getSettingsSnapshot({
+      workspaceId,
+    })
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message === forbiddenSettingsSnapshotMessage
+    ) {
+      return null
+    }
+
+    throw error
+  }
+}
 
 const requireSettingsAccess = async () => {
   const workspaceEntry = resolveWorkspaceEntry(await getWorkspaceBootstrap())
@@ -41,39 +74,97 @@ const requireSettingsAccess = async () => {
 
   return {
     activeWorkspace,
-    isAdmin: isSettingsAdminRole(activeWorkspace.role),
   }
 }
 
-const requireAdminSettingsAccess = async () => {
+const requireWorkspaceAdminSettingsAccess = async () => {
   const access = await requireSettingsAccess()
 
-  if (!access.isAdmin) {
+  if (!canRequestSettingsSnapshot(access.activeWorkspace.role)) {
     throw redirect({
       replace: true,
       to: "/app/settings/account",
     })
   }
 
-  return access
-}
+  const snapshot = await loadSettingsSnapshot(access.activeWorkspace.id)
 
-const loadSettingsRouteData = async (): Promise<SettingsRouteLoaderData> => {
-  const access = await requireSettingsAccess()
+  if (!snapshot || !hasWorkspaceAdminAccess(snapshot.permissions)) {
+    throw redirect({
+      replace: true,
+      to: "/app/settings/account",
+    })
+  }
 
   return {
-    isAdmin: access.isAdmin,
-    snapshot: access.isAdmin
-      ? await getSettingsSnapshot({
-          workspaceId: access.activeWorkspace.id,
-        })
-      : null,
+    snapshot,
+  }
+}
+
+const requireWorkspaceProfileSettingsAccess = async () => {
+  const { snapshot } = await requireWorkspaceAdminSettingsAccess()
+
+  if (!snapshot.permissions.canEditWorkspaceProfile) {
+    throw redirect({
+      replace: true,
+      to: "/app/settings/account",
+    })
+  }
+
+  return {
+    snapshot,
+  }
+}
+
+const requirePeopleSettingsAccess = async () => {
+  const { snapshot } = await requireWorkspaceAdminSettingsAccess()
+
+  if (!hasPeopleSettingsAccess(snapshot.permissions)) {
+    throw redirect({
+      replace: true,
+      to: "/app/settings/account",
+    })
+  }
+
+  return {
+    snapshot,
+  }
+}
+
+const loadSettingsRouteData = async ({
+  location,
+}: {
+  location: {
+    pathname: string
+  }
+}): Promise<SettingsRouteLoaderData> => {
+  const access = await requireSettingsAccess()
+  const snapshot = canRequestSettingsSnapshot(access.activeWorkspace.role)
+    ? await loadSettingsSnapshot(access.activeWorkspace.id)
+    : null
+
+  if (
+    location.pathname === "/app/settings" &&
+    (!snapshot || !hasWorkspaceAdminAccess(snapshot.permissions))
+  ) {
+    throw redirect({
+      replace: true,
+      to: "/app/settings/account",
+    })
+  }
+
+  return {
+    snapshot,
   }
 }
 
 export {
+  hasPeopleSettingsAccess,
+  hasWorkspaceAdminAccess,
   loadSettingsRouteData,
-  requireAdminSettingsAccess,
+  requirePeopleSettingsAccess,
   requireSettingsAccess,
+  requireWorkspaceAdminSettingsAccess,
+  requireWorkspaceProfileSettingsAccess,
 }
 export type { SettingsRouteLoaderData }

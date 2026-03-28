@@ -1,4 +1,4 @@
-import { requireAdminSettingsAccess } from "@/domains/identity/settings-admin/application/settings-route-access"
+import { requireWorkspaceAdminSettingsAccess } from "@/domains/identity/settings-admin/application/settings-route-access"
 import { createFileRoute } from "@tanstack/react-router"
 
 import {
@@ -23,5 +23,5 @@ const NotificationsSettingsRoute = () => (
 
 export const Route = createFileRoute("/app/settings/notifications")({
   component: NotificationsSettingsRoute,
-  loader: requireAdminSettingsAccess,
+  loader: requireWorkspaceAdminSettingsAccess,
 })

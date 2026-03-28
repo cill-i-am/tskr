@@ -1,4 +1,4 @@
-import { requireAdminSettingsAccess } from "@/domains/identity/settings-admin/application/settings-route-access"
+import { requireWorkspaceAdminSettingsAccess } from "@/domains/identity/settings-admin/application/settings-route-access"
 import { createFileRoute } from "@tanstack/react-router"
 
 import {
@@ -23,5 +23,5 @@ const LabelsSettingsRoute = () => (
 
 export const Route = createFileRoute("/app/settings/labels")({
   component: LabelsSettingsRoute,
-  loader: requireAdminSettingsAccess,
+  loader: requireWorkspaceAdminSettingsAccess,
 })

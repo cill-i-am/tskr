@@ -1,4 +1,4 @@
-import { requireAdminSettingsAccess } from "@/domains/identity/settings-admin/application/settings-route-access"
+import { requireWorkspaceAdminSettingsAccess } from "@/domains/identity/settings-admin/application/settings-route-access"
 import { SettingsOverviewPage } from "@/domains/identity/settings-admin/ui/settings-overview-page"
 import { createFileRoute, useLoaderData } from "@tanstack/react-router"
 
@@ -14,5 +14,5 @@ const SettingsOverviewRoute = () => {
 
 export const Route = createFileRoute("/app/settings/")({
   component: SettingsOverviewRoute,
-  loader: requireAdminSettingsAccess,
+  loader: requireWorkspaceAdminSettingsAccess,
 })

@@ -105,6 +105,13 @@ const activeSettingsSnapshot: SettingsAdminSnapshot = {
   },
 }
 
+const withSettingsPermissions = (
+  permissions: SettingsAdminSnapshot["permissions"]
+): SettingsAdminSnapshot => ({
+  ...activeSettingsSnapshot,
+  permissions,
+})
+
 const withRecoveryState = (
   recoveryState: WorkspaceBootstrap["recoveryState"]
 ): WorkspaceBootstrap => ({
@@ -377,8 +384,9 @@ describe("workspace app shell routes", () => {
         name: "Settings",
       })
     ).resolves.toBeTruthy()
+    expect(screen.getAllByText("Available now")).toHaveLength(2)
+    expect(screen.getAllByText("Coming soon")).toHaveLength(2)
     expect(screen.getByRole("link", { name: "Workspace" })).toBeTruthy()
-    expect(screen.getByRole("link", { name: "People" })).toBeTruthy()
   })
 
   it("redirects non-admin visits to /app/settings back to account settings", async () => {
@@ -397,6 +405,37 @@ describe("workspace app shell routes", () => {
         name: "Account settings",
       })
     ).resolves.toBeTruthy()
+  })
+
+  it("falls back to account settings when snapshot permissions remove admin access", async () => {
+    getSettingsSnapshotMock.mockResolvedValue(
+      withSettingsPermissions({
+        canEditWorkspaceProfile: false,
+        canInviteRoles: [],
+        canManageInvites: false,
+        canManageMembers: false,
+      })
+    )
+
+    const router = await renderPath({
+      bootstrap: withActiveWorkspaceRole("owner"),
+      path: "/app/settings",
+    })
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/app/settings/account")
+    })
+
+    expect(getSettingsSnapshotMock).toHaveBeenCalledWith({
+      workspaceId: "workspace_123",
+    })
+    await expect(
+      screen.findByRole("heading", {
+        name: "Account settings",
+      })
+    ).resolves.toBeTruthy()
+    expect(screen.queryByRole("link", { name: "Workspace" })).toBeNull()
+    expect(screen.queryByRole("link", { name: "People" })).toBeNull()
   })
 
   it.each([
@@ -440,6 +479,59 @@ describe("workspace app shell routes", () => {
       ).resolves.toBeTruthy()
     }
   )
+
+  it("renders people settings when the snapshot grants people-management access", async () => {
+    getSettingsSnapshotMock.mockResolvedValue(activeSettingsSnapshot)
+
+    const router = await renderPath({
+      bootstrap: withActiveWorkspaceRole("admin"),
+      path: "/app/settings/people",
+    })
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/app/settings/people")
+    })
+
+    expect(getSettingsSnapshotMock).toHaveBeenCalledWith({
+      workspaceId: "workspace_123",
+    })
+    await expect(
+      screen.findByRole("heading", {
+        name: "People settings",
+      })
+    ).resolves.toBeTruthy()
+    expect(
+      screen.getByText(
+        "People management forms will mount here in the next task."
+      )
+    ).toBeTruthy()
+  })
+
+  it("redirects people settings to account when snapshot permissions block people management", async () => {
+    getSettingsSnapshotMock.mockResolvedValue(
+      withSettingsPermissions({
+        canEditWorkspaceProfile: true,
+        canInviteRoles: [],
+        canManageInvites: false,
+        canManageMembers: false,
+      })
+    )
+
+    const router = await renderPath({
+      bootstrap: withActiveWorkspaceRole("owner"),
+      path: "/app/settings/people",
+    })
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/app/settings/account")
+    })
+
+    await expect(
+      screen.findByRole("heading", {
+        name: "Account settings",
+      })
+    ).resolves.toBeTruthy()
+  })
 
   it("redirects settings visits to onboarding when no active workspace is selected", async () => {
     const router = await loadPath({

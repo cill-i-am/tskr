@@ -6,7 +6,7 @@ const SettingsLayoutRoute = () => {
   const loaderData = useLoaderData({ from: "/app/settings" })
 
   return (
-    <SettingsLayout isAdmin={loaderData.isAdmin} snapshot={loaderData.snapshot}>
+    <SettingsLayout snapshot={loaderData.snapshot}>
       <Outlet />
     </SettingsLayout>
   )
