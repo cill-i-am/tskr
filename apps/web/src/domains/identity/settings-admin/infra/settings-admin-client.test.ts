@@ -237,6 +237,32 @@ describe("settings admin clients", () => {
     }
   })
 
+  it("surfaces API error messages for failed settings snapshot reads", async () => {
+    const fetchMock = withAuthServiceFetch()
+
+    try {
+      fetchMock.mockResolvedValue(
+        Response.json(
+          {
+            message: "Workspace settings are temporarily unavailable.",
+          },
+          {
+            status: 503,
+            statusText: "Service Unavailable",
+          }
+        )
+      )
+
+      await expect(
+        getSettingsSnapshot({
+          workspaceId: "workspace_123",
+        })
+      ).rejects.toThrow("Workspace settings are temporarily unavailable.")
+    } finally {
+      withoutAuthServiceFetch()
+    }
+  })
+
   it("updates the account profile", async () => {
     const fetchMock = withAuthServiceFetch()
 
