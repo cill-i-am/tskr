@@ -1,25 +1,25 @@
-import { OnboardingGatePage } from "@/domains/workspaces/app-shell/ui/onboarding-gate-page"
 import { resolveWorkspaceEntry } from "@/domains/workspaces/bootstrap/application/resolve-workspace-entry"
 import { getWorkspaceBootstrap } from "@/domains/workspaces/bootstrap/infra/workspace-bootstrap-client"
 import { WorkspaceBootstrapProvider } from "@/domains/workspaces/bootstrap/ui/workspace-bootstrap-provider"
 import {
+  Outlet,
   createFileRoute,
   redirect,
   useLoaderData,
 } from "@tanstack/react-router"
 
-const OnboardingRoutePage = () => {
+const OnboardingLayoutRoute = () => {
   const bootstrap = useLoaderData({ from: "/onboarding" })
 
   return (
     <WorkspaceBootstrapProvider bootstrap={bootstrap}>
-      <OnboardingGatePage />
+      <Outlet />
     </WorkspaceBootstrapProvider>
   )
 }
 
 export const Route = createFileRoute("/onboarding")({
-  component: OnboardingRoutePage,
+  component: OnboardingLayoutRoute,
   loader: async () => {
     const workspaceEntry = resolveWorkspaceEntry(await getWorkspaceBootstrap())
 

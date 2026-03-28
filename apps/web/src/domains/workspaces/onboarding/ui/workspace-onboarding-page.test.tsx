@@ -1,0 +1,215 @@
+import type { WorkspaceBootstrap } from "@/domains/workspaces/bootstrap/contracts/workspace-bootstrap"
+import { cleanup, render, screen, waitFor } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
+import type { ComponentProps, ReactNode } from "react"
+
+const { createWorkspaceMock, navigateMock } = vi.hoisted(() => ({
+  createWorkspaceMock: vi.fn(),
+  navigateMock: vi.fn(),
+}))
+
+const installMocks = () => {
+  vi.doMock(import("@tanstack/react-router"), (() => ({
+    Link: ({
+      children,
+      to,
+      ...props
+    }: {
+      children?: ReactNode
+      to: string
+    } & ComponentProps<"a">) => (
+      <a href={to} {...props}>
+        {children}
+      </a>
+    ),
+    useNavigate: () => navigateMock,
+  })) as never)
+
+  vi.doMock(
+    import("@/domains/workspaces/onboarding/infra/create-workspace-client"),
+    (() => ({
+      createWorkspace: createWorkspaceMock,
+    })) as never
+  )
+}
+
+const baseBootstrap: WorkspaceBootstrap = {
+  activeWorkspace: null,
+  memberships: [],
+  pendingInvites: [],
+  recoveryState: "onboarding_required",
+}
+
+const renderPage = async (bootstrap: WorkspaceBootstrap) => {
+  installMocks()
+  const { WorkspaceBootstrapProvider } =
+    await import("@/domains/workspaces/bootstrap/ui/workspace-bootstrap-provider")
+  const { WorkspaceOnboardingPage } =
+    await import("./workspace-onboarding-page")
+
+  const view = render(
+    <WorkspaceBootstrapProvider bootstrap={bootstrap}>
+      <WorkspaceOnboardingPage />
+    </WorkspaceBootstrapProvider>
+  )
+
+  return {
+    view,
+  }
+}
+
+const resetMocks = () => {
+  createWorkspaceMock.mockReset()
+  navigateMock.mockReset()
+  vi.resetModules()
+}
+
+describe("workspace onboarding page", () => {
+  it("renders the create-workspace flow for onboarding-required users", async () => {
+    resetMocks()
+    const { view } = await renderPage(baseBootstrap)
+
+    try {
+      expect(
+        screen.getByRole("heading", {
+          name: "Create your first workspace",
+        })
+      ).toBeTruthy()
+      expect(screen.getByLabelText("Workspace name")).toBeTruthy()
+      expect(
+        screen.getByRole("button", { name: "Create workspace" })
+      ).toBeTruthy()
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
+  it("renders the recovery fallback instead of the create form when selection is required", async () => {
+    resetMocks()
+    const { view } = await renderPage({
+      ...baseBootstrap,
+      activeWorkspace: null,
+      memberships: [
+        {
+          id: "workspace_123",
+          logo: null,
+          name: "Operations Control",
+          role: "owner",
+          slug: "operations-control",
+        },
+        {
+          id: "workspace_456",
+          logo: null,
+          name: "Field Team",
+          role: "admin",
+          slug: "field-team",
+        },
+      ],
+      recoveryState: "selection_required",
+    })
+
+    try {
+      expect(
+        screen.getByRole("heading", {
+          name: "Workspace selection is coming next",
+        })
+      ).toBeTruthy()
+      expect(screen.queryByLabelText("Workspace name")).toBeNull()
+      expect(screen.getByText("2 memberships discovered")).toBeTruthy()
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
+  it("requires a workspace name before submitting", async () => {
+    resetMocks()
+    const { view } = await renderPage(baseBootstrap)
+    const user = userEvent.setup()
+
+    try {
+      await user.click(screen.getByRole("button", { name: "Create workspace" }))
+
+      expect(createWorkspaceMock).not.toHaveBeenCalled()
+      expect(screen.getByText("Workspace name is required.")).toBeTruthy()
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
+  it("submits only the trimmed workspace name and navigates into the app on success", async () => {
+    resetMocks()
+    createWorkspaceMock.mockResolvedValue({
+      ...baseBootstrap,
+      activeWorkspace: {
+        id: "workspace_123",
+        logo: null,
+        name: "Operations Control",
+        role: "owner",
+        slug: "operations-control",
+      },
+      memberships: [
+        {
+          id: "workspace_123",
+          logo: null,
+          name: "Operations Control",
+          role: "owner",
+          slug: "operations-control",
+        },
+      ],
+      recoveryState: "active_valid",
+    } satisfies WorkspaceBootstrap)
+    const { view } = await renderPage(baseBootstrap)
+    const user = userEvent.setup()
+
+    try {
+      await user.type(
+        screen.getByLabelText("Workspace name"),
+        "  Operations Control  "
+      )
+      await user.click(screen.getByRole("button", { name: "Create workspace" }))
+
+      await waitFor(() => {
+        expect(createWorkspaceMock).toHaveBeenCalledWith({
+          name: "Operations Control",
+        })
+      })
+      await waitFor(() => {
+        expect(navigateMock).toHaveBeenCalledWith({
+          to: "/app",
+        })
+      })
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
+  it("shows inline submission errors from workspace creation", async () => {
+    resetMocks()
+    createWorkspaceMock.mockRejectedValue(
+      new Error("Workspace creation is unavailable right now.")
+    )
+    const { view } = await renderPage(baseBootstrap)
+    const user = userEvent.setup()
+
+    try {
+      await user.type(
+        screen.getByLabelText("Workspace name"),
+        "Operations Control"
+      )
+      await user.click(screen.getByRole("button", { name: "Create workspace" }))
+
+      await waitFor(() => {
+        expect(
+          screen.getByText("Workspace creation is unavailable right now.")
+        ).toBeTruthy()
+      })
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+})

@@ -260,7 +260,28 @@ describe("workspace app shell routes", () => {
     expect(screen.getByText("1 pending invite")).toBeTruthy()
   })
 
-  it("renders the onboarding holding page from shared bootstrap state", async () => {
+  it("renders the onboarding create-workspace page when no memberships exist", async () => {
+    const router = await renderPath({
+      bootstrap: withRecoveryState("onboarding_required"),
+      path: "/onboarding",
+    })
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/onboarding")
+    })
+
+    await expect(
+      screen.findByRole("heading", {
+        name: "Create your first workspace",
+      })
+    ).resolves.toBeTruthy()
+    expect(screen.getByLabelText("Workspace name")).toBeTruthy()
+    expect(
+      screen.getByRole("button", { name: "Create workspace" })
+    ).toBeTruthy()
+  })
+
+  it("renders the onboarding recovery fallback when workspace selection is required", async () => {
     const router = await renderPath({
       bootstrap: withRecoveryState("selection_required"),
       path: "/onboarding",
@@ -272,9 +293,10 @@ describe("workspace app shell routes", () => {
 
     await expect(
       screen.findByRole("heading", {
-        name: "Finish setting up your workspace access",
+        name: "Workspace selection is coming next",
       })
     ).resolves.toBeTruthy()
-    expect(screen.getByText("selection_required")).toBeTruthy()
+    expect(screen.queryByLabelText("Workspace name")).toBeNull()
+    expect(screen.getByText("2 memberships discovered")).toBeTruthy()
   })
 })
