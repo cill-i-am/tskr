@@ -5,6 +5,8 @@ import type {
   SettingsAdminWorkspaceRole,
 } from "@/domains/identity/settings-admin/contracts/settings-admin-contract"
 
+import { readAuthServiceErrorMessage } from "./read-auth-service-error-message"
+
 interface UpdateWorkspaceMemberRoleInput {
   memberId: string
   role: SettingsAdminWorkspaceRole
@@ -32,21 +34,7 @@ const updateWorkspaceMemberRole = async ({
   )
 
   if (!response.ok) {
-    let message = `Auth service request failed with status ${response.status}.`
-
-    try {
-      const payload = (await response.json()) as {
-        message?: string | undefined
-      }
-
-      if (payload.message) {
-        ;({ message } = payload)
-      }
-    } catch {
-      // Fall back to the generic message when the error payload is not JSON.
-    }
-
-    throw new Error(message)
+    throw new Error(await readAuthServiceErrorMessage(response))
   }
 
   try {

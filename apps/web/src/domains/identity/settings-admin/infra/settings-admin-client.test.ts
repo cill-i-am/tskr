@@ -329,6 +329,45 @@ describe("settings admin clients", () => {
     }
   })
 
+  it("rejects malformed account profile payloads", async () => {
+    const fetchMock = withAuthServiceFetch()
+
+    try {
+      fetchMock.mockResolvedValue(new Response("{", { status: 200 }))
+
+      await expect(
+        updateAccountProfile({
+          image: null,
+          name: "Owner Operator",
+        })
+      ).rejects.toThrow("Malformed account profile JSON.")
+    } finally {
+      withoutAuthServiceFetch()
+    }
+  })
+
+  it("rejects schema-invalid account profile payloads", async () => {
+    const fetchMock = withAuthServiceFetch()
+
+    try {
+      fetchMock.mockResolvedValue(
+        Response.json({
+          ...accountProfile,
+          name: null,
+        })
+      )
+
+      await expect(
+        updateAccountProfile({
+          image: null,
+          name: "Owner Operator",
+        })
+      ).rejects.toThrow("Invalid account profile payload.")
+    } finally {
+      withoutAuthServiceFetch()
+    }
+  })
+
   it("updates the workspace profile for an explicit workspace", async () => {
     const fetchMock = withAuthServiceFetch()
 
@@ -363,6 +402,77 @@ describe("settings admin clients", () => {
           credentials: "include",
           method: "PATCH",
         })
+      )
+    } finally {
+      withoutAuthServiceFetch()
+    }
+  })
+
+  it("rejects malformed workspace profile payloads", async () => {
+    const fetchMock = withAuthServiceFetch()
+
+    try {
+      fetchMock.mockResolvedValue(new Response("{", { status: 200 }))
+
+      await expect(
+        updateWorkspaceProfile({
+          logo: null,
+          name: "Ops Control North",
+          workspaceId: "workspace_123",
+        })
+      ).rejects.toThrow("Malformed workspace profile JSON.")
+    } finally {
+      withoutAuthServiceFetch()
+    }
+  })
+
+  it("rejects schema-invalid workspace profile payloads", async () => {
+    const fetchMock = withAuthServiceFetch()
+
+    try {
+      fetchMock.mockResolvedValue(
+        Response.json({
+          ...workspaceProfile,
+          slug: null,
+        })
+      )
+
+      await expect(
+        updateWorkspaceProfile({
+          logo: null,
+          name: "Ops Control North",
+          workspaceId: "workspace_123",
+        })
+      ).rejects.toThrow("Invalid workspace profile payload.")
+    } finally {
+      withoutAuthServiceFetch()
+    }
+  })
+
+  it("surfaces API error messages for workspace profile updates", async () => {
+    const fetchMock = withAuthServiceFetch()
+
+    try {
+      fetchMock.mockResolvedValue(
+        Response.json(
+          {
+            message: "Workspace profile updates are temporarily unavailable.",
+          },
+          {
+            status: 503,
+            statusText: "Service Unavailable",
+          }
+        )
+      )
+
+      await expect(
+        updateWorkspaceProfile({
+          logo: null,
+          name: "Ops Control North",
+          workspaceId: "workspace_123",
+        })
+      ).rejects.toThrow(
+        "Workspace profile updates are temporarily unavailable."
       )
     } finally {
       withoutAuthServiceFetch()
@@ -422,6 +532,52 @@ describe("settings admin clients", () => {
     }
   })
 
+  it("rejects malformed workspace invite payloads", async () => {
+    const fetchMock = withAuthServiceFetch()
+
+    try {
+      fetchMock.mockResolvedValue(new Response("{", { status: 200 }))
+
+      await expect(
+        createWorkspaceInvite({
+          email: "worker@example.com",
+          role: "field_worker",
+          workspaceId: "workspace_123",
+        })
+      ).rejects.toThrow("Malformed workspace invite JSON.")
+    } finally {
+      withoutAuthServiceFetch()
+    }
+  })
+
+  it("surfaces API error messages for failed workspace invite creation", async () => {
+    const fetchMock = withAuthServiceFetch()
+
+    try {
+      fetchMock.mockResolvedValue(
+        Response.json(
+          {
+            message: "Workspace invite delivery is temporarily unavailable.",
+          },
+          {
+            status: 503,
+            statusText: "Service Unavailable",
+          }
+        )
+      )
+
+      await expect(
+        createWorkspaceInvite({
+          email: "worker@example.com",
+          role: "field_worker",
+          workspaceId: "workspace_123",
+        })
+      ).rejects.toThrow("Workspace invite delivery is temporarily unavailable.")
+    } finally {
+      withoutAuthServiceFetch()
+    }
+  })
+
   it("resends a workspace invite for an explicit workspace", async () => {
     const fetchMock = withAuthServiceFetch()
 
@@ -447,6 +603,33 @@ describe("settings admin clients", () => {
     }
   })
 
+  it("surfaces API error messages for workspace invite resend failures", async () => {
+    const fetchMock = withAuthServiceFetch()
+
+    try {
+      fetchMock.mockResolvedValue(
+        Response.json(
+          {
+            message: "Workspace invite resend is temporarily unavailable.",
+          },
+          {
+            status: 503,
+            statusText: "Service Unavailable",
+          }
+        )
+      )
+
+      await expect(
+        resendWorkspaceInvite({
+          inviteId: "invite_123",
+          workspaceId: "workspace_123",
+        })
+      ).rejects.toThrow("Workspace invite resend is temporarily unavailable.")
+    } finally {
+      withoutAuthServiceFetch()
+    }
+  })
+
   it("revoke a workspace invite for an explicit workspace", async () => {
     const fetchMock = withAuthServiceFetch()
 
@@ -466,6 +649,35 @@ describe("settings admin clients", () => {
           credentials: "include",
           method: "DELETE",
         })
+      )
+    } finally {
+      withoutAuthServiceFetch()
+    }
+  })
+
+  it("surfaces API error messages for workspace invite revoke failures", async () => {
+    const fetchMock = withAuthServiceFetch()
+
+    try {
+      fetchMock.mockResolvedValue(
+        Response.json(
+          {
+            message: "Workspace invite revocation is temporarily unavailable.",
+          },
+          {
+            status: 503,
+            statusText: "Service Unavailable",
+          }
+        )
+      )
+
+      await expect(
+        revokeWorkspaceInvite({
+          inviteId: "invite_123",
+          workspaceId: "workspace_123",
+        })
+      ).rejects.toThrow(
+        "Workspace invite revocation is temporarily unavailable."
       )
     } finally {
       withoutAuthServiceFetch()
@@ -519,6 +731,57 @@ describe("settings admin clients", () => {
     }
   })
 
+  it("rejects schema-invalid workspace member role payloads", async () => {
+    const fetchMock = withAuthServiceFetch()
+
+    try {
+      fetchMock.mockResolvedValue(
+        Response.json({
+          ...roleUpdatePayload,
+          role: "supervisor",
+        })
+      )
+
+      await expect(
+        updateWorkspaceMemberRole({
+          memberId: "membership_123",
+          role: "admin",
+          workspaceId: "workspace_123",
+        })
+      ).rejects.toThrow("Invalid workspace member role payload.")
+    } finally {
+      withoutAuthServiceFetch()
+    }
+  })
+
+  it("surfaces API error messages for workspace member role updates", async () => {
+    const fetchMock = withAuthServiceFetch()
+
+    try {
+      fetchMock.mockResolvedValue(
+        Response.json(
+          {
+            message: "Workspace role updates are temporarily unavailable.",
+          },
+          {
+            status: 503,
+            statusText: "Service Unavailable",
+          }
+        )
+      )
+
+      await expect(
+        updateWorkspaceMemberRole({
+          memberId: "membership_123",
+          role: "admin",
+          workspaceId: "workspace_123",
+        })
+      ).rejects.toThrow("Workspace role updates are temporarily unavailable.")
+    } finally {
+      withoutAuthServiceFetch()
+    }
+  })
+
   it("removes a workspace member for an explicit workspace", async () => {
     const fetchMock = withAuthServiceFetch()
 
@@ -539,6 +802,33 @@ describe("settings admin clients", () => {
           method: "DELETE",
         })
       )
+    } finally {
+      withoutAuthServiceFetch()
+    }
+  })
+
+  it("surfaces API error messages for workspace member removal failures", async () => {
+    const fetchMock = withAuthServiceFetch()
+
+    try {
+      fetchMock.mockResolvedValue(
+        Response.json(
+          {
+            message: "Workspace member removal is temporarily unavailable.",
+          },
+          {
+            status: 503,
+            statusText: "Service Unavailable",
+          }
+        )
+      )
+
+      await expect(
+        removeWorkspaceMember({
+          memberId: "membership_123",
+          workspaceId: "workspace_123",
+        })
+      ).rejects.toThrow("Workspace member removal is temporarily unavailable.")
     } finally {
       withoutAuthServiceFetch()
     }

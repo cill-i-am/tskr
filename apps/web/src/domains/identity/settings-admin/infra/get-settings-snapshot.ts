@@ -2,6 +2,8 @@ import { fetchAuthService } from "@/domains/identity/authentication/infra/auth-s
 import { settingsAdminSnapshotSchema } from "@/domains/identity/settings-admin/contracts/settings-admin-contract"
 import type { SettingsAdminSnapshot } from "@/domains/identity/settings-admin/contracts/settings-admin-contract"
 
+import { readAuthServiceErrorMessage } from "./read-auth-service-error-message"
+
 interface GetSettingsSnapshotInput {
   workspaceId: string
 }
@@ -14,21 +16,7 @@ const getSettingsSnapshot = async ({
   )
 
   if (!response.ok) {
-    let message = `Auth service request failed with status ${response.status}.`
-
-    try {
-      const payload = (await response.json()) as {
-        message?: string | undefined
-      }
-
-      if (payload.message) {
-        ;({ message } = payload)
-      }
-    } catch {
-      // Fall back to the generic message when the error payload is not JSON.
-    }
-
-    throw new Error(message)
+    throw new Error(await readAuthServiceErrorMessage(response))
   }
 
   try {

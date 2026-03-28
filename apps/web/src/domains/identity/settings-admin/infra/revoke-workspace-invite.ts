@@ -1,5 +1,7 @@
 import { fetchAuthService } from "@/domains/identity/authentication/infra/auth-service-client"
 
+import { readAuthServiceErrorMessage } from "./read-auth-service-error-message"
+
 interface RevokeWorkspaceInviteInput {
   inviteId: string
   workspaceId: string
@@ -19,21 +21,7 @@ const revokeWorkspaceInvite = async ({
   )
 
   if (!response.ok) {
-    let message = `Auth service request failed with status ${response.status}.`
-
-    try {
-      const payload = (await response.json()) as {
-        message?: string | undefined
-      }
-
-      if (payload.message) {
-        ;({ message } = payload)
-      }
-    } catch {
-      // Fall back to the generic message when the error payload is not JSON.
-    }
-
-    throw new Error(message)
+    throw new Error(await readAuthServiceErrorMessage(response))
   }
 }
 
