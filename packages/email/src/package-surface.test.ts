@@ -49,5 +49,6 @@ test("email service exposes the spec'd auth method names", () => {
     "sendExistingUserSignupNotice",
     "sendPasswordResetEmail",
     "sendSignupVerificationOtpEmail",
+    "sendWorkspaceInvitationEmail",
   ])
 })

@@ -14,6 +14,8 @@ import type {
   ExistingUserSignUpNoticeEmailInput,
   PasswordResetEmailInput,
   ResendTransportConfig,
+  SignupVerificationOtpEmailInput,
+  WorkspaceInvitationEmailInput,
 } from "@workspace/email"
 
 const transport: EmailTransport = {
@@ -48,10 +50,26 @@ const noticeInput: ExistingUserSignUpNoticeEmailInput = {
   to: "linus@example.com",
 }
 
+const otpInput: SignupVerificationOtpEmailInput = {
+  code: "123456",
+  to: "alan@example.com",
+}
+
+const invitationInput: WorkspaceInvitationEmailInput = {
+  acceptUrl: "https://app.tskr.test/invite/accept?token=inv-123",
+  code: "INV-456",
+  invitedByName: "Ada Lovelace",
+  role: "member",
+  to: "babbage@example.com",
+  workspaceName: "Analytical Engine",
+}
+
 await Promise.all([
   service.sendPasswordResetEmail(resetInput),
   service.sendEmailVerificationEmail(verifyInput),
   service.sendExistingUserSignupNotice(noticeInput),
+  service.sendSignupVerificationOtpEmail(otpInput),
+  service.sendWorkspaceInvitationEmail(invitationInput),
 ])
 
 const consoleConfig: ConsoleTransportConfig = {
