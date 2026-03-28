@@ -121,8 +121,13 @@ const requireAccountProfileUpdate = async (request: Request) => {
     })
   }
 
+  const image =
+    typeof body?.image === "string" || body?.image === null
+      ? body.image
+      : undefined
+
   return {
-    image: body.image as string | null | undefined,
+    image,
     name: body.name,
   }
 }
@@ -146,8 +151,13 @@ const requireWorkspaceProfileUpdate = async (request: Request) => {
     })
   }
 
+  const logo =
+    typeof body?.logo === "string" || body?.logo === null
+      ? body.logo
+      : undefined
+
   return {
-    logo: body.logo as string | null | undefined,
+    logo,
     name: body.name,
   }
 }
