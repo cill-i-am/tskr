@@ -38,5 +38,16 @@ const authClient = createAuthClient({
   plugins: [emailOTPClient()],
 })
 
+const fetchAuthService = (
+  path: string,
+  init: RequestInit = {},
+  options?: ResolveAuthBaseUrlOptions
+) =>
+  fetch(new URL(path, resolveAuthBaseUrl(options)).toString(), {
+    ...init,
+    credentials: "include",
+  })
+
 export { authClient }
+export { fetchAuthService }
 export { resolveAuthBaseUrl }
