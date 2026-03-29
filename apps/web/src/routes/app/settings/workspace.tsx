@@ -3,7 +3,7 @@ import { WorkspaceSettingsPage } from "@/domains/identity/settings-admin/ui/work
 import { createFileRoute, useLoaderData } from "@tanstack/react-router"
 
 const WorkspaceSettingsRoute = () => {
-  const { snapshot } = useLoaderData({ from: "/app/settings" })
+  const { snapshot } = useLoaderData({ from: "/app/settings/workspace" })
 
   return <WorkspaceSettingsPage snapshot={snapshot} />
 }

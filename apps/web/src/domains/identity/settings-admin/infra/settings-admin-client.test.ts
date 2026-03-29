@@ -12,6 +12,7 @@ import {
   settingsAdminWorkspaceProfileSchema,
 } from "@/domains/identity/settings-admin/contracts/settings-admin-contract"
 import type {
+  SettingsAdminMember,
   SettingsAdminSnapshot,
   SettingsAdminUpdateWorkspaceMemberRoleResponse,
   SettingsAdminWorkspaceInvite,
@@ -41,7 +42,7 @@ const workspaceProfile: SettingsAdminWorkspaceProfile = {
   slug: "ops-control",
 }
 
-const member = {
+const member: SettingsAdminMember = {
   email: "dispatcher@example.com",
   id: "membership_123",
   image: null,
@@ -54,7 +55,7 @@ const member = {
   },
   role: "dispatcher",
   userId: "user_456",
-} as const
+}
 
 const invite: SettingsAdminWorkspaceInvite = {
   acceptUrl: "https://auth.example.com/accept?token=signed-token",

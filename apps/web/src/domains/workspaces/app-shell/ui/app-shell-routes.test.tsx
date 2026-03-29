@@ -500,11 +500,7 @@ describe("workspace app shell routes", () => {
         name: "People settings",
       })
     ).resolves.toBeTruthy()
-    expect(
-      screen.getByText(
-        "People management forms will mount here in the next task."
-      )
-    ).toBeTruthy()
+    await expect(screen.findByLabelText("Invite email")).resolves.toBeTruthy()
   })
 
   it("redirects people settings to account when snapshot permissions block people management", async () => {

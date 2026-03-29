@@ -436,7 +436,7 @@ const renderPeopleRoute = async ({
   prepareTestEnvironment()
   currentSnapshot = snapshot
   getWorkspaceBootstrapMock.mockResolvedValue(bootstrap)
-  getSettingsSnapshotMock.mockImplementation(() => currentSnapshot)
+  getSettingsSnapshotMock.mockImplementation(async () => currentSnapshot)
 
   const router = createTestRouter("/app/settings/people")
 
@@ -463,7 +463,7 @@ describe("people settings page", () => {
       role: "owner",
     })
 
-    createWorkspaceInviteMock.mockImplementation((input) => {
+    createWorkspaceInviteMock.mockImplementation(async (input) => {
       currentSnapshot = {
         ...currentSnapshot,
         pendingInvites: [...currentSnapshot.pendingInvites, nextInvite],
@@ -517,7 +517,7 @@ describe("people settings page", () => {
   })
 
   it("lets owners change member roles and gates pending invite actions by row permissions", async () => {
-    updateWorkspaceMemberRoleMock.mockImplementation((input) => {
+    updateWorkspaceMemberRoleMock.mockImplementation(async (input) => {
       currentSnapshot = withMemberRole(
         currentSnapshot,
         input.memberId,
@@ -530,7 +530,7 @@ describe("people settings page", () => {
         workspaceId: input.workspaceId,
       }
     })
-    revokeWorkspaceInviteMock.mockImplementation(({ inviteId }) => {
+    revokeWorkspaceInviteMock.mockImplementation(async ({ inviteId }) => {
       currentSnapshot = withoutInvite(currentSnapshot, inviteId)
     })
 
@@ -574,7 +574,11 @@ describe("people settings page", () => {
       })
     })
     await waitFor(() => {
-      expect(within(adminRow).getByText("Owner")).toBeTruthy()
+      expect(
+        (within(adminRow).getByLabelText(
+          "Role for Grace Hopper"
+        ) as HTMLSelectElement).value
+      ).toBe("owner")
     })
 
     await user.click(
@@ -595,7 +599,7 @@ describe("people settings page", () => {
   })
 
   it("prevents admins from issuing or assigning owner access while still allowing non-owner role changes", async () => {
-    updateWorkspaceMemberRoleMock.mockImplementation((input) => {
+    updateWorkspaceMemberRoleMock.mockImplementation(async (input) => {
       currentSnapshot = withMemberRole(
         currentSnapshot,
         input.memberId,
