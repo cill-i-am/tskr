@@ -52,7 +52,7 @@ const installMocks = () => {
         {children}
       </a>
     ),
-    createFileRoute: () => () => ({}),
+    createFileRoute: () => (options: object) => options,
     useNavigate: () => navigateMock,
     useSearch: () => useSearchMock(),
   })) as never)
@@ -91,6 +91,7 @@ const loadModules = async () => {
   return {
     JoinWorkspacePage: joinWorkspacePageModule.JoinWorkspacePage,
     JoinWorkspaceRoute: joinWorkspaceRouteModule.JoinWorkspaceRoute,
+    Route: joinWorkspaceRouteModule.Route,
   }
 }
 
@@ -172,6 +173,33 @@ describe("join workspace page", () => {
     }
   })
 
+  it("accepts a signed invite token for authenticated users and navigates into the app", async () => {
+    resetMocks()
+    acceptWorkspaceInviteMock.mockResolvedValue(acceptedBootstrap)
+    const { JoinWorkspacePage } = await loadModules()
+    const user = userEvent.setup()
+
+    const view = render(<JoinWorkspacePage token="signed-token-123" />)
+
+    try {
+      await user.click(screen.getByRole("button", { name: "Join workspace" }))
+
+      await waitFor(() => {
+        expect(acceptWorkspaceInviteMock).toHaveBeenCalledWith({
+          token: "signed-token-123",
+        })
+      })
+      await waitFor(() => {
+        expect(navigateMock).toHaveBeenCalledWith({
+          to: "/app",
+        })
+      })
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
   it("renders the invalid-link state when a signed invite token is missing", async () => {
     resetMocks()
     const { JoinWorkspacePage } = await loadModules()
@@ -220,7 +248,7 @@ describe("join workspace page", () => {
 
   it.each([
     [
-      "Invite not found.",
+      "Invite not found. Ask a workspace admin for a fresh invite.",
       "This invite is no longer valid",
       "Ask the workspace admin for a fresh invite link or code.",
     ],
@@ -235,7 +263,7 @@ describe("join workspace page", () => {
       "If you still need access, ask the workspace admin to issue a new invite.",
     ],
     [
-      "You are not the recipient of that invite.",
+      "You are not the recipient of that invite. Sign in with the invited account to continue.",
       "This invite belongs to a different account",
       "Sign in with the email address that received the invite to continue.",
     ],
@@ -264,4 +292,19 @@ describe("join workspace page", () => {
       }
     }
   )
+
+  it("validates route search params so token stays string-only and optional", async () => {
+    resetMocks()
+    const { Route } = await loadModules()
+
+    expect(Route.validateSearch({ token: "signed-token-123" })).toStrictEqual({
+      token: "signed-token-123",
+    })
+    expect(Route.validateSearch({ token: 1234 })).toStrictEqual({
+      token: undefined,
+    })
+    expect(Route.validateSearch({})).toStrictEqual({
+      token: undefined,
+    })
+  })
 })

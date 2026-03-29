@@ -69,24 +69,35 @@ const recoveryCopy: Record<
 const classifyInviteError = (
   message: string
 ): JoinWorkspaceRecoveryState | null => {
-  switch (message.trim()) {
-    case "Invite has already been used.": {
-      return "already_used"
-    }
-    case "Invite has been revoked.": {
-      return "revoked"
-    }
-    case "Invite is invalid.":
-    case "Invite not found.": {
-      return "invalid"
-    }
-    case "You are not the recipient of that invite.": {
-      return "wrong_account"
-    }
-    default: {
-      return null
-    }
+  const normalizedMessage = message.trim().toLowerCase().replaceAll(/\s+/g, " ")
+
+  if (
+    normalizedMessage.includes("not the recipient of that invite") ||
+    normalizedMessage.includes("invite belongs to a different account")
+  ) {
+    return "wrong_account"
   }
+
+  if (
+    normalizedMessage.includes("already been used") ||
+    normalizedMessage.includes("already used")
+  ) {
+    return "already_used"
+  }
+
+  if (normalizedMessage.includes("revoked")) {
+    return "revoked"
+  }
+
+  if (
+    normalizedMessage.includes("invite not found") ||
+    normalizedMessage.includes("invite is invalid") ||
+    normalizedMessage.includes("no longer valid")
+  ) {
+    return "invalid"
+  }
+
+  return null
 }
 
 const JoinWorkspaceRecoveryCard = ({
