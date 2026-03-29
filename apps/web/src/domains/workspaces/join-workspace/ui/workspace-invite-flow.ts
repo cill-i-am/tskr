@@ -44,13 +44,17 @@ const persistWorkspaceInviteFlow = (input: WorkspaceInviteFlowInput): void => {
     return
   }
 
-  if (!("code" in input) && !("token" in input)) {
-    return
+  const parsedInput = joinWorkspaceInviteFlowStateSchema.safeParse(input)
+
+  if (!parsedInput.success) {
+    throw new TypeError(
+      "Join workspace invite flow must include exactly one invite identifier."
+    )
   }
 
   window.sessionStorage.setItem(
     WORKSPACE_INVITE_FLOW_STORAGE_KEY,
-    JSON.stringify(input)
+    JSON.stringify(parsedInput.data)
   )
 }
 

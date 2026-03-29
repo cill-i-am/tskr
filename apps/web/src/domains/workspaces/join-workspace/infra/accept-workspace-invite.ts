@@ -6,6 +6,7 @@ import type {
   JoinWorkspaceInviteCodeInput,
   JoinWorkspaceInviteTokenInput,
 } from "@/domains/workspaces/join-workspace/contracts/join-workspace-contract"
+import { joinWorkspaceInviteFlowStateSchema } from "@/domains/workspaces/join-workspace/contracts/join-workspace-contract"
 
 type AcceptWorkspaceInviteInput =
   | JoinWorkspaceInviteCodeInput
@@ -14,23 +15,22 @@ type AcceptWorkspaceInviteInput =
 const acceptWorkspaceInvite = async (
   input: AcceptWorkspaceInviteInput
 ): Promise<WorkspaceBootstrap> => {
-  let body: string | null = null
+  const parsedInput = joinWorkspaceInviteFlowStateSchema.safeParse(input)
 
-  if ("code" in input) {
-    body = JSON.stringify({
-      code: input.code,
-    })
-  } else if ("token" in input) {
-    body = JSON.stringify({
-      token: input.token,
-    })
-  }
-
-  if (!body) {
+  if (!parsedInput.success) {
     throw new TypeError(
-      "Join workspace invite input must include code or token."
+      "Join workspace invite input must include exactly one invite identifier."
     )
   }
+
+  const body =
+    "code" in parsedInput.data
+      ? JSON.stringify({
+          code: parsedInput.data.code,
+        })
+      : JSON.stringify({
+          token: parsedInput.data.token,
+        })
 
   const response = await fetchAuthService("/api/workspaces/invites/accept", {
     headers: {

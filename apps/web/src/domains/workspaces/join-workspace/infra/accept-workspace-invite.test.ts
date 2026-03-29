@@ -1,4 +1,8 @@
 import type { WorkspaceBootstrap } from "@/domains/workspaces/bootstrap/contracts/workspace-bootstrap"
+import {
+  persistWorkspaceInviteFlow,
+  readPendingWorkspaceInviteFlow,
+} from "@/domains/workspaces/join-workspace/ui/workspace-invite-flow"
 
 import { acceptWorkspaceInvite } from "./accept-workspace-invite"
 
@@ -102,6 +106,25 @@ describe("accept workspace invite client", () => {
     }
   })
 
+  it("rejects workspace invite payloads with both identifiers", async () => {
+    const fetchMock = withAuthServiceFetch()
+
+    try {
+      await expect(
+        acceptWorkspaceInvite({
+          code: "ABCD1234",
+          token: "signed-token",
+        } as never)
+      ).rejects.toThrow(
+        "Join workspace invite input must include exactly one invite identifier."
+      )
+
+      expect(fetchMock).not.toHaveBeenCalled()
+    } finally {
+      withoutAuthServiceFetch()
+    }
+  })
+
   it("rejects malformed workspace invite acceptance JSON", async () => {
     const fetchMock = withAuthServiceFetch()
 
@@ -168,5 +191,34 @@ describe("accept workspace invite client", () => {
     } finally {
       withoutAuthServiceFetch()
     }
+  })
+})
+
+describe("workspace invite flow helper", () => {
+  it("persists and reads a single invite code", () => {
+    window.sessionStorage.clear()
+
+    persistWorkspaceInviteFlow({
+      code: "ABCD1234",
+    })
+
+    expect(readPendingWorkspaceInviteFlow()).toStrictEqual({
+      code: "ABCD1234",
+    })
+  })
+
+  it("rejects workspace invite flows with both identifiers", () => {
+    window.sessionStorage.clear()
+
+    expect(() =>
+      persistWorkspaceInviteFlow({
+        code: "ABCD1234",
+        token: "signed-token",
+      } as never)
+    ).toThrow(
+      "Join workspace invite flow must include exactly one invite identifier."
+    )
+
+    expect(readPendingWorkspaceInviteFlow()).toBeNull()
   })
 })
