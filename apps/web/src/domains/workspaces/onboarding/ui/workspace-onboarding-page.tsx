@@ -68,6 +68,7 @@ const CreateWorkspaceOnboarding = () => (
         <CreateWorkspaceForm />
         <Button
           className="w-full"
+          nativeButton={false}
           render={<Link to="/join-workspace" />}
           variant="outline"
         >

@@ -79,7 +79,11 @@ describe("workspace onboarding page", () => {
       expect(
         screen.getByRole("button", { name: "Create workspace" })
       ).toBeTruthy()
-      expect(screen.getByRole("link", { name: "Join by invite" })).toBeTruthy()
+      expect(
+        screen.getByRole("button", { name: "Join by invite" }).getAttribute(
+          "href"
+        )
+      ).toBe("/join-workspace")
       expect(
         screen.queryByText(
           "Join by invite lands in TSK-27. For now, start by creating your own workspace."
