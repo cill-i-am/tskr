@@ -80,9 +80,9 @@ describe("workspace onboarding page", () => {
         screen.getByRole("button", { name: "Create workspace" })
       ).toBeTruthy()
       expect(
-        screen.getByRole("button", { name: "Join by invite" }).getAttribute(
-          "href"
-        )
+        screen
+          .getByRole("button", { name: "Join by invite" })
+          .getAttribute("href")
       ).toBe("/join-workspace")
       expect(
         screen.queryByText(
