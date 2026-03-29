@@ -1,6 +1,6 @@
 import { useWorkspaceBootstrap } from "@/domains/workspaces/bootstrap/ui/use-workspace-bootstrap"
-import { Link } from "@tanstack/react-router"
-import { LayoutDashboardIcon } from "lucide-react"
+import { Link, useRouterState } from "@tanstack/react-router"
+import { LayoutDashboardIcon, Settings2Icon } from "lucide-react"
 
 import {
   Breadcrumb,
@@ -30,6 +30,10 @@ import {
 
 const AuthenticatedAppShell = ({ children }: { children: React.ReactNode }) => {
   const { activeWorkspace, memberships } = useWorkspaceBootstrap()
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  })
+  const isSettingsRoute = pathname.startsWith("/app/settings")
 
   return (
     <SidebarProvider>
@@ -55,12 +59,22 @@ const AuthenticatedAppShell = ({ children }: { children: React.ReactNode }) => {
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton
-                    isActive
+                    isActive={pathname === "/app"}
                     render={<Link to="/app" />}
                     tooltip="Overview"
                   >
                     <LayoutDashboardIcon />
                     <span>Overview</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    isActive={isSettingsRoute}
+                    render={<Link to="/app/settings" />}
+                    tooltip="Settings"
+                  >
+                    <Settings2Icon />
+                    <span>Settings</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
@@ -89,6 +103,14 @@ const AuthenticatedAppShell = ({ children }: { children: React.ReactNode }) => {
                     {activeWorkspace?.name ?? "Workspace"}
                   </BreadcrumbPage>
                 </BreadcrumbItem>
+                {isSettingsRoute ? (
+                  <>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      <BreadcrumbPage>Settings</BreadcrumbPage>
+                    </BreadcrumbItem>
+                  </>
+                ) : null}
               </BreadcrumbList>
             </Breadcrumb>
           </div>

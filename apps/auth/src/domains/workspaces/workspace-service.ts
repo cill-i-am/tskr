@@ -8,6 +8,10 @@ import {
   hasRole,
 } from "./authorization-policy.js"
 import type {
+  AcceptWorkspaceInviteRequest,
+  UpdateAccountProfileRequest,
+  UpdateWorkspaceMemberRoleResponse,
+  UpdateWorkspaceProfileRequest,
   WorkspaceBootstrap,
   WorkspaceInvite,
   WorkspaceProfile,
@@ -44,21 +48,6 @@ interface CreateWorkspaceServiceOptions {
   buildWorkspaceInviteAcceptUrl: (code: string) => string
   repository: WorkspaceRepository
   verifyWorkspaceInviteToken: (token: string) => string | null
-}
-
-interface AcceptWorkspaceInviteInput {
-  code?: string
-  token?: string
-}
-
-interface UpdateAccountProfileInput {
-  image?: string | null
-  name?: string
-}
-
-interface UpdateWorkspaceProfileInput {
-  logo?: string | null
-  name?: string
 }
 
 const normalizeWorkspaceName = (name: string) => name.trim()
@@ -441,7 +430,7 @@ const createWorkspaceService = ({
 
   const updateAccountProfile = async (
     headers: Headers,
-    input: UpdateAccountProfileInput
+    input: UpdateAccountProfileRequest
   ) => {
     const workspaceSession = await requireWorkspaceSession(headers)
     const name = normalizeRequiredName(input.name, "Account name")
@@ -684,7 +673,7 @@ const createWorkspaceService = ({
   const updateWorkspaceProfile = async (
     headers: Headers,
     workspaceId: string,
-    input: UpdateWorkspaceProfileInput
+    input: UpdateWorkspaceProfileRequest
   ): Promise<WorkspaceProfile> => {
     await requireWorkspaceSettingsAccess(headers, workspaceId)
 
@@ -865,7 +854,7 @@ const createWorkspaceService = ({
 
   const acceptInvite = async (
     headers: Headers,
-    input: AcceptWorkspaceInviteInput
+    input: AcceptWorkspaceInviteRequest
   ) => {
     let inviteCode: string | null = null
 
@@ -924,7 +913,7 @@ const createWorkspaceService = ({
     workspaceId: string,
     memberId: string,
     role: WorkspaceRole
-  ) => {
+  ): Promise<UpdateWorkspaceMemberRoleResponse> => {
     const workspaceSession = await requireWorkspaceSession(headers)
     const actorMembership = await requireWorkspaceMember(
       workspaceSession.userId,
@@ -951,6 +940,15 @@ const createWorkspaceService = ({
     ) {
       throw new HTTPException(403, {
         message: "Only owners can change owner roles.",
+      })
+    }
+
+    if (
+      targetMembership.userId === workspaceSession.userId &&
+      hasRole(targetMembership.role, "owner")
+    ) {
+      throw new HTTPException(403, {
+        message: "Owners cannot change their own owner role.",
       })
     }
 

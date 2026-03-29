@@ -1360,6 +1360,65 @@ describe("workspace routes", () => {
     await expect(findMembership(adminMembership.id)).resolves.not.toBeNull()
   })
 
+  it("blocks owner self-demotion so ownership mutations stay aligned with the settings contract", async () => {
+    await resetWorkspaceTestState()
+
+    const owner = await signUpAndVerifyEmail("owner@example.com", "Owner User")
+    const admin = await signUpAndVerifyEmail("admin@example.com", "Admin User")
+
+    const createWorkspaceResponse = await requestJson<WorkspaceBootstrap>(
+      "/api/workspaces",
+      {
+        body: JSON.stringify({
+          name: "Ops Control",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      owner.cookieJar
+    )
+    const activeWorkspace = requireValue(
+      createWorkspaceResponse.json?.activeWorkspace,
+      "Expected the created workspace response to include an active workspace"
+    )
+
+    await insertMember({
+      organizationId: activeWorkspace.id,
+      role: "admin",
+      userId: admin.session.user.id,
+    })
+
+    const ownerMembership = requireValue(
+      await findMembershipByUserAndWorkspace(
+        owner.session.user.id,
+        activeWorkspace.id
+      ),
+      "Expected the owner membership to exist"
+    )
+
+    const selfDemotionResponse = await requestJson(
+      `/api/workspaces/${activeWorkspace.id}/members/${ownerMembership.id}/role`,
+      {
+        body: JSON.stringify({
+          role: "admin",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "PATCH",
+      },
+      owner.cookieJar
+    )
+
+    expect(selfDemotionResponse.response.status).toBe(403)
+    await expect(findMembership(ownerMembership.id)).resolves.toMatchObject({
+      id: ownerMembership.id,
+      role: "owner",
+    })
+  })
+
   it("allows self-leave for non-last-owner members and blocks the last owner from leaving", async () => {
     await resetWorkspaceTestState()
 
@@ -1728,6 +1787,231 @@ describe("workspace routes", () => {
     )
 
     expect(workerSettingsResponse.response.status).toBe(403)
+  })
+
+  it("rejects dispatcher and field worker access across workspace admin endpoints", async () => {
+    await resetWorkspaceTestState()
+
+    const owner = await signUpAndVerifyEmail("owner@example.com", "Owner User")
+    const dispatcher = await signUpAndVerifyEmail(
+      "dispatcher@example.com",
+      "Dispatcher User"
+    )
+    const worker = await signUpAndVerifyEmail(
+      "worker@example.com",
+      "Worker User"
+    )
+    const admin = await signUpAndVerifyEmail("admin@example.com", "Admin User")
+
+    const createWorkspaceResponse = await requestJson<WorkspaceBootstrap>(
+      "/api/workspaces",
+      {
+        body: JSON.stringify({
+          name: "Ops Control",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      owner.cookieJar
+    )
+    const activeWorkspace = requireValue(
+      createWorkspaceResponse.json?.activeWorkspace,
+      "Expected the created workspace response to include an active workspace"
+    )
+
+    await insertMember({
+      organizationId: activeWorkspace.id,
+      role: "dispatcher",
+      userId: dispatcher.session.user.id,
+    })
+    await insertMember({
+      organizationId: activeWorkspace.id,
+      role: "field_worker",
+      userId: worker.session.user.id,
+    })
+    const adminMembership = await insertMember({
+      organizationId: activeWorkspace.id,
+      role: "admin",
+      userId: admin.session.user.id,
+    })
+
+    const inviteResponse = await requestJson<{ id: string }>(
+      `/api/workspaces/${activeWorkspace.id}/invites`,
+      {
+        body: JSON.stringify({
+          email: "pending@example.com",
+          role: "field_worker",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      owner.cookieJar
+    )
+
+    expect(inviteResponse.response.status).toBe(200)
+
+    const dispatcherInviteResponse = await requestJson(
+      `/api/workspaces/${activeWorkspace.id}/invites`,
+      {
+        body: JSON.stringify({
+          email: "blocked@example.com",
+          role: "field_worker",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      dispatcher.cookieJar
+    )
+    const dispatcherProfileResponse = await requestJson(
+      `/api/workspaces/${activeWorkspace.id}/profile`,
+      {
+        body: JSON.stringify({
+          logo: "https://cdn.example.com/dispatch.png",
+          name: "Dispatch Control",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "PATCH",
+      },
+      dispatcher.cookieJar
+    )
+    const dispatcherRoleResponse = await requestJson(
+      `/api/workspaces/${activeWorkspace.id}/members/${adminMembership.id}/role`,
+      {
+        body: JSON.stringify({
+          role: "dispatcher",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "PATCH",
+      },
+      dispatcher.cookieJar
+    )
+    const workerRemoveResponse = await requestJson(
+      `/api/workspaces/${activeWorkspace.id}/members/${adminMembership.id}`,
+      {
+        method: "DELETE",
+      },
+      worker.cookieJar
+    )
+    const workerRevokeResponse = await requestJson(
+      `/api/workspaces/${activeWorkspace.id}/invites/${inviteResponse.json?.id}`,
+      {
+        method: "DELETE",
+      },
+      worker.cookieJar
+    )
+
+    expect([
+      dispatcherInviteResponse.response.status,
+      dispatcherProfileResponse.response.status,
+      dispatcherRoleResponse.response.status,
+      workerRemoveResponse.response.status,
+      workerRevokeResponse.response.status,
+    ]).toStrictEqual([403, 403, 403, 403, 403])
+  })
+
+  it("lets admins revoke non-owner invites but keeps owner invite revocation owner-only", async () => {
+    await resetWorkspaceTestState()
+
+    const owner = await signUpAndVerifyEmail("owner@example.com", "Owner User")
+    const admin = await signUpAndVerifyEmail("admin@example.com", "Admin User")
+
+    const createWorkspaceResponse = await requestJson<WorkspaceBootstrap>(
+      "/api/workspaces",
+      {
+        body: JSON.stringify({
+          name: "Ops Control",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      owner.cookieJar
+    )
+    const activeWorkspace = requireValue(
+      createWorkspaceResponse.json?.activeWorkspace,
+      "Expected the created workspace response to include an active workspace"
+    )
+
+    await insertMember({
+      organizationId: activeWorkspace.id,
+      role: "admin",
+      userId: admin.session.user.id,
+    })
+
+    const adminInviteResponse = await requestJson<{ id: string }>(
+      `/api/workspaces/${activeWorkspace.id}/invites`,
+      {
+        body: JSON.stringify({
+          email: "worker@example.com",
+          role: "dispatcher",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      owner.cookieJar
+    )
+    const ownerInviteResponse = await requestJson<{ id: string }>(
+      `/api/workspaces/${activeWorkspace.id}/invites`,
+      {
+        body: JSON.stringify({
+          email: "coowner@example.com",
+          role: "owner",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      owner.cookieJar
+    )
+
+    expect(adminInviteResponse.response.status).toBe(200)
+    expect(ownerInviteResponse.response.status).toBe(200)
+
+    const adminRevokeDispatcherInviteResponse = await requestJson(
+      `/api/workspaces/${activeWorkspace.id}/invites/${adminInviteResponse.json?.id}`,
+      {
+        method: "DELETE",
+      },
+      admin.cookieJar
+    )
+    const adminRevokeOwnerInviteResponse = await requestJson(
+      `/api/workspaces/${activeWorkspace.id}/invites/${ownerInviteResponse.json?.id}`,
+      {
+        method: "DELETE",
+      },
+      admin.cookieJar
+    )
+
+    expect(adminRevokeDispatcherInviteResponse.response.status).toBe(204)
+    expect(adminRevokeOwnerInviteResponse.response.status).toBe(403)
+    const adminInvite = await findInvitationById(
+      requireValue(adminInviteResponse.json?.id, "Expected admin invite id")
+    )
+    const ownerInvite = await findInvitationById(
+      requireValue(ownerInviteResponse.json?.id, "Expected owner invite id")
+    )
+
+    expect({
+      adminInviteStatus: adminInvite?.status,
+      ownerInviteStatus: ownerInvite?.status,
+    }).toStrictEqual({
+      adminInviteStatus: "canceled",
+      ownerInviteStatus: "pending",
+    })
   })
 
   it("updates the workspace profile for owners and keeps the slug stable", async () => {
