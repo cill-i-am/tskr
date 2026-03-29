@@ -226,7 +226,7 @@ describe("authentication pages", () => {
         })
       })
 
-      expect(buildJoinWorkspaceTargetPathMock).toHaveBeenCalledTimes(1)
+      expect(buildJoinWorkspaceTargetPathMock).toHaveBeenCalledOnce()
     } finally {
       view.unmount()
       cleanup()
@@ -521,7 +521,7 @@ describe("authentication pages", () => {
         })
       })
 
-      expect(readPendingWorkspaceInviteFlowMock).toHaveBeenCalledTimes(1)
+      expect(readPendingWorkspaceInviteFlowMock).toHaveBeenCalledOnce()
     } finally {
       view.unmount()
       cleanup()
@@ -623,14 +623,14 @@ describe("authentication pages", () => {
           code: "ABCD1234",
         })
       )
-      expect(buildJoinWorkspaceTargetPathMock).toHaveBeenCalledTimes(1)
+      expect(buildJoinWorkspaceTargetPathMock).toHaveBeenCalledOnce()
     } finally {
       view.unmount()
       cleanup()
     }
   })
 
-  it("clears the stored invite flow after verify email hands the user back to join workspace", async () => {
+  it("keeps the stored invite flow available after verify email hands the user back to join workspace", async () => {
     resetMocks()
     verifyEmailMock.mockResolvedValue({
       error: null,
@@ -667,10 +667,10 @@ describe("authentication pages", () => {
       joinWorkspaceView = render(<JoinWorkspacePage />)
 
       try {
-        expect(screen.getByDisplayValue("ABCD1234")).toBeTruthy()
         await waitFor(() => {
-          expect(clearWorkspaceInviteFlowMock).toHaveBeenCalledTimes(1)
+          expect(screen.getByDisplayValue("ABCD1234")).toBeTruthy()
         })
+        expect(clearWorkspaceInviteFlowMock).not.toHaveBeenCalled()
       } finally {
         joinWorkspaceView.unmount()
         joinWorkspaceView = null

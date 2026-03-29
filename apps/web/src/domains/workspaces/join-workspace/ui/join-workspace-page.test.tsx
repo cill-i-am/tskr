@@ -146,7 +146,7 @@ describe("join workspace page", () => {
     }
   })
 
-  it("resumes a stored invite after auth handoff and clears the pending flow", async () => {
+  it("keeps a stored invite durable through mount and clears it after successful acceptance", async () => {
     resetMocks()
     readPendingWorkspaceInviteFlowMock.mockReturnValue({
       code: "ABCD1234",
@@ -157,8 +157,10 @@ describe("join workspace page", () => {
     const view = render(<JoinWorkspacePage />)
 
     try {
-      expect(screen.getByDisplayValue("ABCD1234")).toBeTruthy()
-      expect(clearWorkspaceInviteFlowMock).toHaveBeenCalledTimes(1)
+      await waitFor(() => {
+        expect(screen.getByDisplayValue("ABCD1234")).toBeTruthy()
+      })
+      expect(clearWorkspaceInviteFlowMock).not.toHaveBeenCalled()
 
       acceptWorkspaceInviteMock.mockResolvedValue(acceptedBootstrap)
 
@@ -174,8 +176,43 @@ describe("join workspace page", () => {
           to: "/app",
         })
       })
+      expect(clearWorkspaceInviteFlowMock).toHaveBeenCalledOnce()
     } finally {
       view.unmount()
+      cleanup()
+    }
+  })
+
+  it("keeps a resumed invite available after a refresh before acceptance", async () => {
+    resetMocks()
+    readPendingWorkspaceInviteFlowMock.mockReturnValue({
+      code: "ABCD1234",
+    })
+    const { JoinWorkspacePage } = await loadModules()
+
+    const firstView = render(<JoinWorkspacePage />)
+
+    try {
+      await waitFor(() => {
+        expect(screen.getByDisplayValue("ABCD1234")).toBeTruthy()
+      })
+    } finally {
+      firstView.unmount()
+      cleanup()
+    }
+
+    expect(clearWorkspaceInviteFlowMock).not.toHaveBeenCalled()
+
+    const secondView = render(<JoinWorkspacePage />)
+
+    try {
+      await waitFor(() => {
+        expect(screen.getByDisplayValue("ABCD1234")).toBeTruthy()
+      })
+      expect(readPendingWorkspaceInviteFlowMock).toHaveBeenCalledTimes(2)
+      expect(clearWorkspaceInviteFlowMock).not.toHaveBeenCalled()
+    } finally {
+      secondView.unmount()
       cleanup()
     }
   })
@@ -236,8 +273,8 @@ describe("join workspace page", () => {
       await waitFor(() => {
         expect(screen.getByDisplayValue("ABCD1234")).toBeTruthy()
       })
-      expect(readPendingWorkspaceInviteFlowMock).toHaveBeenCalledTimes(1)
-      expect(clearWorkspaceInviteFlowMock).toHaveBeenCalledTimes(1)
+      expect(readPendingWorkspaceInviteFlowMock).toHaveBeenCalledOnce()
+      expect(clearWorkspaceInviteFlowMock).not.toHaveBeenCalled()
     } finally {
       view.unmount()
       cleanup()
@@ -374,6 +411,43 @@ describe("join workspace page", () => {
       expect(screen.queryByLabelText("Invite code")).toBeNull()
       expect(readPendingWorkspaceInviteFlowMock).not.toHaveBeenCalled()
       expect(clearWorkspaceInviteFlowMock).not.toHaveBeenCalled()
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
+  it("clears token invite recovery state before sending the user to manual entry", async () => {
+    resetMocks()
+    acceptWorkspaceInviteMock.mockRejectedValue(
+      new Error(
+        "You are not the recipient of that invite. Sign in with the invited account to continue."
+      )
+    )
+    const { JoinWorkspacePage } = await loadModules()
+    const user = userEvent.setup()
+
+    const view = render(<JoinWorkspacePage token="signed-token-123" />)
+
+    try {
+      await user.click(screen.getByRole("button", { name: "Join workspace" }))
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole("heading", {
+            name: "This invite belongs to a different account",
+          })
+        ).toBeTruthy()
+      })
+
+      await user.click(
+        screen.getByRole("button", { name: "Enter another invite" })
+      )
+
+      expect(clearWorkspaceInviteFlowMock).toHaveBeenCalledOnce()
+      expect(navigateMock).toHaveBeenCalledWith({
+        to: "/join-workspace",
+      })
     } finally {
       view.unmount()
       cleanup()

@@ -1,5 +1,5 @@
 import { AuthPageShell } from "@/domains/identity/authentication/ui/auth-page-shell"
-import { Link } from "@tanstack/react-router"
+import { Link, useNavigate } from "@tanstack/react-router"
 import { useEffect, useEffectEvent, useState } from "react"
 
 import { Button } from "@workspace/ui/components/button"
@@ -107,8 +107,10 @@ const classifyInviteError = (
 }
 
 const JoinWorkspaceRecoveryCard = ({
+  onEnterAnotherInvite,
   recoveryState,
 }: {
+  onEnterAnotherInvite: () => void
   recoveryState: JoinWorkspaceRecoveryState
 }) => {
   const copy = recoveryCopy[recoveryState]
@@ -126,7 +128,7 @@ const JoinWorkspaceRecoveryCard = ({
         </CardHeader>
         <CardContent>
           <div className="gap-4 flex flex-col">
-            <Button render={<Link to="/join-workspace" />}>
+            <Button onClick={onEnterAnotherInvite} type="button">
               Enter another invite
             </Button>
             <FieldDescription className="text-center">
@@ -146,6 +148,7 @@ const JoinWorkspaceRecoveryCard = ({
 }
 
 const JoinWorkspacePage = ({ token }: JoinWorkspacePageProps) => {
+  const navigate = useNavigate()
   const [recoveryState, setRecoveryState] =
     useState<JoinWorkspaceRecoveryState | null>(null)
   const [resumedInviteFlow, setResumedInviteFlow] =
@@ -174,8 +177,16 @@ const JoinWorkspacePage = ({ token }: JoinWorkspacePageProps) => {
     }
 
     setResumedInviteFlow(pendingInviteFlow)
-    clearWorkspaceInviteFlow()
   }, [hasTokenParam])
+
+  const handleEnterAnotherInvite = useEffectEvent(() => {
+    clearWorkspaceInviteFlow()
+    setResumedInviteFlow(null)
+    setRecoveryState(null)
+    navigate({
+      to: "/join-workspace",
+    })
+  })
 
   const handleRecoverableError = useEffectEvent(
     (message: string, inviteInput: { code: string } | { token: string }) => {
@@ -195,7 +206,12 @@ const JoinWorkspacePage = ({ token }: JoinWorkspacePageProps) => {
   )
 
   if (recoveryState) {
-    return <JoinWorkspaceRecoveryCard recoveryState={recoveryState} />
+    return (
+      <JoinWorkspaceRecoveryCard
+        onEnterAnotherInvite={handleEnterAnotherInvite}
+        recoveryState={recoveryState}
+      />
+    )
   }
 
   if (hasTokenParam && !normalizedToken) {

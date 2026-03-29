@@ -1,6 +1,9 @@
 import { authClient } from "@/domains/identity/authentication/ui/auth-client"
 import { acceptWorkspaceInvite } from "@/domains/workspaces/join-workspace/infra/accept-workspace-invite"
-import { persistWorkspaceInviteFlow } from "@/domains/workspaces/join-workspace/ui/workspace-invite-flow"
+import {
+  clearWorkspaceInviteFlow,
+  persistWorkspaceInviteFlow,
+} from "@/domains/workspaces/join-workspace/ui/workspace-invite-flow"
 import { useForm, useStore } from "@tanstack/react-form"
 import { useNavigate } from "@tanstack/react-router"
 import { useEffectEvent, useState, useTransition } from "react"
@@ -91,6 +94,8 @@ const JoinWorkspaceForm = ({
         setError("Unable to join this workspace right now.")
         return
       }
+
+      clearWorkspaceInviteFlow()
 
       startTransition(() => {
         navigate({
