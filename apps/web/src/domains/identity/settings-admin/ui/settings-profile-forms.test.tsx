@@ -56,14 +56,15 @@ const bootstrap: WorkspaceBootstrap = {
 }
 
 const deferred = <T,>() => {
-  let resolve!: (value: T | PromiseLike<T>) => void
-  let reject!: (reason?: unknown) => void
-  const promise = new Promise<T>((nextResolve, nextReject) => {
-    resolve = nextResolve
-    reject = nextReject
+  let resolveDeferred!: (value: T | PromiseLike<T>) => void
+  let rejectDeferred!: (reason?: unknown) => void
+  // eslint-disable-next-line promise/avoid-new
+  const promise = new Promise<T>((resolve, reject) => {
+    resolveDeferred = resolve
+    rejectDeferred = reject
   })
 
-  return { promise, reject, resolve }
+  return { promise, reject: rejectDeferred, resolve: resolveDeferred }
 }
 
 const installMocks = () => {

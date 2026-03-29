@@ -1,8 +1,7 @@
-import {
-  settingsAdminWorkspaceRoleSchema,
-} from "@/domains/identity/settings-admin/contracts/settings-admin-contract"
+import { settingsAdminWorkspaceRoleSchema } from "@/domains/identity/settings-admin/contracts/settings-admin-contract"
 import type { SettingsAdminWorkspaceRole } from "@/domains/identity/settings-admin/contracts/settings-admin-contract"
 import { createWorkspaceInvite } from "@/domains/identity/settings-admin/infra/create-workspace-invite"
+import type { AnyFieldApi } from "@tanstack/react-form"
 import { useForm, useStore } from "@tanstack/react-form"
 import { useEffectEvent } from "react"
 import type { ChangeEvent, FormEvent } from "react"
@@ -42,6 +41,52 @@ const inviteMemberFormSchema = z.object({
   role: settingsAdminWorkspaceRoleSchema,
 })
 
+interface InviteRoleFieldProps {
+  canInviteRoles: SettingsAdminWorkspaceRole[]
+  disabled: boolean
+  field: AnyFieldApi
+}
+
+const InviteRoleField = ({
+  canInviteRoles,
+  disabled,
+  field,
+}: InviteRoleFieldProps) => {
+  const isInvalid =
+    field.state.meta.isTouched && field.state.meta.errors.length > 0
+  const handleRoleChange = useEffectEvent(
+    (event: ChangeEvent<HTMLSelectElement>) => {
+      field.handleChange(event.target.value as SettingsAdminWorkspaceRole)
+    }
+  )
+
+  return (
+    <Field data-invalid={isInvalid || undefined}>
+      <FieldLabel htmlFor={field.name}>Invite role</FieldLabel>
+      <FieldContent>
+        <NativeSelect
+          aria-invalid={isInvalid || undefined}
+          disabled={disabled}
+          id={field.name}
+          name={field.name}
+          onBlur={field.handleBlur}
+          onChange={handleRoleChange}
+          value={field.state.value}
+        >
+          {canInviteRoles.map((role) => (
+            <NativeSelectOption key={role} value={role}>
+              {roleLabels[role]}
+            </NativeSelectOption>
+          ))}
+        </NativeSelect>
+        <FieldDescription>
+          Available roles come directly from the workspace permissions snapshot.
+        </FieldDescription>
+      </FieldContent>
+    </Field>
+  )
+}
+
 const InviteMemberForm = ({
   canInviteRoles,
   onClearError,
@@ -49,15 +94,7 @@ const InviteMemberForm = ({
   onRefresh,
   workspaceId,
 }: InviteMemberFormProps) => {
-  if (canInviteRoles.length === 0) {
-    return (
-      <div className="text-sm text-muted-foreground">
-        Invites are managed elsewhere for your current workspace role.
-      </div>
-    )
-  }
-
-  const defaultRole = canInviteRoles[0]
+  const [defaultRole = "dispatcher"] = canInviteRoles
   const form = useForm({
     defaultValues: {
       email: "",
@@ -104,6 +141,14 @@ const InviteMemberForm = ({
   )
   const isDisabled = isSubmitting
 
+  if (canInviteRoles.length === 0) {
+    return (
+      <div className="text-sm text-muted-foreground">
+        Invites are managed elsewhere for your current workspace role.
+      </div>
+    )
+  }
+
   return (
     <form
       aria-label="Invite member"
@@ -125,42 +170,13 @@ const InviteMemberForm = ({
           )}
         </form.Field>
         <form.Field name="role">
-          {(field) => {
-            const isInvalid =
-              field.state.meta.isTouched && field.state.meta.errors.length > 0
-            const handleRoleChange = (event: ChangeEvent<HTMLSelectElement>) => {
-              field.handleChange(
-                event.target.value as SettingsAdminWorkspaceRole
-              )
-            }
-
-            return (
-              <Field data-invalid={isInvalid || undefined}>
-                <FieldLabel htmlFor={field.name}>Invite role</FieldLabel>
-                <FieldContent>
-                  <NativeSelect
-                    aria-invalid={isInvalid || undefined}
-                    disabled={isDisabled}
-                    id={field.name}
-                    name={field.name}
-                    onBlur={field.handleBlur}
-                    onChange={handleRoleChange}
-                    value={field.state.value}
-                  >
-                    {canInviteRoles.map((role) => (
-                      <NativeSelectOption key={role} value={role}>
-                        {roleLabels[role]}
-                      </NativeSelectOption>
-                    ))}
-                  </NativeSelect>
-                  <FieldDescription>
-                    Available roles come directly from the workspace
-                    permissions snapshot.
-                  </FieldDescription>
-                </FieldContent>
-              </Field>
-            )
-          }}
+          {(field) => (
+            <InviteRoleField
+              canInviteRoles={canInviteRoles}
+              disabled={isDisabled}
+              field={field}
+            />
+          )}
         </form.Field>
         <FormActions>
           <Button disabled={isDisabled} type="submit">

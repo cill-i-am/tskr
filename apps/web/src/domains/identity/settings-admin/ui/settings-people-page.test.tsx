@@ -7,6 +7,7 @@ import type {
 import { createWorkspaceInvite } from "@/domains/identity/settings-admin/infra/create-workspace-invite"
 import { getSettingsSnapshot } from "@/domains/identity/settings-admin/infra/get-settings-snapshot"
 import { removeWorkspaceMember } from "@/domains/identity/settings-admin/infra/remove-workspace-member"
+import { resendWorkspaceInvite } from "@/domains/identity/settings-admin/infra/resend-workspace-invite"
 import { revokeWorkspaceInvite } from "@/domains/identity/settings-admin/infra/revoke-workspace-invite"
 import { updateWorkspaceMemberRole } from "@/domains/identity/settings-admin/infra/update-workspace-member-role"
 import type { WorkspaceBootstrap } from "@/domains/workspaces/bootstrap/contracts/workspace-bootstrap"
@@ -80,6 +81,7 @@ const getWorkspaceBootstrapMock = vi.mocked(getWorkspaceBootstrap)
 const getSettingsSnapshotMock = vi.mocked(getSettingsSnapshot)
 const createWorkspaceInviteMock = vi.mocked(createWorkspaceInvite)
 const updateWorkspaceMemberRoleMock = vi.mocked(updateWorkspaceMemberRole)
+const resendWorkspaceInviteMock = vi.mocked(resendWorkspaceInvite)
 const revokeWorkspaceInviteMock = vi.mocked(revokeWorkspaceInvite)
 const removeWorkspaceMemberMock = vi.mocked(removeWorkspaceMember)
 
@@ -436,6 +438,7 @@ const renderPeopleRoute = async ({
   prepareTestEnvironment()
   currentSnapshot = snapshot
   getWorkspaceBootstrapMock.mockResolvedValue(bootstrap)
+  // eslint-disable-next-line require-await
   getSettingsSnapshotMock.mockImplementation(async () => currentSnapshot)
 
   const router = createTestRouter("/app/settings/people")
@@ -463,17 +466,17 @@ describe("people settings page", () => {
       role: "owner",
     })
 
-    createWorkspaceInviteMock.mockImplementation(async (input) => {
+    createWorkspaceInviteMock.mockImplementation((input) => {
       currentSnapshot = {
         ...currentSnapshot,
         pendingInvites: [...currentSnapshot.pendingInvites, nextInvite],
       }
 
-      return {
+      return Promise.resolve({
         ...nextInvite,
         email: input.email,
         role: input.role,
-      }
+      })
     })
 
     const { user } = await renderPeopleRoute()
@@ -517,21 +520,23 @@ describe("people settings page", () => {
   })
 
   it("lets owners change member roles and gates pending invite actions by row permissions", async () => {
-    updateWorkspaceMemberRoleMock.mockImplementation(async (input) => {
+    updateWorkspaceMemberRoleMock.mockImplementation((input) => {
       currentSnapshot = withMemberRole(
         currentSnapshot,
         input.memberId,
         input.role
       )
 
-      return {
+      return Promise.resolve({
         memberId: input.memberId,
         role: input.role,
         workspaceId: input.workspaceId,
-      }
+      })
     })
-    revokeWorkspaceInviteMock.mockImplementation(async ({ inviteId }) => {
+    revokeWorkspaceInviteMock.mockImplementation(({ inviteId }) => {
       currentSnapshot = withoutInvite(currentSnapshot, inviteId)
+
+      return Promise.resolve()
     })
 
     const { user } = await renderPeopleRoute()
@@ -575,9 +580,11 @@ describe("people settings page", () => {
     })
     await waitFor(() => {
       expect(
-        (within(adminRow).getByLabelText(
-          "Role for Grace Hopper"
-        ) as HTMLSelectElement).value
+        (
+          within(adminRow).getByLabelText(
+            "Role for Grace Hopper"
+          ) as HTMLSelectElement
+        ).value
       ).toBe("owner")
     })
 
@@ -598,19 +605,64 @@ describe("people settings page", () => {
     })
   })
 
+  it("resends invites when the row allows it and refreshes the snapshot", async () => {
+    resendWorkspaceInviteMock.mockResolvedValue()
+
+    const { user } = await renderPeopleRoute()
+    const initialSnapshotReads = getSettingsSnapshotMock.mock.calls.length
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Resend invite to pending-owner@example.com",
+      })
+    )
+
+    await waitFor(() => {
+      expect(resendWorkspaceInviteMock).toHaveBeenCalledWith({
+        inviteId: "invite_owner",
+        workspaceId,
+      })
+    })
+    await waitFor(() => {
+      expect(getSettingsSnapshotMock.mock.calls.length).toBeGreaterThan(
+        initialSnapshotReads
+      )
+    })
+  })
+
+  it("shows the backend error when resending an invite fails", async () => {
+    resendWorkspaceInviteMock.mockRejectedValue(
+      new Error("Unable to resend the invite right now.")
+    )
+
+    const { user } = await renderPeopleRoute()
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Resend invite to pending-owner@example.com",
+      })
+    )
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Unable to resend the invite right now.")
+      ).toBeTruthy()
+    })
+  })
+
   it("prevents admins from issuing or assigning owner access while still allowing non-owner role changes", async () => {
-    updateWorkspaceMemberRoleMock.mockImplementation(async (input) => {
+    updateWorkspaceMemberRoleMock.mockImplementation((input) => {
       currentSnapshot = withMemberRole(
         currentSnapshot,
         input.memberId,
         input.role
       )
 
-      return {
+      return Promise.resolve({
         memberId: input.memberId,
         role: input.role,
         workspaceId: input.workspaceId,
-      }
+      })
     })
 
     const { user } = await renderPeopleRoute({
