@@ -3,7 +3,7 @@ import type { SettingsAdminWorkspaceRole } from "@/domains/identity/settings-adm
 import { createWorkspaceInvite } from "@/domains/identity/settings-admin/infra/create-workspace-invite"
 import type { AnyFieldApi } from "@tanstack/react-form"
 import { useForm, useStore } from "@tanstack/react-form"
-import { useEffectEvent } from "react"
+import { useEffect, useEffectEvent } from "react"
 import type { ChangeEvent, FormEvent } from "react"
 import { z } from "zod"
 
@@ -133,6 +133,21 @@ const InviteMemberForm = ({
     },
   })
   const isSubmitting = useStore(form.store, (state) => state.isSubmitting)
+
+  useEffect(() => {
+    if (canInviteRoles.length === 0) {
+      return
+    }
+
+    const currentRole = form.getFieldValue("role")
+
+    if (canInviteRoles.includes(currentRole as SettingsAdminWorkspaceRole)) {
+      return
+    }
+
+    form.setFieldValue("role", defaultRole)
+  }, [canInviteRoles, defaultRole, form])
+
   const handleSubmit = useEffectEvent(
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault()

@@ -60,7 +60,9 @@ const WorkspaceMembersTable = ({
   const [draftRoles, setDraftRoles] = useState<Record<string, string>>(
     getDraftRoles(members)
   )
-  const [pendingMemberId, setPendingMemberId] = useState<string | null>(null)
+  const [pendingMemberIds, setPendingMemberIds] = useState<Set<string>>(
+    () => new Set()
+  )
 
   useEffect(() => {
     setDraftRoles(getDraftRoles(members))
@@ -102,7 +104,7 @@ const WorkspaceMembersTable = ({
       }
 
       onClearError()
-      setPendingMemberId(member.id)
+      setPendingMemberIds((current) => new Set(current).add(member.id))
 
       try {
         await updateWorkspaceMemberRole({
@@ -118,7 +120,11 @@ const WorkspaceMembersTable = ({
             : "Unable to update the workspace member role."
         )
       } finally {
-        setPendingMemberId(null)
+        setPendingMemberIds((current) => {
+          const next = new Set(current)
+          next.delete(member.id)
+          return next
+        })
       }
     }
   )
@@ -138,7 +144,7 @@ const WorkspaceMembersTable = ({
       }
 
       onClearError()
-      setPendingMemberId(member.id)
+      setPendingMemberIds((current) => new Set(current).add(member.id))
 
       try {
         await removeWorkspaceMember({
@@ -153,7 +159,11 @@ const WorkspaceMembersTable = ({
             : "Unable to update the workspace membership."
         )
       } finally {
-        setPendingMemberId(null)
+        setPendingMemberIds((current) => {
+          const next = new Set(current)
+          next.delete(member.id)
+          return next
+        })
       }
     }
   )
@@ -169,7 +179,7 @@ const WorkspaceMembersTable = ({
       </TableHeader>
       <TableBody>
         {members.map((member) => {
-          const isPending = pendingMemberId === member.id
+          const isPending = pendingMemberIds.has(member.id)
           const removeLabel = member.isCurrentUser
             ? "Leave workspace"
             : `Remove ${member.name}`

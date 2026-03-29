@@ -39,7 +39,9 @@ const WorkspaceInvitesTable = ({
   onRefresh,
   workspaceId,
 }: WorkspaceInvitesTableProps) => {
-  const [pendingInviteId, setPendingInviteId] = useState<string | null>(null)
+  const [pendingInviteIds, setPendingInviteIds] = useState<Set<string>>(
+    () => new Set()
+  )
 
   const handleResend = useEffectEvent(
     async (event: MouseEvent<HTMLButtonElement>) => {
@@ -56,7 +58,7 @@ const WorkspaceInvitesTable = ({
       }
 
       onClearError()
-      setPendingInviteId(invite.id)
+      setPendingInviteIds((current) => new Set(current).add(invite.id))
 
       try {
         await resendWorkspaceInvite({
@@ -71,7 +73,11 @@ const WorkspaceInvitesTable = ({
             : "Unable to resend the workspace invite."
         )
       } finally {
-        setPendingInviteId(null)
+        setPendingInviteIds((current) => {
+          const next = new Set(current)
+          next.delete(invite.id)
+          return next
+        })
       }
     }
   )
@@ -91,7 +97,7 @@ const WorkspaceInvitesTable = ({
       }
 
       onClearError()
-      setPendingInviteId(invite.id)
+      setPendingInviteIds((current) => new Set(current).add(invite.id))
 
       try {
         await revokeWorkspaceInvite({
@@ -106,7 +112,11 @@ const WorkspaceInvitesTable = ({
             : "Unable to revoke the workspace invite."
         )
       } finally {
-        setPendingInviteId(null)
+        setPendingInviteIds((current) => {
+          const next = new Set(current)
+          next.delete(invite.id)
+          return next
+        })
       }
     }
   )
@@ -123,7 +133,7 @@ const WorkspaceInvitesTable = ({
       </TableHeader>
       <TableBody>
         {invites.map((invite) => {
-          const isPending = pendingInviteId === invite.id
+          const isPending = pendingInviteIds.has(invite.id)
 
           return (
             <TableRow key={invite.id}>

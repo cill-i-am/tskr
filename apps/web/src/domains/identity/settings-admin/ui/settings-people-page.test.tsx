@@ -373,6 +373,14 @@ const withoutInvite = (
   ),
 })
 
+const withoutMember = (
+  snapshot: SettingsAdminSnapshot,
+  memberId: string
+): SettingsAdminSnapshot => ({
+  ...snapshot,
+  members: snapshot.members.filter((member) => member.id !== memberId),
+})
+
 const withRemovableMember = (
   snapshot: SettingsAdminSnapshot,
   memberId: string
@@ -392,6 +400,33 @@ const withRemovableMember = (
     return member
   }),
 })
+
+const withInviteRoles = (
+  snapshot: SettingsAdminSnapshot,
+  canInviteRoles: SettingsAdminWorkspaceRole[]
+): SettingsAdminSnapshot => ({
+  ...snapshot,
+  permissions: {
+    ...snapshot.permissions,
+    canInviteRoles,
+  },
+})
+
+const createDeferred = <T,>() => {
+  let resolveDeferred!: (value: T | PromiseLike<T>) => void
+  let rejectDeferred!: (reason?: unknown) => void
+  // eslint-disable-next-line promise/avoid-new
+  const promise = new Promise<T>((resolve, reject) => {
+    resolveDeferred = resolve
+    rejectDeferred = reject
+  })
+
+  return {
+    promise,
+    reject: rejectDeferred,
+    resolve: resolveDeferred,
+  }
+}
 
 const createTestRouter = (path: string) =>
   createRouter({
@@ -647,6 +682,224 @@ describe("people settings page", () => {
       expect(
         screen.getByText("Unable to resend the invite right now.")
       ).toBeTruthy()
+    })
+  })
+
+  it("keeps member action pending states isolated when multiple mutations overlap", async () => {
+    const roleUpdate = createDeferred<undefined>()
+    const memberRemoval = createDeferred<undefined>()
+
+    updateWorkspaceMemberRoleMock.mockImplementation(async (input) => {
+      await roleUpdate.promise
+      currentSnapshot = withMemberRole(
+        currentSnapshot,
+        input.memberId,
+        input.role
+      )
+
+      return {
+        memberId: input.memberId,
+        role: input.role,
+        workspaceId: input.workspaceId,
+      }
+    })
+    removeWorkspaceMemberMock.mockImplementation(async ({ memberId }) => {
+      await memberRemoval.promise
+      currentSnapshot = withoutMember(currentSnapshot, memberId)
+    })
+
+    const { user } = await renderPeopleRoute()
+
+    await user.selectOptions(
+      screen.getByLabelText("Role for Grace Hopper"),
+      "owner"
+    )
+    await user.click(
+      screen.getByRole("button", {
+        name: "Save role for Grace Hopper",
+      })
+    )
+
+    await waitFor(() => {
+      expect(updateWorkspaceMemberRoleMock).toHaveBeenCalledWith({
+        memberId: "member_admin",
+        role: "owner",
+        workspaceId,
+      })
+    })
+    expect(
+      (
+        screen.getByRole("button", {
+          name: "Save role for Grace Hopper",
+        }) as HTMLButtonElement
+      ).disabled
+    ).toBeTruthy()
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Remove Alex Dispatcher",
+      })
+    )
+
+    await waitFor(() => {
+      expect(removeWorkspaceMemberMock).toHaveBeenCalledWith({
+        memberId: "member_dispatcher",
+        workspaceId,
+      })
+    })
+    expect(
+      (
+        screen.getByRole("button", {
+          name: "Save role for Grace Hopper",
+        }) as HTMLButtonElement
+      ).disabled
+    ).toBeTruthy()
+    expect(
+      (
+        screen.getByRole("button", {
+          name: "Remove Alex Dispatcher",
+        }) as HTMLButtonElement
+      ).disabled
+    ).toBeTruthy()
+
+    roleUpdate.resolve()
+
+    await waitFor(() => {
+      expect(
+        (
+          screen.getByRole("button", {
+            name: "Remove Alex Dispatcher",
+          }) as HTMLButtonElement
+        ).disabled
+      ).toBeTruthy()
+    })
+
+    memberRemoval.resolve()
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("button", {
+          name: "Remove Alex Dispatcher",
+        })
+      ).toBeNull()
+    })
+  })
+
+  it("keeps invite action pending states isolated when multiple mutations overlap", async () => {
+    const resendInvite = createDeferred<undefined>()
+    const revokeInvite = createDeferred<undefined>()
+
+    resendWorkspaceInviteMock.mockImplementation(async () => {
+      await resendInvite.promise
+    })
+    revokeWorkspaceInviteMock.mockImplementation(async ({ inviteId }) => {
+      await revokeInvite.promise
+      currentSnapshot = withoutInvite(currentSnapshot, inviteId)
+    })
+
+    const { user } = await renderPeopleRoute({
+      snapshot: {
+        ...ownerSnapshot(),
+        pendingInvites: [
+          ...ownerSnapshot().pendingInvites,
+          makeInvite({
+            email: "pending-admin@example.com",
+            id: "invite_admin",
+            permissions: {
+              canResend: true,
+              canRevoke: true,
+            },
+            role: "admin",
+          }),
+        ],
+      },
+    })
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Resend invite to pending-owner@example.com",
+      })
+    )
+
+    await waitFor(() => {
+      expect(resendWorkspaceInviteMock).toHaveBeenCalledWith({
+        inviteId: "invite_owner",
+        workspaceId,
+      })
+    })
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Revoke invite for pending-admin@example.com",
+      })
+    )
+
+    await waitFor(() => {
+      expect(revokeWorkspaceInviteMock).toHaveBeenCalledWith({
+        inviteId: "invite_admin",
+        workspaceId,
+      })
+    })
+    expect(
+      (
+        screen.getByRole("button", {
+          name: "Resend invite to pending-owner@example.com",
+        }) as HTMLButtonElement
+      ).disabled
+    ).toBeTruthy()
+    expect(
+      (
+        screen.getByRole("button", {
+          name: "Revoke invite for pending-admin@example.com",
+        }) as HTMLButtonElement
+      ).disabled
+    ).toBeTruthy()
+
+    resendInvite.resolve()
+
+    await waitFor(() => {
+      expect(
+        (
+          screen.getByRole("button", {
+            name: "Revoke invite for pending-admin@example.com",
+          }) as HTMLButtonElement
+        ).disabled
+      ).toBeTruthy()
+    })
+
+    revokeInvite.resolve()
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("button", {
+          name: "Revoke invite for pending-admin@example.com",
+        })
+      ).toBeNull()
+    })
+  })
+
+  it("resets the invite role when refreshed permissions remove the currently selected role", async () => {
+    const { router, user } = await renderPeopleRoute()
+    const inviteRole = screen.getByLabelText("Invite role") as HTMLSelectElement
+
+    await user.selectOptions(inviteRole, "owner")
+
+    expect(inviteRole.value).toBe("owner")
+
+    currentSnapshot = withInviteRoles(currentSnapshot, [
+      "admin",
+      "dispatcher",
+      "field_worker",
+    ])
+
+    await act(async () => {
+      await router.invalidate({ sync: true })
+    })
+
+    await waitFor(() => {
+      expect(
+        (screen.getByLabelText("Invite role") as HTMLSelectElement).value
+      ).toBe("admin")
     })
   })
 
