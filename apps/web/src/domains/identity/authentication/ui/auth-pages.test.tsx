@@ -1,6 +1,7 @@
 import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import type { ComponentProps, ReactNode } from "react"
+import { renderToString } from "react-dom/server"
 
 const {
   buildJoinWorkspaceTargetPathMock,
@@ -524,6 +525,49 @@ describe("authentication pages", () => {
     } finally {
       view.unmount()
       cleanup()
+    }
+  })
+
+  it("avoids email-verification storage reads during server render and enables signin resend after mount", async () => {
+    resetMocks()
+    window.sessionStorage.setItem(
+      EMAIL_VERIFICATION_FLOW_STORAGE_KEY,
+      JSON.stringify({
+        email: "ada@example.com",
+        reason: "signin",
+      })
+    )
+    const getItemSpy = vi.spyOn(Storage.prototype, "getItem")
+    const { VerifyEmailPage } = await loadPages()
+
+    try {
+      renderToString(
+        <VerifyEmailPage email="ada@example.com" reason="signin" />
+      )
+
+      expect(getItemSpy).not.toHaveBeenCalled()
+
+      const view = render(
+        <VerifyEmailPage email="ada@example.com" reason="signin" />
+      )
+
+      try {
+        await waitFor(() => {
+          expect(
+            screen.getByText(
+              "We sent a fresh verification code after your sign-in attempt."
+            )
+          ).toBeTruthy()
+        })
+        expect(
+          screen.getByRole("button", { name: "Send a new code" })
+        ).toBeTruthy()
+      } finally {
+        view.unmount()
+        cleanup()
+      }
+    } finally {
+      getItemSpy.mockRestore()
     }
   })
 

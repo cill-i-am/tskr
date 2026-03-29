@@ -158,7 +158,7 @@ describe("join workspace page", () => {
 
     try {
       expect(screen.getByDisplayValue("ABCD1234")).toBeTruthy()
-      expect(clearWorkspaceInviteFlowMock).toHaveBeenCalledOnce()
+      expect(clearWorkspaceInviteFlowMock).toHaveBeenCalledTimes(1)
 
       acceptWorkspaceInviteMock.mockResolvedValue(acceptedBootstrap)
 
@@ -173,6 +173,44 @@ describe("join workspace page", () => {
         expect(navigateMock).toHaveBeenCalledWith({
           to: "/app",
         })
+      })
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
+  it("re-persists the invite flow when acceptance fails for the wrong account", async () => {
+    resetMocks()
+    readPendingWorkspaceInviteFlowMock.mockReturnValue({
+      code: "ABCD1234",
+    })
+    acceptWorkspaceInviteMock.mockRejectedValue(
+      new Error(
+        "You are not the recipient of that invite. Sign in with the invited account to continue."
+      )
+    )
+    const { JoinWorkspacePage } = await loadModules()
+    const user = userEvent.setup()
+
+    const view = render(<JoinWorkspacePage />)
+
+    try {
+      await waitFor(() => {
+        expect(screen.getByDisplayValue("ABCD1234")).toBeTruthy()
+      })
+
+      await user.click(screen.getByRole("button", { name: "Join workspace" }))
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole("heading", {
+            name: "This invite belongs to a different account",
+          })
+        ).toBeTruthy()
+      })
+      expect(persistWorkspaceInviteFlowMock).toHaveBeenCalledWith({
+        code: "ABCD1234",
       })
     } finally {
       view.unmount()
@@ -198,8 +236,8 @@ describe("join workspace page", () => {
       await waitFor(() => {
         expect(screen.getByDisplayValue("ABCD1234")).toBeTruthy()
       })
-      expect(readPendingWorkspaceInviteFlowMock).toHaveBeenCalledOnce()
-      expect(clearWorkspaceInviteFlowMock).toHaveBeenCalledOnce()
+      expect(readPendingWorkspaceInviteFlowMock).toHaveBeenCalledTimes(1)
+      expect(clearWorkspaceInviteFlowMock).toHaveBeenCalledTimes(1)
     } finally {
       view.unmount()
       cleanup()

@@ -15,6 +15,7 @@ import { FieldDescription } from "@workspace/ui/components/field"
 import { JoinWorkspaceForm } from "./join-workspace-form"
 import {
   clearWorkspaceInviteFlow,
+  persistWorkspaceInviteFlow,
   readPendingWorkspaceInviteFlow,
 } from "./workspace-invite-flow"
 
@@ -176,16 +177,22 @@ const JoinWorkspacePage = ({ token }: JoinWorkspacePageProps) => {
     clearWorkspaceInviteFlow()
   }, [hasTokenParam])
 
-  const handleRecoverableError = useEffectEvent((message: string) => {
-    const nextRecoveryState = classifyInviteError(message)
+  const handleRecoverableError = useEffectEvent(
+    (message: string, inviteInput: { code: string } | { token: string }) => {
+      const nextRecoveryState = classifyInviteError(message)
 
-    if (!nextRecoveryState) {
-      return false
+      if (!nextRecoveryState) {
+        return false
+      }
+
+      if (nextRecoveryState === "wrong_account") {
+        persistWorkspaceInviteFlow(inviteInput)
+      }
+
+      setRecoveryState(nextRecoveryState)
+      return true
     }
-
-    setRecoveryState(nextRecoveryState)
-    return true
-  })
+  )
 
   if (recoveryState) {
     return <JoinWorkspaceRecoveryCard recoveryState={recoveryState} />

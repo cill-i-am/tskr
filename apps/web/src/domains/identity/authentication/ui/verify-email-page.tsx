@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router"
+import { useEffect, useState } from "react"
 
 import { Button } from "@workspace/ui/components/button"
 import {
@@ -20,7 +21,13 @@ interface VerifyEmailPageProps {
 }
 
 const VerifyEmailPage = ({ email, reason = "" }: VerifyEmailPageProps) => {
-  const storedFlow = readStoredEmailVerificationFlow()
+  const [storedFlow, setStoredFlow] =
+    useState<ReturnType<typeof readStoredEmailVerificationFlow>>(null)
+
+  useEffect(() => {
+    setStoredFlow(readStoredEmailVerificationFlow())
+  }, [])
+
   const hasMatchingStoredFlow = storedFlow?.email === email
   const isSigninFlow =
     reason === "signin" &&

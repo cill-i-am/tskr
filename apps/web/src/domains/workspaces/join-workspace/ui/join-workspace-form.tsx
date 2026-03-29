@@ -22,7 +22,10 @@ const joinWorkspaceCodeSchema = z.object({
 interface JoinWorkspaceFormProps {
   initialCode?: string
   mode: "code" | "token"
-  onRecoverableError: (message: string) => boolean
+  onRecoverableError: (
+    message: string,
+    inviteInput: { code: string } | { token: string }
+  ) => boolean
   token?: string
 }
 
@@ -81,7 +84,7 @@ const JoinWorkspaceForm = ({
             ? submissionError.message
             : "Unable to join this workspace."
 
-        if (onRecoverableError(message)) {
+        if (onRecoverableError(message, inviteInput)) {
           return
         }
 
