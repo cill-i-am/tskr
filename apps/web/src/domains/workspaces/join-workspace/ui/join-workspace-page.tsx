@@ -147,15 +147,10 @@ const JoinWorkspaceRecoveryCard = ({
 const JoinWorkspacePage = ({ token }: JoinWorkspacePageProps) => {
   const [recoveryState, setRecoveryState] =
     useState<JoinWorkspaceRecoveryState | null>(null)
+  const [resumedInviteFlow, setResumedInviteFlow] =
+    useState<ReturnType<typeof readPendingWorkspaceInviteFlow>>(null)
   const hasTokenParam = typeof token === "string"
   const normalizedToken = hasTokenParam ? token.trim() : undefined
-  const [resumedInviteFlow] = useState(() => {
-    if (hasTokenParam) {
-      return null
-    }
-
-    return readPendingWorkspaceInviteFlow()
-  })
   const resumedToken =
     resumedInviteFlow && "token" in resumedInviteFlow
       ? resumedInviteFlow.token.trim()
@@ -167,12 +162,19 @@ const JoinWorkspacePage = ({ token }: JoinWorkspacePageProps) => {
   const activeToken = normalizedToken || resumedToken
 
   useEffect(() => {
-    if (!resumedInviteFlow) {
+    if (hasTokenParam) {
       return
     }
 
+    const pendingInviteFlow = readPendingWorkspaceInviteFlow()
+
+    if (!pendingInviteFlow) {
+      return
+    }
+
+    setResumedInviteFlow(pendingInviteFlow)
     clearWorkspaceInviteFlow()
-  }, [resumedInviteFlow])
+  }, [hasTokenParam])
 
   const handleRecoverableError = useEffectEvent((message: string) => {
     const nextRecoveryState = classifyInviteError(message)

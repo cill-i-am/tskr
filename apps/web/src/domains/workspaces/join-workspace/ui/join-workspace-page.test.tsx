@@ -2,6 +2,7 @@ import type { WorkspaceBootstrap } from "@/domains/workspaces/bootstrap/contract
 import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import type { ComponentProps, ReactNode } from "react"
+import { renderToString } from "react-dom/server"
 
 const {
   acceptWorkspaceInviteMock,
@@ -157,7 +158,7 @@ describe("join workspace page", () => {
 
     try {
       expect(screen.getByDisplayValue("ABCD1234")).toBeTruthy()
-      expect(clearWorkspaceInviteFlowMock).toHaveBeenCalledTimes(1)
+      expect(clearWorkspaceInviteFlowMock).toHaveBeenCalledOnce()
 
       acceptWorkspaceInviteMock.mockResolvedValue(acceptedBootstrap)
 
@@ -173,6 +174,32 @@ describe("join workspace page", () => {
           to: "/app",
         })
       })
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
+  it("does not read invite flow during server render and resumes it after mount", async () => {
+    resetMocks()
+    readPendingWorkspaceInviteFlowMock.mockReturnValue({
+      code: "ABCD1234",
+    })
+    const { JoinWorkspacePage } = await loadModules()
+
+    renderToString(<JoinWorkspacePage />)
+
+    expect(readPendingWorkspaceInviteFlowMock).not.toHaveBeenCalled()
+    expect(clearWorkspaceInviteFlowMock).not.toHaveBeenCalled()
+
+    const view = render(<JoinWorkspacePage />)
+
+    try {
+      await waitFor(() => {
+        expect(screen.getByDisplayValue("ABCD1234")).toBeTruthy()
+      })
+      expect(readPendingWorkspaceInviteFlowMock).toHaveBeenCalledOnce()
+      expect(clearWorkspaceInviteFlowMock).toHaveBeenCalledOnce()
     } finally {
       view.unmount()
       cleanup()
