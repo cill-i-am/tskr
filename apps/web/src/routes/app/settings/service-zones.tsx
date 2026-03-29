@@ -1,24 +1,12 @@
 import { requireWorkspaceAdminSettingsAccess } from "@/domains/identity/settings-admin/application/settings-route-access"
+import {
+  SettingsStubPage,
+  settingsStubPages,
+} from "@/domains/identity/settings-admin/ui/settings-stub-pages"
 import { createFileRoute } from "@tanstack/react-router"
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-} from "@workspace/ui/components/card"
 const ServiceZonesSettingsRoute = () => (
-  <Card className="bg-background/95">
-    <CardHeader>
-      <h2 className="text-2xl font-semibold tracking-tight">Service zones</h2>
-      <CardDescription>
-        Placeholder route for future service zone administration.
-      </CardDescription>
-    </CardHeader>
-    <CardContent className="text-sm text-muted-foreground">
-      Service zone settings are intentionally stubbed in this task.
-    </CardContent>
-  </Card>
+  <SettingsStubPage page={settingsStubPages[1]} />
 )
 
 export const Route = createFileRoute("/app/settings/service-zones")({

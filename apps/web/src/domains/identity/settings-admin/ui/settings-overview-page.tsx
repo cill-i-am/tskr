@@ -9,6 +9,8 @@ import {
   CardHeader,
 } from "@workspace/ui/components/card"
 
+import { settingsStubPages } from "./settings-stub-pages"
+
 interface SettingsOverviewPageProps {
   snapshot: SettingsAdminSnapshot
 }
@@ -51,23 +53,11 @@ const realAdminCards = (snapshot: SettingsAdminSnapshot) =>
       : null,
   ].filter(isOverviewCard)
 
-const stubCards = [
-  {
-    description: "Labels settings are scaffolded and ready for future forms.",
-    href: "/app/settings/labels",
-    title: "Labels",
-  },
-  {
-    description: "Service zones currently expose a placeholder admin route.",
-    href: "/app/settings/service-zones",
-    title: "Service zones",
-  },
-  {
-    description: "Notification controls will attach to this shell next.",
-    href: "/app/settings/notifications",
-    title: "Notifications",
-  },
-]
+const stubCards = settingsStubPages.map((page) => ({
+  description: page.overviewDescription,
+  href: page.to,
+  title: page.title,
+}))
 
 const renderCards = (
   cards: { description: string; href: string; title: string }[]

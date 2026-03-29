@@ -15,16 +15,13 @@ interface SettingsRouteLoaderData {
 const forbiddenSettingsSnapshotMessage =
   "You are not allowed to manage settings for this workspace."
 
-const hasWorkspaceAdminAccess = (permissions: SettingsAdminPermissions) =>
-  permissions.canEditWorkspaceProfile ||
-  permissions.canManageInvites ||
-  permissions.canManageMembers ||
-  permissions.canInviteRoles.length > 0
-
 const hasPeopleSettingsAccess = (permissions: SettingsAdminPermissions) =>
   permissions.canManageInvites ||
   permissions.canManageMembers ||
   permissions.canInviteRoles.length > 0
+
+const hasWorkspaceAdminAccess = (permissions: SettingsAdminPermissions) =>
+  permissions.canEditWorkspaceProfile || hasPeopleSettingsAccess(permissions)
 
 const canRequestSettingsSnapshot = (role: WorkspaceRole) =>
   role === "owner" || role === "admin"
@@ -116,21 +113,6 @@ const requireWorkspaceProfileSettingsAccess = async () => {
   }
 }
 
-const requirePeopleSettingsAccess = async () => {
-  const { snapshot } = await requireWorkspaceAdminSettingsAccess()
-
-  if (!hasPeopleSettingsAccess(snapshot.permissions)) {
-    throw redirect({
-      replace: true,
-      to: "/app/settings/account",
-    })
-  }
-
-  return {
-    snapshot,
-  }
-}
-
 const loadSettingsRouteData = async ({
   location,
 }: {
@@ -162,7 +144,6 @@ export {
   hasPeopleSettingsAccess,
   hasWorkspaceAdminAccess,
   loadSettingsRouteData,
-  requirePeopleSettingsAccess,
   requireSettingsAccess,
   requireWorkspaceAdminSettingsAccess,
   requireWorkspaceProfileSettingsAccess,

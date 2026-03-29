@@ -13,6 +13,8 @@ import {
   CardHeader,
 } from "@workspace/ui/components/card"
 
+import { settingsStubPages } from "./settings-stub-pages"
+
 interface SettingsLayoutProps {
   children: React.ReactNode
   snapshot: SettingsAdminSnapshot | null
@@ -66,23 +68,11 @@ const getStubItems = (snapshot: SettingsAdminSnapshot | null) => {
     return []
   }
 
-  return [
-    {
-      description: "Stubbed labels settings surface.",
-      label: "Labels",
-      to: "/app/settings/labels",
-    },
-    {
-      description: "Stubbed service zone settings surface.",
-      label: "Service zones",
-      to: "/app/settings/service-zones",
-    },
-    {
-      description: "Stubbed notification settings surface.",
-      label: "Notifications",
-      to: "/app/settings/notifications",
-    },
-  ]
+  return settingsStubPages.map((page) => ({
+    description: page.navigationDescription,
+    label: page.title,
+    to: page.to,
+  }))
 }
 
 const renderNavigationItem = (
@@ -121,7 +111,7 @@ const SettingsLayout = ({ children, snapshot }: SettingsLayoutProps) => {
   const stubItems = getStubItems(snapshot)
   const summary =
     snapshot && hasWorkspaceAdminAccess(snapshot.permissions)
-      ? `${snapshot?.members.length ?? 0} members in ${
+      ? `${snapshot.members.length} members in ${
           activeWorkspace?.name ?? "this workspace"
         }.`
       : "Your account settings stay reachable without workspace admin access."
