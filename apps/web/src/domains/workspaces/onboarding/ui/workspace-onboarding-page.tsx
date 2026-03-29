@@ -1,3 +1,4 @@
+import { WorkspaceSelectionRecovery } from "@/domains/workspaces/active-workspace/ui/workspace-selection-recovery"
 import { useWorkspaceBootstrap } from "@/domains/workspaces/bootstrap/ui/use-workspace-bootstrap"
 import { Link } from "@tanstack/react-router"
 
@@ -10,37 +11,6 @@ import {
 } from "@workspace/ui/components/card"
 
 import { CreateWorkspaceForm } from "./create-workspace-form"
-
-const SelectionRecoveryFallback = () => {
-  const { memberships, pendingInvites } = useWorkspaceBootstrap()
-
-  return (
-    <div className="p-6 md:p-10 flex min-h-svh items-center justify-center">
-      <Card className="max-w-2xl w-full bg-background/95">
-        <CardHeader>
-          <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
-            Workspace onboarding
-          </p>
-          <h1 className="text-3xl font-medium tracking-tight">
-            Workspace selection is coming next
-          </h1>
-          <CardDescription>
-            You already belong to at least one workspace, but this slice only
-            ships the first create-workspace happy path.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="gap-3 text-sm flex flex-col text-muted-foreground">
-          <p>{memberships.length} memberships discovered</p>
-          <p>
-            {pendingInvites.length} pending invite
-            {pendingInvites.length === 1 ? "" : "s"} waiting
-          </p>
-          <p>Workspace recovery selection will land in a follow-up issue.</p>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
 
 const CreateWorkspaceOnboarding = () => (
   <div className="p-6 md:p-10 flex min-h-svh items-center justify-center">
@@ -83,7 +53,7 @@ const WorkspaceOnboardingPage = () => {
   const { recoveryState } = useWorkspaceBootstrap()
 
   if (recoveryState === "selection_required") {
-    return <SelectionRecoveryFallback />
+    return <WorkspaceSelectionRecovery />
   }
 
   return <CreateWorkspaceOnboarding />

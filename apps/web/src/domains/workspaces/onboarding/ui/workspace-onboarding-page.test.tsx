@@ -3,10 +3,12 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import type { ComponentProps, ReactNode } from "react"
 
-const { createWorkspaceMock, navigateMock } = vi.hoisted(() => ({
-  createWorkspaceMock: vi.fn(),
-  navigateMock: vi.fn(),
-}))
+const { createWorkspaceMock, navigateMock, updateActiveWorkspaceMock } =
+  vi.hoisted(() => ({
+    createWorkspaceMock: vi.fn(),
+    navigateMock: vi.fn(),
+    updateActiveWorkspaceMock: vi.fn(),
+  }))
 
 const installMocks = () => {
   vi.doMock(import("@tanstack/react-router"), (() => ({
@@ -29,6 +31,13 @@ const installMocks = () => {
     import("@/domains/workspaces/onboarding/infra/create-workspace-client"),
     (() => ({
       createWorkspace: createWorkspaceMock,
+    })) as never
+  )
+
+  vi.doMock(
+    import("@/domains/workspaces/active-workspace/infra/update-active-workspace"),
+    (() => ({
+      updateActiveWorkspace: updateActiveWorkspaceMock,
     })) as never
   )
 }
@@ -61,6 +70,7 @@ const renderPage = async (bootstrap: WorkspaceBootstrap) => {
 const resetMocks = () => {
   createWorkspaceMock.mockReset()
   navigateMock.mockReset()
+  updateActiveWorkspaceMock.mockReset()
   vi.resetModules()
 }
 
@@ -116,18 +126,68 @@ describe("workspace onboarding page", () => {
           slug: "field-team",
         },
       ],
+      pendingInvites: [
+        {
+          email: "beta@acme.test",
+          expiresAt: "2026-04-01T12:00:00.000Z",
+          id: "invite_123",
+          role: "dispatcher",
+          status: "pending",
+          workspaceId: "workspace_789",
+          workspaceName: "North Harbor",
+          workspaceSlug: "north-harbor",
+        },
+      ],
       recoveryState: "selection_required",
     })
 
     try {
-      expect(
-        screen.getByRole("heading", {
-          name: "Workspace selection is coming next",
-        })
-      ).toBeTruthy()
+      screen.getByRole("heading", {
+        name: "Your previous active workspace is no longer available",
+      })
+      screen.getByText("Choose where to continue.")
       expect(screen.queryByLabelText("Workspace name")).toBeNull()
       expect(screen.queryByRole("link", { name: "Join by invite" })).toBeNull()
-      expect(screen.getByText("2 memberships discovered")).toBeTruthy()
+      screen.getByText("Operations Control")
+      screen.getByText("Field Team")
+      screen.getByText("Owner")
+      screen.getByText("Admin")
+      screen.getByText("operations-control")
+      screen.getByText("field-team")
+      screen.getByText("Pending invites")
+      screen.getByText("North Harbor")
+      screen.getByText("beta@acme.test")
+      screen.getByText("Dispatcher")
+      const user = userEvent.setup()
+      const switchButton = screen.getByRole("button", {
+        name: "Switch to Operations Control",
+      })
+
+      await user.click(switchButton)
+      await waitFor(() => {
+        expect(
+          screen.getByRole("button", {
+            name: "Switching to Operations Control...",
+          })
+        ).toBeTruthy()
+      })
+      expect((switchButton as HTMLButtonElement).disabled).toBeTruthy()
+
+      await user.click(switchButton)
+      expect(updateActiveWorkspaceMock).toHaveBeenCalledOnce()
+      await waitFor(() => {
+        expect(updateActiveWorkspaceMock).toHaveBeenCalledWith({
+          workspaceId: "workspace_123",
+        })
+      })
+      await waitFor(() => {
+        expect(navigateMock).toHaveBeenCalledWith({
+          to: "/app",
+        })
+      })
+      expect(
+        screen.queryByText("Workspace selection is coming next")
+      ).toBeNull()
     } finally {
       view.unmount()
       cleanup()

@@ -1,3 +1,5 @@
+import { WorkspaceRecoveryNotice } from "@/domains/workspaces/active-workspace/ui/workspace-recovery-notice"
+import { WorkspaceSwitcher } from "@/domains/workspaces/active-workspace/ui/workspace-switcher"
 import { useWorkspaceBootstrap } from "@/domains/workspaces/bootstrap/ui/use-workspace-bootstrap"
 import { Link, useRouterState } from "@tanstack/react-router"
 import { LayoutDashboardIcon, Settings2Icon } from "lucide-react"
@@ -29,7 +31,7 @@ import {
 } from "@workspace/ui/components/sidebar"
 
 const AuthenticatedAppShell = ({ children }: { children: React.ReactNode }) => {
-  const { activeWorkspace, memberships } = useWorkspaceBootstrap()
+  const { activeWorkspace, recoveryState } = useWorkspaceBootstrap()
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
   })
@@ -42,14 +44,7 @@ const AuthenticatedAppShell = ({ children }: { children: React.ReactNode }) => {
           <p className="text-xs tracking-[0.18em] text-sidebar-foreground/70 uppercase">
             TSKR
           </p>
-          <div className="min-w-0">
-            <p className="font-medium truncate">
-              {activeWorkspace?.name ?? "Workspace access"}
-            </p>
-            <p className="text-xs text-sidebar-foreground/70">
-              {memberships.length} memberships available
-            </p>
-          </div>
+          <WorkspaceSwitcher />
         </SidebarHeader>
         <SidebarSeparator />
         <SidebarContent>
@@ -115,7 +110,13 @@ const AuthenticatedAppShell = ({ children }: { children: React.ReactNode }) => {
             </Breadcrumb>
           </div>
         </header>
-        <main className="p-4 md:p-6">{children}</main>
+        <main className="gap-4 p-4 md:p-6 flex flex-col">
+          <WorkspaceRecoveryNotice
+            activeWorkspaceName={activeWorkspace?.name ?? null}
+            recoveryState={recoveryState}
+          />
+          {children}
+        </main>
       </SidebarInset>
     </SidebarProvider>
   )

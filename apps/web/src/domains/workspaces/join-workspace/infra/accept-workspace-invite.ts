@@ -1,5 +1,5 @@
 import { fetchAuthService } from "@/domains/identity/authentication/infra/auth-service-client"
-import { readAuthServiceErrorMessage } from "@/domains/identity/settings-admin/infra/read-auth-service-error-message"
+import { readAuthServiceErrorMessage } from "@/domains/identity/authentication/infra/read-auth-service-error-message"
 import { workspaceBootstrapSchema } from "@/domains/workspaces/bootstrap/contracts/workspace-bootstrap"
 import type { WorkspaceBootstrap } from "@/domains/workspaces/bootstrap/contracts/workspace-bootstrap"
 import type {

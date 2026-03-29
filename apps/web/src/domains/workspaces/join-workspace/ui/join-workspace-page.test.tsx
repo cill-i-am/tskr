@@ -176,7 +176,7 @@ describe("join workspace page", () => {
           to: "/app",
         })
       })
-      expect(clearWorkspaceInviteFlowMock).toHaveBeenCalledOnce()
+      expect(clearWorkspaceInviteFlowMock).toHaveBeenCalledTimes(1)
     } finally {
       view.unmount()
       cleanup()
@@ -273,7 +273,7 @@ describe("join workspace page", () => {
       await waitFor(() => {
         expect(screen.getByDisplayValue("ABCD1234")).toBeTruthy()
       })
-      expect(readPendingWorkspaceInviteFlowMock).toHaveBeenCalledOnce()
+      expect(readPendingWorkspaceInviteFlowMock).toHaveBeenCalledTimes(1)
       expect(clearWorkspaceInviteFlowMock).not.toHaveBeenCalled()
     } finally {
       view.unmount()
@@ -444,7 +444,7 @@ describe("join workspace page", () => {
         screen.getByRole("button", { name: "Enter another invite" })
       )
 
-      expect(clearWorkspaceInviteFlowMock).toHaveBeenCalledOnce()
+      expect(clearWorkspaceInviteFlowMock).toHaveBeenCalledTimes(1)
       expect(navigateMock).toHaveBeenCalledWith({
         to: "/join-workspace",
       })

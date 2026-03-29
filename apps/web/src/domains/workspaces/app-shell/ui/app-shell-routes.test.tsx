@@ -1,5 +1,6 @@
 import type { SettingsAdminSnapshot } from "@/domains/identity/settings-admin/contracts/settings-admin-contract"
 import { getSettingsSnapshot } from "@/domains/identity/settings-admin/infra/get-settings-snapshot"
+import { updateActiveWorkspace } from "@/domains/workspaces/active-workspace/infra/update-active-workspace"
 import type { WorkspaceBootstrap } from "@/domains/workspaces/bootstrap/contracts/workspace-bootstrap"
 import { getWorkspaceBootstrap } from "@/domains/workspaces/bootstrap/infra/workspace-bootstrap-client"
 import { routeTree } from "@/routeTree.gen"
@@ -8,7 +9,15 @@ import {
   createMemoryHistory,
   createRouter,
 } from "@tanstack/react-router"
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react"
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 
 vi.mock(
   import("@/domains/workspaces/bootstrap/infra/workspace-bootstrap-client"),
@@ -24,8 +33,16 @@ vi.mock(
   })
 )
 
+vi.mock(
+  import("@/domains/workspaces/active-workspace/infra/update-active-workspace"),
+  () => ({
+    updateActiveWorkspace: vi.fn(),
+  })
+)
+
 const getWorkspaceBootstrapMock = vi.mocked(getWorkspaceBootstrap)
 const getSettingsSnapshotMock = vi.mocked(getSettingsSnapshot)
+const updateActiveWorkspaceMock = vi.mocked(updateActiveWorkspace)
 
 const activeWorkspaceBootstrap: WorkspaceBootstrap = {
   activeWorkspace: {
@@ -122,6 +139,18 @@ const withRecoveryState = (
       : activeWorkspaceBootstrap.activeWorkspace,
   recoveryState,
 })
+
+const switchedWorkspaceBootstrap: WorkspaceBootstrap = {
+  ...activeWorkspaceBootstrap,
+  activeWorkspace: {
+    id: "workspace_456",
+    logo: null,
+    name: "Field Team",
+    role: "admin",
+    slug: "field-team",
+  },
+  recoveryState: "active_valid",
+}
 
 const withActiveWorkspaceRole = (
   role: NonNullable<WorkspaceBootstrap["activeWorkspace"]>["role"]
@@ -330,13 +359,220 @@ describe("workspace app shell routes", () => {
       expect(router.state.location.pathname).toBe("/app")
     })
 
-    await expect(
-      screen.findByRole("heading", {
+    expect(
+      screen.getByRole("heading", {
         name: "Operations Control",
       })
-    ).resolves.toBeTruthy()
+    ).toBeTruthy()
     expect(screen.getAllByText("2 memberships available")).toHaveLength(2)
     expect(screen.getByText("1 pending invite")).toBeTruthy()
+  })
+
+  it("opens the workspace switcher from the authenticated shell and lists memberships with pending invites", async () => {
+    const user = userEvent.setup()
+    prepareTestEnvironment()
+    getWorkspaceBootstrapMock.mockResolvedValue(
+      withRecoveryState("active_valid")
+    )
+
+    const router = createTestRouter("/app")
+
+    const view = await act(async () => {
+      const rendered = render(<RouterProvider router={router} />)
+      await router.load()
+      return rendered
+    })
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/app")
+    })
+
+    await user.click(
+      screen.getByRole("button", {
+        name: /Switch workspace/,
+      })
+    )
+
+    await screen.findByText("Pending invites")
+    const switcher = document.querySelector(
+      "[data-workspace-switcher-panel]"
+    ) as HTMLElement | null
+
+    expect(switcher).toBeTruthy()
+    const switcherText = String((switcher as HTMLElement).textContent)
+    expect(
+      [
+        "Operations Control",
+        "Field Team",
+        "Logistics",
+        "Owner",
+        "Admin",
+        "Dispatcher",
+        "Pending invites",
+      ].every((text) => switcherText.includes(text))
+    ).toBeTruthy()
+    expect(
+      within(switcher as HTMLElement).getByText("Active workspace", {
+        selector: "span",
+      })
+    ).toBeTruthy()
+
+    await user.click(
+      screen.getByRole("button", {
+        name: /Switch workspace/,
+      })
+    )
+
+    await waitFor(() => {
+      expect(screen.queryByText("Pending invites")).toBeNull()
+    })
+
+    view.unmount()
+  })
+
+  it("switches to another workspace and refreshes the shell from bootstrap state", async () => {
+    const user = userEvent.setup()
+    prepareTestEnvironment()
+    getWorkspaceBootstrapMock.mockResolvedValue(activeWorkspaceBootstrap)
+    updateActiveWorkspaceMock.mockImplementation(() => {
+      getWorkspaceBootstrapMock.mockResolvedValue(switchedWorkspaceBootstrap)
+
+      return Promise.resolve(switchedWorkspaceBootstrap)
+    })
+
+    const router = createTestRouter("/app")
+
+    await act(async () => {
+      render(<RouterProvider router={router} />)
+      await router.load()
+    })
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/app")
+    })
+
+    await user.click(
+      screen.getByRole("button", {
+        name: /Switch workspace/,
+      })
+    )
+
+    await screen.findByText("Pending invites")
+
+    const fieldTeamRow = document.querySelector(
+      '[data-workspace-entry="workspace_456"]'
+    ) as HTMLElement | null
+
+    expect(fieldTeamRow).toBeTruthy()
+
+    const switchAction = within(fieldTeamRow as HTMLElement).getByRole(
+      "button",
+      {
+        name: "Switch to Field Team",
+      }
+    )
+
+    expect((switchAction as HTMLButtonElement).disabled).toBeFalsy()
+
+    await user.click(switchAction)
+
+    await waitFor(() => {
+      expect(updateActiveWorkspaceMock).toHaveBeenCalledWith({
+        workspaceId: "workspace_456",
+      })
+    })
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/app")
+    })
+
+    await expect(
+      screen.findByRole("heading", {
+        name: "Field Team",
+      })
+    ).resolves.toBeTruthy()
+    expect(screen.getAllByText("Field Team")).not.toHaveLength(0)
+  })
+
+  it("keeps the workspace switcher open and announces an error when switching fails", async () => {
+    const user = userEvent.setup()
+    prepareTestEnvironment()
+    getWorkspaceBootstrapMock.mockResolvedValue(activeWorkspaceBootstrap)
+    updateActiveWorkspaceMock.mockRejectedValue(
+      new Error("Unable to switch to Field Team right now.")
+    )
+
+    const router = createTestRouter("/app")
+
+    await act(async () => {
+      render(<RouterProvider router={router} />)
+      await router.load()
+    })
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/app")
+    })
+
+    await user.click(
+      screen.getByRole("button", {
+        name: /Switch workspace/,
+      })
+    )
+
+    await screen.findByText("Pending invites")
+
+    const fieldTeamRow = document.querySelector(
+      '[data-workspace-entry="workspace_456"]'
+    ) as HTMLElement | null
+
+    expect(fieldTeamRow).toBeTruthy()
+
+    await user.click(
+      within(fieldTeamRow as HTMLElement).getByRole("button", {
+        name: "Switch to Field Team",
+      })
+    )
+
+    await waitFor(() => {
+      expect(updateActiveWorkspaceMock).toHaveBeenCalledWith({
+        workspaceId: "workspace_456",
+      })
+    })
+
+    expect(screen.getByText("Pending invites")).toBeTruthy()
+    expect(
+      screen.getByRole("alert", {
+        name: "",
+      })
+    ).toBeTruthy()
+    expect(
+      screen.getByText("Unable to switch to Field Team right now.")
+    ).toBeTruthy()
+  })
+
+  it("renders a human auto-switch recovery explanation across app shell routes", async () => {
+    const router = await renderPath({
+      bootstrap: withRecoveryState("auto_switched"),
+      path: "/app/settings/account",
+    })
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/app/settings/account")
+    })
+
+    expect(
+      screen.getByText(
+        "We moved you into Operations Control because your previous workspace was no longer available."
+      )
+    ).toBeTruthy()
+    expect(
+      screen.queryByText("Current recovery state: auto_switched")
+    ).toBeNull()
+    await expect(
+      screen.findByRole("heading", {
+        name: "Account settings",
+      })
+    ).resolves.toBeTruthy()
   })
 
   it("adds a settings destination to the authenticated app shell", async () => {
@@ -611,10 +847,18 @@ describe("workspace app shell routes", () => {
 
     await expect(
       screen.findByRole("heading", {
-        name: "Workspace selection is coming next",
+        name: "Your previous active workspace is no longer available",
       })
     ).resolves.toBeTruthy()
     expect(screen.queryByLabelText("Workspace name")).toBeNull()
-    expect(screen.getByText("2 memberships discovered")).toBeTruthy()
+    const onboardingText = String(document.body.textContent)
+    expect(
+      [
+        "Choose where to continue.",
+        "Operations Control",
+        "Pending invites",
+      ].every((text) => onboardingText.includes(text))
+    ).toBeTruthy()
+    expect(screen.queryByText("Workspace selection is coming next")).toBeNull()
   })
 })

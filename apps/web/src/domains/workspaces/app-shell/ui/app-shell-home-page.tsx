@@ -36,7 +36,11 @@ const AppShellHomePage = () => {
             {pendingInvites.length} pending invite
             {pendingInvites.length === 1 ? "" : "s"}
           </p>
-          <p>Current recovery state: {recoveryState}</p>
+          <p>
+            {recoveryState === "active_valid"
+              ? "Your workspace access is current."
+              : "If anything changes, the shell will recover access here before deeper routes load."}
+          </p>
         </CardContent>
       </Card>
       <Card className="bg-muted/40">

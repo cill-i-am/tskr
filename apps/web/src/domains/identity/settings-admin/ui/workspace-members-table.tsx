@@ -4,6 +4,7 @@ import type {
 } from "@/domains/identity/settings-admin/contracts/settings-admin-contract"
 import { removeWorkspaceMember } from "@/domains/identity/settings-admin/infra/remove-workspace-member"
 import { updateWorkspaceMemberRole } from "@/domains/identity/settings-admin/infra/update-workspace-member-role"
+import { getWorkspaceRoleLabel } from "@/domains/workspaces/shared/workspace-role-labels"
 import { useEffect, useEffectEvent, useState } from "react"
 import type { ChangeEvent, MouseEvent } from "react"
 
@@ -27,13 +28,6 @@ interface WorkspaceMembersTableProps {
   onError: (message: string) => void
   onRefresh: () => Promise<void>
   workspaceId: string
-}
-
-const roleLabels: Record<SettingsAdminWorkspaceRole, string> = {
-  admin: "Admin",
-  dispatcher: "Dispatcher",
-  field_worker: "Field worker",
-  owner: "Owner",
 }
 
 const getDraftRoles = (members: SettingsAdminMember[]) =>
@@ -205,12 +199,12 @@ const WorkspaceMembersTable = ({
                   >
                     {getRoleOptions(member).map((role) => (
                       <NativeSelectOption key={role} value={role}>
-                        {roleLabels[role]}
+                        {getWorkspaceRoleLabel(role)}
                       </NativeSelectOption>
                     ))}
                   </NativeSelect>
                 ) : (
-                  <span>{roleLabels[member.role]}</span>
+                  <span>{getWorkspaceRoleLabel(member.role)}</span>
                 )}
               </TableCell>
               <TableCell>
