@@ -1,5 +1,14 @@
-const readAuthServiceErrorMessage = async (response: Response) => {
-  let message = `Auth service request failed with status ${response.status}.`
+interface ReadAuthServiceErrorMessageOptions {
+  context?: string | undefined
+}
+
+const readAuthServiceErrorMessage = async (
+  response: Response,
+  { context }: ReadAuthServiceErrorMessageOptions = {}
+) => {
+  let message = context
+    ? `${context} failed with status ${response.status}.`
+    : `Auth service request failed with status ${response.status}.`
 
   try {
     const payload = (await response.json()) as {
@@ -17,3 +26,4 @@ const readAuthServiceErrorMessage = async (response: Response) => {
 }
 
 export { readAuthServiceErrorMessage }
+export type { ReadAuthServiceErrorMessageOptions }

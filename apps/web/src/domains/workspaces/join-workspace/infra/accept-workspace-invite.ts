@@ -43,7 +43,11 @@ const acceptWorkspaceInvite = async (
   })
 
   if (!response.ok) {
-    throw new Error(await readAuthServiceErrorMessage(response))
+    throw new Error(
+      await readAuthServiceErrorMessage(response, {
+        context: "Workspace invite acceptance",
+      })
+    )
   }
 
   try {
