@@ -37,6 +37,10 @@ digraph when_to_use {
 - Two-stage review after each task: spec compliance first, then code quality
 - Faster iteration (no human-in-loop between tasks)
 
+## Delegation Guardrail
+
+Only use this skill when the current harness permits subagents and the user has explicitly asked for delegation, subagents, or parallel agent work. If not, use `executing-plans` instead.
+
 ## The Process
 
 ```dot
@@ -48,7 +52,7 @@ digraph process {
         "Dispatch implementer subagent (./implementer-prompt.md)" [shape=box];
         "Implementer subagent asks questions?" [shape=diamond];
         "Answer questions, provide context" [shape=box];
-        "Implementer subagent implements, tests, commits, self-reviews" [shape=box];
+        "Implementer subagent implements, tests, and self-reviews" [shape=box];
         "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" [shape=box];
         "Spec reviewer subagent confirms code matches spec?" [shape=diamond];
         "Implementer subagent fixes spec gaps" [shape=box];
@@ -67,8 +71,8 @@ digraph process {
     "Dispatch implementer subagent (./implementer-prompt.md)" -> "Implementer subagent asks questions?";
     "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
     "Answer questions, provide context" -> "Dispatch implementer subagent (./implementer-prompt.md)";
-    "Implementer subagent asks questions?" -> "Implementer subagent implements, tests, commits, self-reviews" [label="no"];
-    "Implementer subagent implements, tests, commits, self-reviews" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)";
+    "Implementer subagent asks questions?" -> "Implementer subagent implements, tests, and self-reviews" [label="no"];
+    "Implementer subagent implements, tests, and self-reviews" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)";
     "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" -> "Spec reviewer subagent confirms code matches spec?";
     "Spec reviewer subagent confirms code matches spec?" -> "Implementer subagent fixes spec gaps" [label="no"];
     "Implementer subagent fixes spec gaps" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" [label="re-review"];
@@ -88,16 +92,19 @@ digraph process {
 
 Use the least powerful model that can handle each role to conserve cost and increase speed.
 
-**Mechanical implementation tasks** (isolated functions, clear specs, 1-2 files): use a fast, cheap model. Most implementation tasks are mechanical when the plan is well-specified.
+**Codex defaults:**
+- Implementer for narrow, well-specified tasks: `gpt-5.4-mini` with `medium` reasoning
+- Spec reviewer: `gpt-5.4-mini` with `medium` reasoning
+- Code quality reviewer: `gpt-5.4` with `high` reasoning
+- Final reviewer or architecture/debugging escalation: `gpt-5.4` with `high` or `xhigh` reasoning
 
-**Integration and judgment tasks** (multi-file coordination, pattern matching, debugging): use a standard model.
+**Escalate up from `gpt-5.4-mini` when:**
+- The task touches multiple files with integration concerns
+- The implementer reports `DONE_WITH_CONCERNS`, `NEEDS_CONTEXT`, or `BLOCKED`
+- The work requires design judgment, debugging, or broad codebase understanding
+- A review loop repeats without converging
 
-**Architecture, design, and review tasks**: use the most capable available model.
-
-**Task complexity signals:**
-- Touches 1-2 files with a complete spec → cheap model
-- Touches multiple files with integration concerns → standard model
-- Requires design judgment or broad codebase understanding → most capable model
+**Do not over-upgrade by default.** Most mechanical plan tasks should start on `gpt-5.4-mini`.
 
 ## Handling Implementer Status
 
@@ -146,12 +153,12 @@ Implementer: "Got it. Implementing now..."
   - Implemented install-hook command
   - Added tests, 5/5 passing
   - Self-review: Found I missed --force flag, added it
-  - Committed
+  - Reported changed files and commands run
 
 [Dispatch spec compliance reviewer]
 Spec reviewer: ✅ Spec compliant - all requirements met, nothing extra
 
-[Get git SHAs, dispatch code quality reviewer]
+[Review diff, dispatch code quality reviewer]
 Code reviewer: Strengths: Good test coverage, clean. Issues: None. Approved.
 
 [Mark Task 1 complete]
@@ -166,7 +173,7 @@ Implementer:
   - Added verify/repair modes
   - 8/8 tests passing
   - Self-review: All good
-  - Committed
+  - Reported changed files and commands run
 
 [Dispatch spec compliance reviewer]
 Spec reviewer: ❌ Issues:
@@ -200,6 +207,14 @@ Done!
 ```
 
 ## Advantages
+
+## Controller Ownership
+
+The controller owns git history and publishing unless the user explicitly delegates that responsibility.
+
+- Implementer subagents should edit code, run tests, and report back
+- Implementer subagents should not commit, push, or open PRs by default
+- The controller decides when changes are integrated, committed, and published
 
 **vs. Manual execution:**
 - Subagents follow TDD naturally

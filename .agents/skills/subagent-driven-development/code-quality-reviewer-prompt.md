@@ -12,10 +12,13 @@ Task tool (superpowers:code-reviewer):
 
   WHAT_WAS_IMPLEMENTED: [from implementer's report]
   PLAN_OR_REQUIREMENTS: Task N from [plan-file]
-  BASE_SHA: [commit before task]
-  HEAD_SHA: [current commit]
+  BASE_SHA: [commit before task, if available]
+  HEAD_SHA: [current commit, if available]
+  CHANGED_FILES_OR_DIFF: [controller-supplied files or patch context when task work is not committed yet]
   DESCRIPTION: [task summary]
 ```
+
+Use commit SHAs when the controller is reviewing committed work. Use changed files or diff context when the controller is reviewing uncommitted task output.
 
 **In addition to standard code quality concerns, the reviewer should check:**
 - Does each file have one clear responsibility with a well-defined interface?

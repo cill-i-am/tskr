@@ -13,6 +13,10 @@ When you have multiple unrelated failures (different test files, different subsy
 
 **Core principle:** Dispatch one agent per independent problem domain. Let them work concurrently.
 
+## Delegation Guardrail
+
+Only use this skill when the current harness permits subagents and the user has explicitly asked for delegation, subagents, or parallel agent work. If not, investigate locally instead of forcing parallel dispatch.
+
 ## When to Use
 
 ```dot
@@ -72,6 +76,12 @@ Task("Fix batch-completion-behavior.test.ts failures")
 Task("Fix tool-approval-race-conditions.test.ts failures")
 // All three run concurrently
 ```
+
+**Codex model defaults:**
+- Narrow investigation or mechanical fix: `gpt-5.4-mini` with `medium` reasoning
+- Complex integration/debugging investigation: `gpt-5.4` with `high` reasoning
+
+Start small. Escalate only when the returned result shows the task needed more judgment.
 
 ### 4. Review and Integrate
 

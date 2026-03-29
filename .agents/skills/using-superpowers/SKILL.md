@@ -37,6 +37,8 @@ If CLAUDE.md, GEMINI.md, or AGENTS.md says "don't use TDD" and a skill says "alw
 
 Skills use Claude Code tool names. Non-CC platforms: see `references/codex-tools.md` (Codex) for tool equivalents. Gemini CLI users get the tool mapping loaded automatically via GEMINI.md.
 
+**Codex note:** In Codex, follow the closest native workflow instead of forcing Claude-specific mechanics. Prefer the smallest set of skills that covers the task, and respect current harness rules around delegation.
+
 # Using Skills
 
 ## The Rule
@@ -73,24 +75,50 @@ digraph skill_flow {
 }
 ```
 
-## Red Flags
+## Minimal Applicable Set
 
-These thoughts mean STOP—you're rationalizing:
+Default to the smallest set of skills that fully covers the task:
 
-| Thought | Reality |
-|---------|---------|
-| "This is just a simple question" | Questions are tasks. Check for skills. |
-| "I need more context first" | Skill check comes BEFORE clarifying questions. |
-| "Let me explore the codebase first" | Skills tell you HOW to explore. Check first. |
-| "I can check git/files quickly" | Files lack conversation context. Check for skills. |
-| "Let me gather information first" | Skills tell you HOW to gather information. |
-| "This doesn't need a formal skill" | If a skill exists, use it. |
-| "I remember this skill" | Skills evolve. Read current version. |
-| "This doesn't count as a task" | Action = task. Check for skills. |
-| "The skill is overkill" | Simple things become complex. Use it. |
-| "I'll just do this one thing first" | Check BEFORE doing anything. |
-| "This feels productive" | Undisciplined action wastes time. Skills prevent this. |
-| "I know what that means" | Knowing the concept ≠ using the skill. Invoke it. |
+1. One **process skill** when needed (`brainstorming`, `systematic-debugging`, `test-driven-development`, `writing-skills`)
+2. One **domain or implementation skill** when needed
+3. One **finish skill** when needed (`verification-before-completion`, `finishing-a-development-branch`, `requesting-code-review`)
+
+Do not load every maybe-relevant skill. If two skills overlap, pick the one that most directly matches the task.
+
+## Intent Router
+
+Use this as the fast routing layer before doing work:
+
+- Underdefined feature or behavior change with real product choices: `brainstorming`
+- Approved spec or plan already exists: `writing-plans`, `executing-plans`, or `subagent-driven-development`
+- Bug, failing test, broken build, flaky behavior: `systematic-debugging`
+- Feature or bugfix implementation with clear scope: `test-driven-development`
+- Code review, PR feedback, staged diff review: `requesting-code-review` or the relevant GitHub review skill
+- Railway, deploy, service config, infra triage: `use-railway`, plus `systematic-debugging` if something is broken
+- Repo instruction topology or agent workflow changes: `build-intent-layer`
+- Creating or editing skills: `writing-skills`
+
+If the task falls cleanly into one router bucket, start there instead of stacking generic skills.
+
+## Codex Delegation Rule
+
+If you are in Codex, only dispatch subagents when both are true:
+
+1. The current harness supports subagents
+2. The user has explicitly asked for delegation, subagents, or parallel agent work
+
+If either is false, stay in the main agent and use the non-delegating workflow.
+
+## Rationalization Tripwires
+
+Pause and re-check skills immediately if you catch yourself thinking:
+
+- "I'll just inspect a couple files first"
+- "This is probably too small for a skill"
+- "I remember this skill well enough"
+- "I'll do one quick change, then come back"
+
+For the longer red-flag list and rationale, see `references/red-flags.md`.
 
 ## Skill Priority
 

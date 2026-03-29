@@ -32,14 +32,22 @@ Task tool (general-purpose):
     1. Implement exactly what the task specifies
     2. Write tests (following TDD if task says to)
     3. Verify implementation works
-    4. Commit your work
-    5. Self-review (see below)
-    6. Report back
+    4. Self-review (see below)
+    5. Report back
 
     Work from: [directory]
 
     **While you work:** If you encounter something unexpected or unclear, **ask questions**.
     It's always OK to pause and clarify. Don't guess or make assumptions.
+
+    ## Git And Publishing
+
+    The controller owns git history unless they explicitly tell you otherwise.
+
+    - Do NOT commit by default
+    - Do NOT push
+    - Do NOT open a PR
+    - Report the files you changed and the commands you ran
 
     ## Code Organization
 
@@ -104,6 +112,7 @@ Task tool (general-purpose):
     - What you implemented (or what you attempted, if blocked)
     - What you tested and test results
     - Files changed
+    - Commands run
     - Self-review findings (if any)
     - Any issues or concerns
 
