@@ -83,8 +83,8 @@ const CreateWorkspaceForm = () => {
               : "Create workspace"}
           </Button>
           <FieldDescription className="text-center">
-            Join by invite lands in TSK-27. For now, start by creating your own
-            workspace.
+            Creating a workspace is the primary path here. If you were invited
+            to an existing one, use the join-by-invite path instead.
           </FieldDescription>
         </FormActions>
       </FieldGroup>

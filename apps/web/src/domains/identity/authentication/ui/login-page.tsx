@@ -11,7 +11,7 @@ import { LoginForm } from "./login-form"
 
 const LoginPage = () => (
   <AuthPageShell
-    description="Sign in to manage your tasks from the web app while the auth service handles sessions, credentials, and password recovery."
+    description="Sign in to continue into the web app while the auth service handles sessions, credentials, and password recovery."
     kicker="Sign In"
     title="Pick up exactly where you left off."
   >

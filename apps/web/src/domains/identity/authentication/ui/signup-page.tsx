@@ -11,7 +11,7 @@ import { SignupForm } from "./signup-form"
 
 const SignupPage = () => (
   <AuthPageShell
-    description="Create a lightweight account now and leave room for richer auth features later without changing the browser-side integration shape."
+    description="Create your account here, then continue through email verification and into the web app."
     kicker="Create Account"
     title="Start with the basics and keep the auth surface clean."
   >
