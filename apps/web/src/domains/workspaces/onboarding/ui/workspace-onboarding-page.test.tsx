@@ -79,6 +79,12 @@ describe("workspace onboarding page", () => {
       expect(
         screen.getByRole("button", { name: "Create workspace" })
       ).toBeTruthy()
+      expect(screen.getByRole("link", { name: "Join by invite" })).toBeTruthy()
+      expect(
+        screen.queryByText(
+          "Join by invite lands in TSK-27. For now, start by creating your own workspace."
+        )
+      ).toBeNull()
     } finally {
       view.unmount()
       cleanup()
@@ -116,6 +122,7 @@ describe("workspace onboarding page", () => {
         })
       ).toBeTruthy()
       expect(screen.queryByLabelText("Workspace name")).toBeNull()
+      expect(screen.queryByRole("link", { name: "Join by invite" })).toBeNull()
       expect(screen.getByText("2 memberships discovered")).toBeTruthy()
     } finally {
       view.unmount()

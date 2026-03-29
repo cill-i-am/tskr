@@ -1,5 +1,7 @@
 import { useWorkspaceBootstrap } from "@/domains/workspaces/bootstrap/ui/use-workspace-bootstrap"
+import { Link } from "@tanstack/react-router"
 
+import { Button } from "@workspace/ui/components/button"
 import {
   Card,
   CardContent,
@@ -64,6 +66,13 @@ const CreateWorkspaceOnboarding = () => (
           </p>
         </div>
         <CreateWorkspaceForm />
+        <Button
+          className="w-full"
+          render={<Link to="/join-workspace" />}
+          variant="outline"
+        >
+          Join by invite
+        </Button>
       </CardContent>
     </Card>
   </div>
