@@ -20,12 +20,14 @@ const joinWorkspaceCodeSchema = z.object({
 })
 
 interface JoinWorkspaceFormProps {
+  initialCode?: string
   mode: "code" | "token"
   onRecoverableError: (message: string) => boolean
   token?: string
 }
 
 const JoinWorkspaceForm = ({
+  initialCode,
   mode,
   onRecoverableError,
   token,
@@ -36,7 +38,7 @@ const JoinWorkspaceForm = ({
   const [isNavigating, startTransition] = useTransition()
   const form = useForm({
     defaultValues: {
-      code: "",
+      code: initialCode ?? "",
     },
     onSubmit: async ({ value }) => {
       setError(null)

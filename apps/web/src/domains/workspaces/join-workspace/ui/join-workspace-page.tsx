@@ -1,6 +1,6 @@
 import { AuthPageShell } from "@/domains/identity/authentication/ui/auth-page-shell"
 import { Link } from "@tanstack/react-router"
-import { useEffectEvent, useState } from "react"
+import { useEffect, useEffectEvent, useState } from "react"
 
 import { Button } from "@workspace/ui/components/button"
 import {
@@ -13,6 +13,10 @@ import {
 import { FieldDescription } from "@workspace/ui/components/field"
 
 import { JoinWorkspaceForm } from "./join-workspace-form"
+import {
+  clearWorkspaceInviteFlow,
+  readPendingWorkspaceInviteFlow,
+} from "./workspace-invite-flow"
 
 interface JoinWorkspacePageProps {
   token?: string
@@ -145,6 +149,31 @@ const JoinWorkspacePage = ({ token }: JoinWorkspacePageProps) => {
     useState<JoinWorkspaceRecoveryState | null>(null)
   const hasTokenParam = typeof token === "string"
   const normalizedToken = hasTokenParam ? token.trim() : undefined
+  const [resumedInviteFlow] = useState(() => {
+    if (normalizedToken) {
+      return null
+    }
+
+    return readPendingWorkspaceInviteFlow()
+  })
+  const resumedToken =
+    resumedInviteFlow && "token" in resumedInviteFlow
+      ? resumedInviteFlow.token.trim()
+      : undefined
+  const resumedCode =
+    resumedInviteFlow && "code" in resumedInviteFlow
+      ? resumedInviteFlow.code
+      : undefined
+  const activeToken = normalizedToken || resumedToken
+
+  useEffect(() => {
+    if (!resumedInviteFlow) {
+      return
+    }
+
+    clearWorkspaceInviteFlow()
+  }, [resumedInviteFlow])
+
   const handleRecoverableError = useEffectEvent((message: string) => {
     const nextRecoveryState = classifyInviteError(message)
 
@@ -196,7 +225,7 @@ const JoinWorkspacePage = ({ token }: JoinWorkspacePageProps) => {
     )
   }
 
-  if (normalizedToken) {
+  if (activeToken) {
     return (
       <AuthPageShell
         description="Signed workspace invites arrive with a token, so you can accept them without typing the short code manually."
@@ -214,7 +243,7 @@ const JoinWorkspacePage = ({ token }: JoinWorkspacePageProps) => {
             <JoinWorkspaceForm
               mode="token"
               onRecoverableError={handleRecoverableError}
-              token={normalizedToken}
+              token={activeToken}
             />
           </CardContent>
         </Card>
@@ -238,6 +267,7 @@ const JoinWorkspacePage = ({ token }: JoinWorkspacePageProps) => {
         </CardHeader>
         <CardContent>
           <JoinWorkspaceForm
+            initialCode={resumedCode}
             mode="code"
             onRecoverableError={handleRecoverableError}
           />

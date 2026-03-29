@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event"
 import type { ComponentProps, ReactNode } from "react"
 
 const {
+  buildJoinWorkspaceTargetPathMock,
+  readPendingWorkspaceInviteFlowMock,
   sendVerificationOtpMock,
   navigateMock,
   requestPasswordResetMock,
@@ -13,7 +15,9 @@ const {
   useSessionMock,
   verifyEmailMock,
 } = vi.hoisted(() => ({
+  buildJoinWorkspaceTargetPathMock: vi.fn(),
   navigateMock: vi.fn(),
+  readPendingWorkspaceInviteFlowMock: vi.fn(),
   requestPasswordResetMock: vi.fn(),
   resetPasswordMock: vi.fn(),
   sendVerificationOtpMock: vi.fn(),
@@ -61,6 +65,14 @@ const installMocks = () => {
       useSession: useSessionMock,
     },
   })) as never)
+
+  vi.doMock(
+    import("@/domains/workspaces/join-workspace/ui/workspace-invite-flow"),
+    (() => ({
+      buildJoinWorkspaceTargetPath: buildJoinWorkspaceTargetPathMock,
+      readPendingWorkspaceInviteFlow: readPendingWorkspaceInviteFlowMock,
+    })) as never
+  )
 }
 
 const loadPages = async () => {
@@ -82,8 +94,10 @@ const loadPages = async () => {
 }
 
 const resetMocks = () => {
+  buildJoinWorkspaceTargetPathMock.mockReset()
   sendVerificationOtpMock.mockReset()
   navigateMock.mockReset()
+  readPendingWorkspaceInviteFlowMock.mockReset()
   requestPasswordResetMock.mockReset()
   resetPasswordMock.mockReset()
   signInEmailMock.mockReset()
@@ -91,6 +105,8 @@ const resetMocks = () => {
   signUpEmailMock.mockReset()
   useSessionMock.mockReset()
   verifyEmailMock.mockReset()
+  buildJoinWorkspaceTargetPathMock.mockReturnValue("/join-workspace")
+  readPendingWorkspaceInviteFlowMock.mockReturnValue(null)
   useSessionMock.mockReturnValue({
     data: null,
     isPending: false,
@@ -147,6 +163,39 @@ describe("authentication pages", () => {
           to: "/",
         })
       })
+
+      expect(readPendingWorkspaceInviteFlowMock).toHaveBeenCalledWith()
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
+  it("returns successful login to join workspace when an invite flow is pending", async () => {
+    resetMocks()
+    signInEmailMock.mockResolvedValue({
+      error: null,
+    })
+    readPendingWorkspaceInviteFlowMock.mockReturnValue({
+      token: "signed-token-123",
+    })
+    const { LoginPage } = await loadPages()
+
+    const user = userEvent.setup()
+    const view = render(<LoginPage />)
+
+    try {
+      await user.type(screen.getByLabelText("Email"), "ada@example.com")
+      await user.type(screen.getByLabelText("Password"), "password-1234")
+      await user.click(screen.getByRole("button", { name: "Login" }))
+
+      await waitFor(() => {
+        expect(navigateMock).toHaveBeenCalledWith({
+          to: "/join-workspace",
+        })
+      })
+
+      expect(buildJoinWorkspaceTargetPathMock).toHaveBeenCalledOnce()
     } finally {
       view.unmount()
       cleanup()
@@ -228,6 +277,62 @@ describe("authentication pages", () => {
         JSON.stringify({
           email: "ada@example.com",
           reason: "",
+        })
+      )
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
+  it("preserves a pending invite flow while signup hands off to verify email", async () => {
+    resetMocks()
+    signUpEmailMock.mockResolvedValue({
+      error: null,
+    })
+    readPendingWorkspaceInviteFlowMock.mockReturnValue({
+      code: "ABCD1234",
+    })
+    window.sessionStorage.setItem(
+      "tskr-workspace-invite-flow",
+      JSON.stringify({
+        code: "ABCD1234",
+      })
+    )
+    const { SignupPage } = await loadPages()
+
+    const user = userEvent.setup()
+    const view = render(<SignupPage />)
+    let storedInviteFlowAtNavigate: string | null = null
+    navigateMock.mockImplementation(() => {
+      storedInviteFlowAtNavigate = window.sessionStorage.getItem(
+        "tskr-workspace-invite-flow"
+      )
+    })
+
+    try {
+      await user.type(screen.getByLabelText("Full name"), "Ada Lovelace")
+      await user.type(screen.getByLabelText("Email"), "ada@example.com")
+      await user.type(screen.getByLabelText("Password"), "password-1234")
+      await user.type(
+        screen.getByLabelText("Confirm password"),
+        "password-1234"
+      )
+      await user.click(screen.getByRole("button", { name: "Create account" }))
+
+      await waitFor(() => {
+        expect(navigateMock).toHaveBeenCalledWith({
+          search: {
+            email: "ada@example.com",
+            reason: "",
+          },
+          to: "/verify-email",
+        })
+      })
+
+      expect(storedInviteFlowAtNavigate).toBe(
+        JSON.stringify({
+          code: "ABCD1234",
         })
       )
     } finally {
@@ -384,6 +489,67 @@ describe("authentication pages", () => {
           to: "/",
         })
       })
+
+      expect(readPendingWorkspaceInviteFlowMock).toHaveBeenCalledOnce()
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
+  it("verifies the otp code and returns to join workspace when an invite flow is pending", async () => {
+    resetMocks()
+    verifyEmailMock.mockResolvedValue({
+      error: null,
+    })
+    readPendingWorkspaceInviteFlowMock.mockReturnValue({
+      code: "ABCD1234",
+    })
+    window.sessionStorage.setItem(
+      EMAIL_VERIFICATION_FLOW_STORAGE_KEY,
+      JSON.stringify({
+        email: "ada@example.com",
+        reason: "",
+      })
+    )
+    window.sessionStorage.setItem(
+      "tskr-workspace-invite-flow",
+      JSON.stringify({
+        code: "ABCD1234",
+      })
+    )
+    const { VerifyEmailPage } = await loadPages()
+
+    const user = userEvent.setup()
+    const view = render(<VerifyEmailPage email="ada@example.com" />)
+    let storedEmailFlowAtNavigate: string | null = null
+    let storedInviteFlowAtNavigate: string | null = null
+    navigateMock.mockImplementation(() => {
+      storedEmailFlowAtNavigate = window.sessionStorage.getItem(
+        EMAIL_VERIFICATION_FLOW_STORAGE_KEY
+      )
+      storedInviteFlowAtNavigate = window.sessionStorage.getItem(
+        "tskr-workspace-invite-flow"
+      )
+    })
+
+    try {
+      await user.type(screen.getByLabelText("Verification code"), "123456")
+      await user.click(screen.getByRole("button", { name: "Verify email" }))
+
+      await waitFor(() => {
+        expect(navigateMock).toHaveBeenCalledWith({
+          to: "/join-workspace",
+        })
+      })
+
+      expect(storedEmailFlowAtNavigate).toBeNull()
+      expect(storedInviteFlowAtNavigate).toBe(
+        JSON.stringify({
+          code: "ABCD1234",
+        })
+      )
+      expect(buildJoinWorkspaceTargetPathMock).toHaveBeenCalledOnce()
     } finally {
       view.unmount()
       cleanup()

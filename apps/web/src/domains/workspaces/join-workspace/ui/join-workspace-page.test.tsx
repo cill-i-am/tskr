@@ -5,14 +5,18 @@ import type { ComponentProps, ReactNode } from "react"
 
 const {
   acceptWorkspaceInviteMock,
+  clearWorkspaceInviteFlowMock,
   navigateMock,
   persistWorkspaceInviteFlowMock,
+  readPendingWorkspaceInviteFlowMock,
   useSearchMock,
   useSessionMock,
 } = vi.hoisted(() => ({
   acceptWorkspaceInviteMock: vi.fn(),
+  clearWorkspaceInviteFlowMock: vi.fn(),
   navigateMock: vi.fn(),
   persistWorkspaceInviteFlowMock: vi.fn(),
+  readPendingWorkspaceInviteFlowMock: vi.fn(),
   useSearchMock: vi.fn(),
   useSessionMock: vi.fn(),
 }))
@@ -68,7 +72,9 @@ const installMocks = () => {
     import("@/domains/workspaces/join-workspace/ui/workspace-invite-flow"),
     (() => ({
       buildJoinWorkspaceTargetPath: () => "/join-workspace",
+      clearWorkspaceInviteFlow: clearWorkspaceInviteFlowMock,
       persistWorkspaceInviteFlow: persistWorkspaceInviteFlowMock,
+      readPendingWorkspaceInviteFlow: readPendingWorkspaceInviteFlowMock,
     })) as never
   )
 
@@ -97,11 +103,14 @@ const loadModules = async () => {
 
 const resetMocks = () => {
   acceptWorkspaceInviteMock.mockReset()
+  clearWorkspaceInviteFlowMock.mockReset()
   navigateMock.mockReset()
   persistWorkspaceInviteFlowMock.mockReset()
+  readPendingWorkspaceInviteFlowMock.mockReset()
   useSearchMock.mockReset()
   useSessionMock.mockReset()
   useSearchMock.mockReturnValue({})
+  readPendingWorkspaceInviteFlowMock.mockReturnValue(null)
   useSessionMock.mockReturnValue({
     data: {
       session: {
@@ -130,6 +139,40 @@ describe("join workspace page", () => {
       expect(
         screen.getByRole("button", { name: "Join workspace" })
       ).toBeTruthy()
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
+  it("resumes a stored invite after auth handoff and clears the pending flow", async () => {
+    resetMocks()
+    readPendingWorkspaceInviteFlowMock.mockReturnValue({
+      code: "ABCD1234",
+    })
+    const { JoinWorkspacePage } = await loadModules()
+    const user = userEvent.setup()
+
+    const view = render(<JoinWorkspacePage />)
+
+    try {
+      expect(screen.getByDisplayValue("ABCD1234")).toBeTruthy()
+      expect(clearWorkspaceInviteFlowMock).toHaveBeenCalledOnce()
+
+      acceptWorkspaceInviteMock.mockResolvedValue(acceptedBootstrap)
+
+      await user.click(screen.getByRole("button", { name: "Join workspace" }))
+
+      await waitFor(() => {
+        expect(acceptWorkspaceInviteMock).toHaveBeenCalledWith({
+          code: "ABCD1234",
+        })
+      })
+      await waitFor(() => {
+        expect(navigateMock).toHaveBeenCalledWith({
+          to: "/app",
+        })
+      })
     } finally {
       view.unmount()
       cleanup()

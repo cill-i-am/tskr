@@ -1,3 +1,7 @@
+import {
+  buildJoinWorkspaceTargetPath,
+  readPendingWorkspaceInviteFlow,
+} from "@/domains/workspaces/join-workspace/ui/workspace-invite-flow"
 import { useForm, useStore } from "@tanstack/react-form"
 import { Link, useNavigate } from "@tanstack/react-router"
 import { useEffectEvent, useState, useTransition } from "react"
@@ -80,11 +84,13 @@ const VerifyEmailForm = ({
         return
       }
 
+      const pendingInviteFlow = readPendingWorkspaceInviteFlow()
+
       clearEmailVerificationFlow()
 
       startTransition(() => {
         navigate({
-          to: "/",
+          to: pendingInviteFlow ? buildJoinWorkspaceTargetPath() : "/",
         })
       })
     },
