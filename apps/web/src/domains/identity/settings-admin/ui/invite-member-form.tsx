@@ -1,6 +1,7 @@
 import { settingsAdminWorkspaceRoleSchema } from "@/domains/identity/settings-admin/contracts/settings-admin-contract"
 import type { SettingsAdminWorkspaceRole } from "@/domains/identity/settings-admin/contracts/settings-admin-contract"
 import { createWorkspaceInvite } from "@/domains/identity/settings-admin/infra/create-workspace-invite"
+import { getWorkspaceRoleLabel } from "@/domains/workspaces/shared/workspace-role-labels"
 import type { AnyFieldApi } from "@tanstack/react-form"
 import { useForm, useStore } from "@tanstack/react-form"
 import { useEffect, useEffectEvent } from "react"
@@ -27,13 +28,6 @@ interface InviteMemberFormProps {
   onError: (message: string) => void
   onRefresh: () => Promise<void>
   workspaceId: string
-}
-
-const roleLabels: Record<SettingsAdminWorkspaceRole, string> = {
-  admin: "Admin",
-  dispatcher: "Dispatcher",
-  field_worker: "Field worker",
-  owner: "Owner",
 }
 
 const inviteMemberFormSchema = z.object({
@@ -75,7 +69,7 @@ const InviteRoleField = ({
         >
           {canInviteRoles.map((role) => (
             <NativeSelectOption key={role} value={role}>
-              {roleLabels[role]}
+              {getWorkspaceRoleLabel(role)}
             </NativeSelectOption>
           ))}
         </NativeSelect>

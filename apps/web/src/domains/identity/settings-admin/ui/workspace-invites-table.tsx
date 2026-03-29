@@ -1,9 +1,7 @@
-import type {
-  SettingsAdminWorkspaceInvite,
-  SettingsAdminWorkspaceRole,
-} from "@/domains/identity/settings-admin/contracts/settings-admin-contract"
+import type { SettingsAdminWorkspaceInvite } from "@/domains/identity/settings-admin/contracts/settings-admin-contract"
 import { resendWorkspaceInvite } from "@/domains/identity/settings-admin/infra/resend-workspace-invite"
 import { revokeWorkspaceInvite } from "@/domains/identity/settings-admin/infra/revoke-workspace-invite"
+import { getWorkspaceRoleLabel } from "@/domains/workspaces/shared/workspace-role-labels"
 import { useEffectEvent, useState } from "react"
 import type { MouseEvent } from "react"
 
@@ -23,13 +21,6 @@ interface WorkspaceInvitesTableProps {
   onError: (message: string) => void
   onRefresh: () => Promise<void>
   workspaceId: string
-}
-
-const roleLabels: Record<SettingsAdminWorkspaceRole, string> = {
-  admin: "Admin",
-  dispatcher: "Dispatcher",
-  field_worker: "Field worker",
-  owner: "Owner",
 }
 
 const WorkspaceInvitesTable = ({
@@ -138,7 +129,7 @@ const WorkspaceInvitesTable = ({
           return (
             <TableRow key={invite.id}>
               <TableCell>{invite.email}</TableCell>
-              <TableCell>{roleLabels[invite.role]}</TableCell>
+              <TableCell>{getWorkspaceRoleLabel(invite.role)}</TableCell>
               <TableCell className="capitalize">{invite.status}</TableCell>
               <TableCell>
                 <div className="gap-2 flex flex-wrap justify-end">

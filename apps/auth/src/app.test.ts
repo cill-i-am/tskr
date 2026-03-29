@@ -193,7 +193,7 @@ const expectPasswordResetEmailInput = (resetToken: string) => {
       }
     | undefined
 
-  expect(sendPasswordResetEmailMock).toHaveBeenCalledOnce()
+  expect(sendPasswordResetEmailMock).toHaveBeenCalledTimes(1)
   expect(emailInput).toMatchObject({
     to: "grace@example.com",
   })
@@ -297,7 +297,7 @@ describe("auth app", () => {
         name: "Ada Lovelace",
       },
     })
-    expect(sendSignupVerificationOtpEmailMock).toHaveBeenCalledTimes(1)
+    expect(sendSignupVerificationOtpEmailMock).toHaveBeenCalledOnce()
     expect(sendEmailVerificationEmailMock).not.toHaveBeenCalled()
 
     const verificationOtpEmailInput =
@@ -356,7 +356,7 @@ describe("auth app", () => {
     expect(signInResponse.json).toMatchObject({
       code: expect.any(String),
     })
-    expect(sendSignupVerificationOtpEmailMock).toHaveBeenCalledTimes(1)
+    expect(sendSignupVerificationOtpEmailMock).toHaveBeenCalledOnce()
     expect(sendExistingUserSignupNoticeMock).not.toHaveBeenCalled()
     expectLatestSignupVerificationOtp("ada@example.com")
   })

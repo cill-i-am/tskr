@@ -761,10 +761,10 @@ describe("workspace routes", () => {
     })
   })
 
-  it("sets the active workspace for a current membership and rejects non-members", async () => {
+  it("selects a valid membership from selection_required bootstrap", async () => {
     await resetWorkspaceTestState()
 
-    const { cookieJar } = await signUpAndVerifyEmail(
+    const { cookieJar, session } = await signUpAndVerifyEmail(
       "ada@example.com",
       "Ada Lovelace"
     )
@@ -801,6 +801,35 @@ describe("workspace routes", () => {
       "Expected the second workspace response to include an active workspace"
     )
 
+    const unrelatedOrganization = await insertOrganization(
+      "Elsewhere",
+      "elsewhere"
+    )
+
+    await setSessionActiveWorkspace(
+      session.session.token,
+      unrelatedOrganization.id
+    )
+
+    const selectionRequiredBootstrap = await requestJson<WorkspaceBootstrap>(
+      "/api/workspaces/bootstrap",
+      {
+        method: "GET",
+      },
+      cookieJar
+    )
+
+    expect({
+      json: selectionRequiredBootstrap.json,
+      status: selectionRequiredBootstrap.response.status,
+    }).toMatchObject({
+      json: {
+        activeWorkspace: null,
+        recoveryState: "selection_required",
+      },
+      status: 200,
+    })
+
     const setActiveResponse = await requestJson<WorkspaceBootstrap>(
       "/api/workspaces/active",
       {
@@ -824,6 +853,50 @@ describe("workspace routes", () => {
       recoveryState: "active_valid",
     })
 
+    const persistedBootstrap = await requestJson<WorkspaceBootstrap>(
+      "/api/workspaces/bootstrap",
+      {
+        method: "GET",
+      },
+      cookieJar
+    )
+
+    expect(persistedBootstrap.response.status).toBe(200)
+    expect(persistedBootstrap.json).toMatchObject({
+      activeWorkspace: {
+        id: secondActiveWorkspace.id,
+        slug: "field-team",
+      },
+      recoveryState: "active_valid",
+    })
+  })
+
+  it("rejects non-members when selecting an active workspace", async () => {
+    await resetWorkspaceTestState()
+
+    const { cookieJar } = await signUpAndVerifyEmail(
+      "ada@example.com",
+      "Ada Lovelace"
+    )
+
+    const createWorkspaceResponse = await requestJson<WorkspaceBootstrap>(
+      "/api/workspaces",
+      {
+        body: JSON.stringify({
+          name: "Ops Control",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+      cookieJar
+    )
+    const activeWorkspace = requireValue(
+      createWorkspaceResponse.json?.activeWorkspace,
+      "Expected the created workspace response to include an active workspace"
+    )
+
     const unrelatedOrganization = await insertOrganization(
       "Elsewhere",
       "elsewhere"
@@ -844,6 +917,23 @@ describe("workspace routes", () => {
     )
 
     expect(forbiddenResponse.response.status).toBe(403)
+
+    const persistedBootstrap = await requestJson<WorkspaceBootstrap>(
+      "/api/workspaces/bootstrap",
+      {
+        method: "GET",
+      },
+      cookieJar
+    )
+
+    expect(persistedBootstrap.response.status).toBe(200)
+    expect(persistedBootstrap.json).toMatchObject({
+      activeWorkspace: {
+        id: activeWorkspace.id,
+        slug: "ops-control",
+      },
+      recoveryState: "active_valid",
+    })
   })
 
   it("lets an owner issue an invite with a code and signed accept link", async () => {
