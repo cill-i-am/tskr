@@ -90,6 +90,7 @@ const classifyInviteError = (
   }
 
   if (
+    normalizedMessage.includes("invite code or token is required") ||
     normalizedMessage.includes("invite not found") ||
     normalizedMessage.includes("invite is invalid") ||
     normalizedMessage.includes("no longer valid")

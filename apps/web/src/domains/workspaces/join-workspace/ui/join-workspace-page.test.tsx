@@ -200,6 +200,40 @@ describe("join workspace page", () => {
     }
   })
 
+  it("renders the invalid-link recovery state for malformed signed tokens", async () => {
+    resetMocks()
+    acceptWorkspaceInviteMock.mockRejectedValue(
+      new Error("Invite code or token is required.")
+    )
+    const { JoinWorkspacePage } = await loadModules()
+    const user = userEvent.setup()
+
+    const view = render(<JoinWorkspacePage token="signed-token-123" />)
+
+    try {
+      await user.click(screen.getByRole("button", { name: "Join workspace" }))
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole("heading", {
+            name: "This invite is no longer valid",
+          })
+        ).toBeTruthy()
+      })
+      expect(
+        screen.getByText(
+          "Ask the workspace admin for a fresh invite link or code."
+        )
+      ).toBeTruthy()
+      expect(
+        screen.queryByText("Unable to join this workspace right now.")
+      ).toBeNull()
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
   it("renders the invalid-link state when a signed invite token is missing", async () => {
     resetMocks()
     const { JoinWorkspacePage } = await loadModules()
