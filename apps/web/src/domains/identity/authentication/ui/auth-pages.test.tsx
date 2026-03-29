@@ -123,6 +123,29 @@ const resetMocks = () => {
 }
 
 describe("authentication pages", () => {
+  it("renders login and signup pages without checking invite storage during render", async () => {
+    resetMocks()
+    const { LoginPage, SignupPage } = await loadPages()
+
+    const loginView = render(<LoginPage />)
+
+    try {
+      expect(readPendingWorkspaceInviteFlowMock).not.toHaveBeenCalled()
+    } finally {
+      loginView.unmount()
+      cleanup()
+    }
+
+    const signupView = render(<SignupPage />)
+
+    try {
+      expect(readPendingWorkspaceInviteFlowMock).not.toHaveBeenCalled()
+    } finally {
+      signupView.unmount()
+      cleanup()
+    }
+  })
+
   it("blocks login when the email address is invalid", async () => {
     resetMocks()
     const { LoginPage } = await loadPages()
@@ -202,7 +225,7 @@ describe("authentication pages", () => {
         })
       })
 
-      expect(buildJoinWorkspaceTargetPathMock).toHaveBeenCalledOnce()
+      expect(buildJoinWorkspaceTargetPathMock).toHaveBeenCalledTimes(1)
     } finally {
       view.unmount()
       cleanup()
@@ -497,7 +520,7 @@ describe("authentication pages", () => {
         })
       })
 
-      expect(readPendingWorkspaceInviteFlowMock).toHaveBeenCalledOnce()
+      expect(readPendingWorkspaceInviteFlowMock).toHaveBeenCalledTimes(1)
     } finally {
       view.unmount()
       cleanup()
@@ -556,7 +579,7 @@ describe("authentication pages", () => {
           code: "ABCD1234",
         })
       )
-      expect(buildJoinWorkspaceTargetPathMock).toHaveBeenCalledOnce()
+      expect(buildJoinWorkspaceTargetPathMock).toHaveBeenCalledTimes(1)
     } finally {
       view.unmount()
       cleanup()
@@ -602,7 +625,7 @@ describe("authentication pages", () => {
       try {
         expect(screen.getByDisplayValue("ABCD1234")).toBeTruthy()
         await waitFor(() => {
-          expect(clearWorkspaceInviteFlowMock).toHaveBeenCalledOnce()
+          expect(clearWorkspaceInviteFlowMock).toHaveBeenCalledTimes(1)
         })
       } finally {
         joinWorkspaceView.unmount()

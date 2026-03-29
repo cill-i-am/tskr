@@ -150,7 +150,7 @@ const JoinWorkspacePage = ({ token }: JoinWorkspacePageProps) => {
   const hasTokenParam = typeof token === "string"
   const normalizedToken = hasTokenParam ? token.trim() : undefined
   const [resumedInviteFlow] = useState(() => {
-    if (normalizedToken) {
+    if (hasTokenParam) {
       return null
     }
 

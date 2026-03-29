@@ -157,7 +157,7 @@ describe("join workspace page", () => {
 
     try {
       expect(screen.getByDisplayValue("ABCD1234")).toBeTruthy()
-      expect(clearWorkspaceInviteFlowMock).toHaveBeenCalledOnce()
+      expect(clearWorkspaceInviteFlowMock).toHaveBeenCalledTimes(1)
 
       acceptWorkspaceInviteMock.mockResolvedValue(acceptedBootstrap)
 
@@ -289,6 +289,26 @@ describe("join workspace page", () => {
       expect(
         screen.queryByRole("button", { name: "Join workspace" })
       ).toBeNull()
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
+  it("keeps stored invite flow intact when the token query is empty", async () => {
+    resetMocks()
+    readPendingWorkspaceInviteFlowMock.mockReturnValue({
+      code: "ABCD1234",
+    })
+    const { JoinWorkspacePage } = await loadModules()
+
+    const view = render(<JoinWorkspacePage token="   " />)
+
+    try {
+      expect(screen.getByText("Invite link invalid")).toBeTruthy()
+      expect(screen.queryByLabelText("Invite code")).toBeNull()
+      expect(readPendingWorkspaceInviteFlowMock).not.toHaveBeenCalled()
+      expect(clearWorkspaceInviteFlowMock).not.toHaveBeenCalled()
     } finally {
       view.unmount()
       cleanup()
