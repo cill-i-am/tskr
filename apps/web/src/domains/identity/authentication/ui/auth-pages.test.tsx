@@ -4,6 +4,7 @@ import type { ComponentProps, ReactNode } from "react"
 
 const {
   buildJoinWorkspaceTargetPathMock,
+  clearWorkspaceInviteFlowMock,
   readPendingWorkspaceInviteFlowMock,
   sendVerificationOtpMock,
   navigateMock,
@@ -16,6 +17,7 @@ const {
   verifyEmailMock,
 } = vi.hoisted(() => ({
   buildJoinWorkspaceTargetPathMock: vi.fn(),
+  clearWorkspaceInviteFlowMock: vi.fn(),
   navigateMock: vi.fn(),
   readPendingWorkspaceInviteFlowMock: vi.fn(),
   requestPasswordResetMock: vi.fn(),
@@ -70,6 +72,7 @@ const installMocks = () => {
     import("@/domains/workspaces/join-workspace/ui/workspace-invite-flow"),
     (() => ({
       buildJoinWorkspaceTargetPath: buildJoinWorkspaceTargetPathMock,
+      clearWorkspaceInviteFlow: clearWorkspaceInviteFlowMock,
       readPendingWorkspaceInviteFlow: readPendingWorkspaceInviteFlowMock,
     })) as never
   )
@@ -83,9 +86,12 @@ const loadPages = async () => {
   const resetPasswordPageModule = await import("./reset-password-page")
   const signupPageModule = await import("./signup-page")
   const verifyEmailPageModule = await import("./verify-email-page")
+  const joinWorkspacePageModule =
+    await import("@/domains/workspaces/join-workspace/ui/join-workspace-page")
 
   return {
     ForgotPasswordPage: forgotPasswordPageModule.ForgotPasswordPage,
+    JoinWorkspacePage: joinWorkspacePageModule.JoinWorkspacePage,
     LoginPage: loginPageModule.LoginPage,
     ResetPasswordPage: resetPasswordPageModule.ResetPasswordPage,
     SignupPage: signupPageModule.SignupPage,
@@ -95,6 +101,7 @@ const loadPages = async () => {
 
 const resetMocks = () => {
   buildJoinWorkspaceTargetPathMock.mockReset()
+  clearWorkspaceInviteFlowMock.mockReset()
   sendVerificationOtpMock.mockReset()
   navigateMock.mockReset()
   readPendingWorkspaceInviteFlowMock.mockReset()
@@ -552,6 +559,58 @@ describe("authentication pages", () => {
       expect(buildJoinWorkspaceTargetPathMock).toHaveBeenCalledOnce()
     } finally {
       view.unmount()
+      cleanup()
+    }
+  })
+
+  it("clears the stored invite flow after verify email hands the user back to join workspace", async () => {
+    resetMocks()
+    verifyEmailMock.mockResolvedValue({
+      error: null,
+    })
+    readPendingWorkspaceInviteFlowMock.mockReturnValue({
+      code: "ABCD1234",
+    })
+    window.sessionStorage.setItem(
+      EMAIL_VERIFICATION_FLOW_STORAGE_KEY,
+      JSON.stringify({
+        email: "ada@example.com",
+        reason: "",
+      })
+    )
+    const { JoinWorkspacePage, VerifyEmailPage } = await loadPages()
+
+    const user = userEvent.setup()
+    const verifyEmailView = render(<VerifyEmailPage email="ada@example.com" />)
+    let joinWorkspaceView: ReturnType<typeof render> | null = null
+
+    try {
+      await user.type(screen.getByLabelText("Verification code"), "123456")
+      await user.click(screen.getByRole("button", { name: "Verify email" }))
+
+      await waitFor(() => {
+        expect(navigateMock).toHaveBeenCalledWith({
+          to: "/join-workspace",
+        })
+      })
+
+      verifyEmailView.unmount()
+      cleanup()
+
+      joinWorkspaceView = render(<JoinWorkspacePage />)
+
+      try {
+        expect(screen.getByDisplayValue("ABCD1234")).toBeTruthy()
+        await waitFor(() => {
+          expect(clearWorkspaceInviteFlowMock).toHaveBeenCalledOnce()
+        })
+      } finally {
+        joinWorkspaceView.unmount()
+        joinWorkspaceView = null
+      }
+    } finally {
+      joinWorkspaceView?.unmount()
+      verifyEmailView.unmount()
       cleanup()
     }
   })
