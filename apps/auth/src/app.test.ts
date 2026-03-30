@@ -207,13 +207,6 @@ const countUsersByEmail = async (email: string) => {
   }
 }
 
-const getCurrentSession = (cookieJar: CookieJar) =>
-  auth.api.getSession({
-    headers: new Headers({
-      cookie: cookieJar.header,
-    }),
-  })
-
 const resetEmailMocks = () => {
   sendEmailVerificationEmailMock.mockClear()
   sendExistingUserSignupNoticeMock.mockClear()
@@ -325,14 +318,8 @@ const signUpAndVerifyEmail = async (email: string, name: string) => {
 
   expectSuccessfulVerifyEmailResponse(verifyEmailResponse, email)
 
-  const session = requireValue(
-    await getCurrentSession(cookieJar),
-    "Expected a verified session after email verification"
-  )
-
   return {
     cookieJar,
-    session,
   }
 }
 
