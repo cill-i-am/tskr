@@ -12,6 +12,7 @@ import { revokeWorkspaceInvite } from "@/domains/identity/settings-admin/infra/r
 import { updateWorkspaceMemberRole } from "@/domains/identity/settings-admin/infra/update-workspace-member-role"
 import type { WorkspaceBootstrap } from "@/domains/workspaces/bootstrap/contracts/workspace-bootstrap"
 import { getWorkspaceBootstrap } from "@/domains/workspaces/bootstrap/infra/workspace-bootstrap-client"
+import { getWorkspaceRoleLabel } from "@/domains/workspaces/shared/workspace-role-labels"
 import { routeTree } from "@/routeTree.gen"
 import {
   RouterProvider,
@@ -19,6 +20,7 @@ import {
   createRouter,
 } from "@tanstack/react-router"
 import {
+  fireEvent,
   act,
   cleanup,
   render,
@@ -447,6 +449,11 @@ const prepareTestEnvironment = () => {
   cleanup()
   vi.clearAllMocks()
 
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: undefined,
+  })
+
   Object.defineProperty(window, "matchMedia", {
     configurable: true,
     value: vi.fn().mockImplementation((query: string) => ({
@@ -490,6 +497,245 @@ const renderPeopleRoute = async ({
 }
 
 describe("people settings page", () => {
+  it("shows the real page heading and summary copy instead of next-task placeholder language", async () => {
+    await renderPeopleRoute()
+
+    expect(
+      screen.getByRole("heading", {
+        name: "People settings",
+      })
+    ).toBeTruthy()
+    expect(
+      screen.getByText(
+        "Members, roles, pending invites, and admin actions all live on one settings page."
+      )
+    ).toBeTruthy()
+    expect(screen.queryByText(/next task/i)).toBeNull()
+  })
+
+  it("shows invite details for manageable pending invite rows", async () => {
+    await renderPeopleRoute({
+      snapshot: ownerSnapshot(),
+    })
+
+    const inviteRow = screen
+      .getByText("pending-owner@example.com")
+      .closest("tr")
+
+    expect(inviteRow).not.toBeNull()
+    expect({
+      code: within(inviteRow as HTMLTableRowElement).getByText(
+        "invite_owner_code"
+      ).textContent,
+      controlsPresent: [
+        within(inviteRow as HTMLTableRowElement).getByRole("button", {
+          name: "Copy invite code",
+        }),
+        within(inviteRow as HTMLTableRowElement).getByRole("button", {
+          name: "Copy accept link",
+        }),
+      ].every((button) => !!button),
+      href: within(inviteRow as HTMLTableRowElement)
+        .getByRole("link", {
+          name: "Open accept link",
+        })
+        .getAttribute("href"),
+      role: getWorkspaceRoleLabel("owner"),
+      status: "pending",
+    }).toMatchObject({
+      code: "invite_owner_code",
+      controlsPresent: true,
+      href: "https://example.com/invites/invite_owner",
+      role: "Owner",
+      status: "pending",
+    })
+  })
+
+  it("hides invite details for locked pending invite rows", async () => {
+    await renderPeopleRoute({
+      snapshot: ownerSnapshot(),
+    })
+
+    const inviteRow = screen.getByText("locked-field@example.com").closest("tr")
+
+    expect(inviteRow).not.toBeNull()
+    expect(
+      within(inviteRow as HTMLTableRowElement).getByText(
+        getWorkspaceRoleLabel("field_worker")
+      )
+    ).toBeTruthy()
+    expect(
+      within(inviteRow as HTMLTableRowElement).getByText("pending")
+    ).toBeTruthy()
+    expect(
+      within(inviteRow as HTMLTableRowElement).queryByText("invite_locked_code")
+    ).toBeNull()
+    expect(
+      [
+        within(inviteRow as HTMLTableRowElement).queryByRole("link", {
+          name: "Open accept link",
+        }),
+        within(inviteRow as HTMLTableRowElement).queryByRole("button", {
+          name: "Copy invite code",
+        }),
+        within(inviteRow as HTMLTableRowElement).queryByRole("button", {
+          name: "Copy accept link",
+        }),
+      ].every((node) => node === null)
+    ).toBeTruthy()
+  })
+
+  it("copies invite details without changing resend or revoke pending behavior", async () => {
+    const writeText = vi.fn().mockResolvedValue()
+    await renderPeopleRoute()
+
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText,
+      },
+    })
+    const inviteRow = screen.getByRole("row", {
+      name: /pending-owner@example.com/i,
+    })
+    const lockedInviteRow = screen.getByRole("row", {
+      name: /locked-field@example.com/i,
+    })
+
+    fireEvent.click(
+      within(inviteRow).getByRole("button", {
+        name: "Copy invite code",
+      })
+    )
+
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith("invite_owner_code")
+    })
+    await waitFor(() => {
+      expect(
+        within(inviteRow).getByRole("button", {
+          name: "Invite code copied",
+        })
+      ).toBeTruthy()
+    })
+    expect(within(lockedInviteRow).queryByText("Copied")).toBeNull()
+    expect(
+      [
+        within(inviteRow).getByRole("button", {
+          name: "Resend invite to pending-owner@example.com",
+        }),
+        within(inviteRow).getByRole("button", {
+          name: "Revoke invite for pending-owner@example.com",
+        }),
+      ].every((button) => !(button as HTMLButtonElement).disabled)
+    ).toBeTruthy()
+
+    fireEvent.click(
+      within(inviteRow).getByRole("button", {
+        name: "Copy accept link",
+      })
+    )
+
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith(
+        "https://example.com/invites/invite_owner"
+      )
+    })
+    await waitFor(() => {
+      expect(
+        within(inviteRow).getByRole("button", {
+          name: "Accept link copied",
+        })
+      ).toBeTruthy()
+    })
+  })
+
+  it("shows a page error when copying an invite code fails", async () => {
+    const writeText = vi
+      .fn()
+      .mockRejectedValue(new Error("Clipboard is unavailable."))
+    await renderPeopleRoute()
+
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText,
+      },
+    })
+    const inviteRow = screen
+      .getByText("pending-owner@example.com")
+      .closest("tr")
+
+    fireEvent.click(
+      within(inviteRow as HTMLTableRowElement).getByRole("button", {
+        name: "Copy invite code",
+      })
+    )
+
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith("invite_owner_code")
+    })
+    await waitFor(() => {
+      expect(screen.getByText("Unable to copy the invite code.")).toBeTruthy()
+    })
+  })
+
+  it("shows a page error when the clipboard api is unavailable", async () => {
+    await renderPeopleRoute()
+
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {},
+    })
+
+    const inviteRow = screen.getByRole("row", {
+      name: /pending-owner@example.com/i,
+    })
+
+    fireEvent.click(
+      within(inviteRow).getByRole("button", {
+        name: "Copy invite code",
+      })
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText("Unable to copy the invite code.")).toBeTruthy()
+    })
+  })
+
+  it("explains that leaving immediately removes workspace access for a removable current user", async () => {
+    await renderPeopleRoute({
+      bootstrap: bootstrapWithRole("admin"),
+      snapshot: adminSnapshot(),
+    })
+
+    const currentUserRow = screen.getByRole("row", {
+      name: /grace hopper/i,
+    })
+
+    expect(
+      within(currentUserRow).getByText(
+        "Leaving removes workspace access immediately."
+      )
+    ).toBeTruthy()
+  })
+
+  it("warns the final owner to add or transfer another owner before leaving", async () => {
+    await renderPeopleRoute({
+      snapshot: ownerSnapshot(),
+    })
+
+    const currentUserRow = screen.getByRole("row", {
+      name: /ada lovelace/i,
+    })
+
+    expect(
+      within(currentUserRow).getByText(
+        "Add or transfer another owner before leaving."
+      )
+    ).toBeTruthy()
+  })
+
   it("lets owners invite owner roles and refreshes the snapshot after success", async () => {
     const nextInvite = makeInvite({
       email: "new-owner@example.com",
@@ -762,7 +1008,7 @@ describe("people settings page", () => {
       ).disabled
     ).toBeTruthy()
 
-    roleUpdate.resolve(undefined)
+    roleUpdate.resolve()
 
     await waitFor(() => {
       expect(
@@ -774,7 +1020,7 @@ describe("people settings page", () => {
       ).toBeTruthy()
     })
 
-    memberRemoval.resolve(undefined)
+    memberRemoval.resolve()
 
     await waitFor(() => {
       expect(
@@ -855,7 +1101,7 @@ describe("people settings page", () => {
       ).disabled
     ).toBeTruthy()
 
-    resendInvite.resolve(undefined)
+    resendInvite.resolve()
 
     await waitFor(() => {
       expect(
@@ -867,7 +1113,7 @@ describe("people settings page", () => {
       ).toBeTruthy()
     })
 
-    revokeInvite.resolve(undefined)
+    revokeInvite.resolve()
 
     await waitFor(() => {
       expect(

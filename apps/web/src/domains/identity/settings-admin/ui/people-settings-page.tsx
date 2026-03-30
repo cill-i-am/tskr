@@ -36,11 +36,12 @@ const PeopleSettingsPage = ({ snapshot }: PeopleSettingsPageProps) => {
             People settings
           </h2>
           <CardDescription>
-            Manage {snapshot.members.length} workspace members and{" "}
-            {snapshot.pendingInvites.length} pending invites.
+            Members, roles, pending invites, and admin actions all live on one
+            settings page.
           </CardDescription>
-          <p className="sr-only">
-            People management forms will mount here in the next task.
+          <p className="text-sm text-muted-foreground">
+            This workspace home also covers leave actions, with owner safeguards
+            when the last owner still needs to stay on the team.
           </p>
         </CardHeader>
       </Card>
