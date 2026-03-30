@@ -1,6 +1,10 @@
 import { JoinWorkspacePage } from "@/domains/workspaces/join-workspace/ui/join-workspace-page"
 import { createFileRoute, useSearch } from "@tanstack/react-router"
 
+const validateJoinWorkspaceSearch = (search: Record<string, unknown>) => ({
+  token: typeof search.token === "string" ? search.token : undefined,
+})
+
 const JoinWorkspaceRoute = () => {
   const search = useSearch({
     from: "/join-workspace",
@@ -11,9 +15,7 @@ const JoinWorkspaceRoute = () => {
 
 export const Route = createFileRoute("/join-workspace")({
   component: JoinWorkspaceRoute,
-  validateSearch: (search: Record<string, unknown>) => ({
-    token: typeof search.token === "string" ? search.token : undefined,
-  }),
+  validateSearch: validateJoinWorkspaceSearch,
 })
 
-export { JoinWorkspaceRoute }
+export { JoinWorkspaceRoute, validateJoinWorkspaceSearch }

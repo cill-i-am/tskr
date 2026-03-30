@@ -39,7 +39,14 @@ const CreateWorkspaceOnboarding = () => (
         <Button
           className="w-full"
           nativeButton={false}
-          render={<Link to="/join-workspace" />}
+          render={
+            <Link
+              search={{
+                token: undefined,
+              }}
+              to="/join-workspace"
+            />
+          }
           variant="outline"
         >
           Join by invite
