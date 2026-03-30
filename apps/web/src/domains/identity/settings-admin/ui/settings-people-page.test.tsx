@@ -762,7 +762,7 @@ describe("people settings page", () => {
       ).disabled
     ).toBeTruthy()
 
-    roleUpdate.resolve()
+    roleUpdate.resolve(undefined)
 
     await waitFor(() => {
       expect(
@@ -774,7 +774,7 @@ describe("people settings page", () => {
       ).toBeTruthy()
     })
 
-    memberRemoval.resolve()
+    memberRemoval.resolve(undefined)
 
     await waitFor(() => {
       expect(
@@ -855,7 +855,7 @@ describe("people settings page", () => {
       ).disabled
     ).toBeTruthy()
 
-    resendInvite.resolve()
+    resendInvite.resolve(undefined)
 
     await waitFor(() => {
       expect(
@@ -867,7 +867,7 @@ describe("people settings page", () => {
       ).toBeTruthy()
     })
 
-    revokeInvite.resolve()
+    revokeInvite.resolve(undefined)
 
     await waitFor(() => {
       expect(

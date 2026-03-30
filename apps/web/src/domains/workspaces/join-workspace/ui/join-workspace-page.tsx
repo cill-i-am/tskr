@@ -184,6 +184,9 @@ const JoinWorkspacePage = ({ token }: JoinWorkspacePageProps) => {
     setResumedInviteFlow(null)
     setRecoveryState(null)
     navigate({
+      search: {
+        token: undefined,
+      },
       to: "/join-workspace",
     })
   })
@@ -231,7 +234,16 @@ const JoinWorkspacePage = ({ token }: JoinWorkspacePageProps) => {
           </CardHeader>
           <CardContent>
             <div className="gap-4 flex flex-col">
-              <Button render={<Link to="/join-workspace" />}>
+              <Button
+                render={
+                  <Link
+                    search={{
+                      token: undefined,
+                    }}
+                    to="/join-workspace"
+                  />
+                }
+              >
                 Enter an invite code
               </Button>
               <FieldDescription className="text-center">

@@ -226,7 +226,7 @@ describe("authentication pages", () => {
         })
       })
 
-      expect(buildJoinWorkspaceTargetPathMock).toHaveBeenCalledTimes(1)
+      expect(buildJoinWorkspaceTargetPathMock).toHaveBeenCalledOnce()
     } finally {
       view.unmount()
       cleanup()
@@ -521,7 +521,7 @@ describe("authentication pages", () => {
         })
       })
 
-      expect(readPendingWorkspaceInviteFlowMock).toHaveBeenCalledTimes(1)
+      expect(readPendingWorkspaceInviteFlowMock).toHaveBeenCalledOnce()
     } finally {
       view.unmount()
       cleanup()
@@ -623,7 +623,7 @@ describe("authentication pages", () => {
           code: "ABCD1234",
         })
       )
-      expect(buildJoinWorkspaceTargetPathMock).toHaveBeenCalledTimes(1)
+      expect(buildJoinWorkspaceTargetPathMock).toHaveBeenCalledOnce()
     } finally {
       view.unmount()
       cleanup()

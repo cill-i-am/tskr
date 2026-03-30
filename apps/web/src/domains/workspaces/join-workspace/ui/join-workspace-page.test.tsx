@@ -99,6 +99,8 @@ const loadModules = async () => {
     JoinWorkspacePage: joinWorkspacePageModule.JoinWorkspacePage,
     JoinWorkspaceRoute: joinWorkspaceRouteModule.JoinWorkspaceRoute,
     Route: joinWorkspaceRouteModule.Route,
+    validateJoinWorkspaceSearch:
+      joinWorkspaceRouteModule.validateJoinWorkspaceSearch,
   }
 }
 
@@ -176,7 +178,7 @@ describe("join workspace page", () => {
           to: "/app",
         })
       })
-      expect(clearWorkspaceInviteFlowMock).toHaveBeenCalledTimes(1)
+      expect(clearWorkspaceInviteFlowMock).toHaveBeenCalledOnce()
     } finally {
       view.unmount()
       cleanup()
@@ -273,7 +275,7 @@ describe("join workspace page", () => {
       await waitFor(() => {
         expect(screen.getByDisplayValue("ABCD1234")).toBeTruthy()
       })
-      expect(readPendingWorkspaceInviteFlowMock).toHaveBeenCalledTimes(1)
+      expect(readPendingWorkspaceInviteFlowMock).toHaveBeenCalledOnce()
       expect(clearWorkspaceInviteFlowMock).not.toHaveBeenCalled()
     } finally {
       view.unmount()
@@ -444,8 +446,11 @@ describe("join workspace page", () => {
         screen.getByRole("button", { name: "Enter another invite" })
       )
 
-      expect(clearWorkspaceInviteFlowMock).toHaveBeenCalledTimes(1)
+      expect(clearWorkspaceInviteFlowMock).toHaveBeenCalledOnce()
       expect(navigateMock).toHaveBeenCalledWith({
+        search: {
+          token: undefined,
+        },
         to: "/join-workspace",
       })
     } finally {
@@ -531,15 +536,17 @@ describe("join workspace page", () => {
 
   it("validates route search params so token stays string-only and optional", async () => {
     resetMocks()
-    const { Route } = await loadModules()
+    const { validateJoinWorkspaceSearch } = await loadModules()
 
-    expect(Route.validateSearch({ token: "signed-token-123" })).toStrictEqual({
+    expect(
+      validateJoinWorkspaceSearch({ token: "signed-token-123" })
+    ).toStrictEqual({
       token: "signed-token-123",
     })
-    expect(Route.validateSearch({ token: 1234 })).toStrictEqual({
+    expect(validateJoinWorkspaceSearch({ token: 1234 })).toStrictEqual({
       token: undefined,
     })
-    expect(Route.validateSearch({})).toStrictEqual({
+    expect(validateJoinWorkspaceSearch({})).toStrictEqual({
       token: undefined,
     })
   })

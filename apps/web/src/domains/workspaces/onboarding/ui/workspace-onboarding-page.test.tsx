@@ -174,7 +174,7 @@ describe("workspace onboarding page", () => {
       expect((switchButton as HTMLButtonElement).disabled).toBeTruthy()
 
       await user.click(switchButton)
-      expect(updateActiveWorkspaceMock).toHaveBeenCalledOnce()
+      expect(updateActiveWorkspaceMock).toHaveBeenCalledTimes(1)
       await waitFor(() => {
         expect(updateActiveWorkspaceMock).toHaveBeenCalledWith({
           workspaceId: "workspace_123",
