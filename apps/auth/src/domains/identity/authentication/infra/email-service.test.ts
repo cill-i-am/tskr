@@ -1,3 +1,4 @@
+/* oxlint-disable vitest/prefer-called-once */
 /* eslint-disable @typescript-eslint/consistent-type-imports, jest/valid-title */
 
 import { createAuthenticationEmailService } from "./email-service.js"
@@ -65,7 +66,7 @@ describe(createAuthenticationEmailService, () => {
       resendApiKey: undefined,
     })
 
-    expect(createConsoleTransportMock).toHaveBeenCalledOnce()
+    expect(createConsoleTransportMock).toHaveBeenCalledTimes(1)
     expect(createResendTransportMock).not.toHaveBeenCalled()
     expect(createEmailServiceMock).toHaveBeenCalledWith({
       appName: "tskr",

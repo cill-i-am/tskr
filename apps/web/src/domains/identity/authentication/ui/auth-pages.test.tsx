@@ -1,3 +1,5 @@
+/* oxlint-disable vitest/prefer-called-once */
+
 import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import type { ComponentProps, ReactNode } from "react"
@@ -226,7 +228,7 @@ describe("authentication pages", () => {
         })
       })
 
-      expect(buildJoinWorkspaceTargetPathMock).toHaveBeenCalledOnce()
+      expect(buildJoinWorkspaceTargetPathMock).toHaveBeenCalledTimes(1)
     } finally {
       view.unmount()
       cleanup()
@@ -521,7 +523,7 @@ describe("authentication pages", () => {
         })
       })
 
-      expect(readPendingWorkspaceInviteFlowMock).toHaveBeenCalledOnce()
+      expect(readPendingWorkspaceInviteFlowMock).toHaveBeenCalledTimes(1)
     } finally {
       view.unmount()
       cleanup()
@@ -623,7 +625,7 @@ describe("authentication pages", () => {
           code: "ABCD1234",
         })
       )
-      expect(buildJoinWorkspaceTargetPathMock).toHaveBeenCalledOnce()
+      expect(buildJoinWorkspaceTargetPathMock).toHaveBeenCalledTimes(1)
     } finally {
       view.unmount()
       cleanup()

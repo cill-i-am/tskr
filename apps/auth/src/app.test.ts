@@ -1,3 +1,4 @@
+/* oxlint-disable vitest/prefer-called-once */
 /* eslint-disable @typescript-eslint/consistent-type-imports */
 
 import { hc } from "hono/client"
@@ -193,7 +194,7 @@ const expectPasswordResetEmailInput = (resetToken: string) => {
       }
     | undefined
 
-  expect(sendPasswordResetEmailMock).toHaveBeenCalledOnce()
+  expect(sendPasswordResetEmailMock).toHaveBeenCalledTimes(1)
   expect(emailInput).toMatchObject({
     to: "grace@example.com",
   })

@@ -1,3 +1,5 @@
+/* oxlint-disable vitest/prefer-called-once */
+
 import type { WorkspaceBootstrap } from "@/domains/workspaces/bootstrap/contracts/workspace-bootstrap"
 import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
