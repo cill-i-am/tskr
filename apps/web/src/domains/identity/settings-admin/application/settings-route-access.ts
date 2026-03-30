@@ -1,7 +1,9 @@
 import type {
+  SettingsAdminAccountProfile,
   SettingsAdminPermissions,
   SettingsAdminSnapshot,
 } from "@/domains/identity/settings-admin/contracts/settings-admin-contract"
+import { getAccountProfile } from "@/domains/identity/settings-admin/infra/get-account-profile"
 import { getSettingsSnapshot } from "@/domains/identity/settings-admin/infra/get-settings-snapshot"
 import { resolveWorkspaceEntry } from "@/domains/workspaces/bootstrap/application/resolve-workspace-entry"
 import type { WorkspaceRole } from "@/domains/workspaces/bootstrap/contracts/workspace-bootstrap"
@@ -12,8 +14,14 @@ interface SettingsRouteLoaderData {
   snapshot: SettingsAdminSnapshot | null
 }
 
+interface AccountSettingsRouteLoaderData {
+  accountProfile: SettingsAdminAccountProfile
+}
+
 const forbiddenSettingsSnapshotMessage =
   "You are not allowed to manage settings for this workspace."
+const invalidSettingsSnapshotMessage = "Invalid settings snapshot payload."
+const malformedSettingsSnapshotMessage = "Malformed settings snapshot JSON."
 
 const hasPeopleSettingsAccess = (permissions: SettingsAdminPermissions) =>
   permissions.canManageInvites ||
@@ -42,6 +50,11 @@ const loadSettingsSnapshot = async (workspaceId: string) => {
     throw error
   }
 }
+
+const canRecoverFromSettingsSnapshotError = (error: unknown) =>
+  error instanceof Error &&
+  error.message !== invalidSettingsSnapshotMessage &&
+  error.message !== malformedSettingsSnapshotMessage
 
 const requireSettingsAccess = async () => {
   const workspaceEntry = resolveWorkspaceEntry(await getWorkspaceBootstrap())
@@ -113,6 +126,11 @@ const requireWorkspaceProfileSettingsAccess = async () => {
   }
 }
 
+const requireAccountSettingsAccess =
+  async (): Promise<AccountSettingsRouteLoaderData> => ({
+    accountProfile: await getAccountProfile(),
+  })
+
 const loadSettingsRouteData = async ({
   location,
 }: {
@@ -121,7 +139,34 @@ const loadSettingsRouteData = async ({
   }
 }): Promise<SettingsRouteLoaderData> => {
   const access = await requireSettingsAccess()
-  const snapshot = canRequestSettingsSnapshot(access.activeWorkspace.role)
+
+  const canLoadSnapshot = canRequestSettingsSnapshot(
+    access.activeWorkspace.role
+  )
+
+  if (location.pathname === "/app/settings/account") {
+    if (!canLoadSnapshot) {
+      return {
+        snapshot: null,
+      }
+    }
+
+    try {
+      return {
+        snapshot: await loadSettingsSnapshot(access.activeWorkspace.id),
+      }
+    } catch (error) {
+      if (!canRecoverFromSettingsSnapshotError(error)) {
+        throw error
+      }
+
+      return {
+        snapshot: null,
+      }
+    }
+  }
+
+  const snapshot = canLoadSnapshot
     ? await loadSettingsSnapshot(access.activeWorkspace.id)
     : null
 
@@ -145,6 +190,7 @@ export {
   hasWorkspaceAdminAccess,
   loadSettingsRouteData,
   requireSettingsAccess,
+  requireAccountSettingsAccess,
   requireWorkspaceAdminSettingsAccess,
   requireWorkspaceProfileSettingsAccess,
 }

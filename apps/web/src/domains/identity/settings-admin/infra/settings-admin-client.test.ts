@@ -13,6 +13,7 @@ import {
 } from "@/domains/identity/settings-admin/contracts/settings-admin-contract"
 import type {
   SettingsAdminMember,
+  SettingsAdminAccountProfile,
   SettingsAdminSnapshot,
   SettingsAdminUpdateWorkspaceMemberRoleResponse,
   SettingsAdminWorkspaceInvite,
@@ -20,6 +21,7 @@ import type {
 } from "@/domains/identity/settings-admin/contracts/settings-admin-contract"
 
 import { createWorkspaceInvite } from "./create-workspace-invite"
+import { getAccountProfile } from "./get-account-profile"
 import { getSettingsSnapshot } from "./get-settings-snapshot"
 import { removeWorkspaceMember } from "./remove-workspace-member"
 import { resendWorkspaceInvite } from "./resend-workspace-invite"
@@ -33,7 +35,7 @@ const accountProfile = {
   id: "user_123",
   image: null,
   name: "Owner User",
-}
+} satisfies SettingsAdminAccountProfile
 
 const workspaceProfile: SettingsAdminWorkspaceProfile = {
   id: "workspace_123",
@@ -177,6 +179,83 @@ describe("settings admin contract schema", () => {
 })
 
 describe("settings admin clients", () => {
+  it("loads the authenticated account profile", async () => {
+    const fetchMock = withAuthServiceFetch()
+
+    try {
+      fetchMock.mockResolvedValue(Response.json(accountProfile))
+
+      await expect(getAccountProfile()).resolves.toStrictEqual(accountProfile)
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        "https://auth.example.com/api/account/profile",
+        {
+          credentials: "include",
+          headers: undefined,
+        }
+      )
+    } finally {
+      withoutAuthServiceFetch()
+    }
+  })
+
+  it("rejects malformed account profile payloads when reading the account profile", async () => {
+    const fetchMock = withAuthServiceFetch()
+
+    try {
+      fetchMock.mockResolvedValue(new Response("{", { status: 200 }))
+
+      await expect(getAccountProfile()).rejects.toThrow(
+        "Malformed account profile JSON."
+      )
+    } finally {
+      withoutAuthServiceFetch()
+    }
+  })
+
+  it("rejects schema-invalid account profile payloads when reading the account profile", async () => {
+    const fetchMock = withAuthServiceFetch()
+
+    try {
+      fetchMock.mockResolvedValue(
+        Response.json({
+          ...accountProfile,
+          email: null,
+        })
+      )
+
+      await expect(getAccountProfile()).rejects.toThrow(
+        "Invalid account profile payload."
+      )
+    } finally {
+      withoutAuthServiceFetch()
+    }
+  })
+
+  it("surfaces API error messages for failed account profile reads", async () => {
+    const fetchMock = withAuthServiceFetch()
+
+    try {
+      fetchMock.mockResolvedValue(
+        Response.json(
+          {
+            message: "Account settings are temporarily unavailable.",
+          },
+          {
+            status: 503,
+            statusText: "Service Unavailable",
+          }
+        )
+      )
+
+      await expect(getAccountProfile()).rejects.toThrow(
+        "Account settings are temporarily unavailable."
+      )
+    } finally {
+      withoutAuthServiceFetch()
+    }
+  })
+
   it("loads the settings snapshot for an explicit workspace", async () => {
     const fetchMock = withAuthServiceFetch()
 
@@ -330,7 +409,7 @@ describe("settings admin clients", () => {
     }
   })
 
-  it("rejects malformed account profile payloads", async () => {
+  it("rejects malformed account profile payloads for account updates", async () => {
     const fetchMock = withAuthServiceFetch()
 
     try {
@@ -347,7 +426,7 @@ describe("settings admin clients", () => {
     }
   })
 
-  it("rejects schema-invalid account profile payloads", async () => {
+  it("rejects schema-invalid account profile payloads for account updates", async () => {
     const fetchMock = withAuthServiceFetch()
 
     try {

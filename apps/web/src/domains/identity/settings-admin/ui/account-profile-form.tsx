@@ -14,6 +14,12 @@ import {
   FormTextField,
 } from "@workspace/ui/components/form"
 
+import { SettingsIdentityPreview } from "./settings-identity-preview"
+import {
+  selectPreviewFormValues,
+  toNullableTrimmedValue,
+} from "./settings-profile-form-utils"
+
 const accountProfileFormSchema = z.object({
   image: z.string(),
   name: z.string().trim().min(1, "Name is required."),
@@ -21,12 +27,6 @@ const accountProfileFormSchema = z.object({
 
 interface AccountProfileFormProps {
   accountProfile: SettingsAdminAccountProfile
-}
-
-const toNullableUrl = (value: string) => {
-  const trimmedValue = value.trim()
-
-  return trimmedValue.length > 0 ? trimmedValue : null
 }
 
 const AccountProfileForm = ({ accountProfile }: AccountProfileFormProps) => {
@@ -42,7 +42,7 @@ const AccountProfileForm = ({ accountProfile }: AccountProfileFormProps) => {
 
       try {
         await updateAccountProfile({
-          image: toNullableUrl(value.image),
+          image: toNullableTrimmedValue(value.image),
           name: value.name.trim(),
         })
       } catch (submissionError) {
@@ -72,6 +72,16 @@ const AccountProfileForm = ({ accountProfile }: AccountProfileFormProps) => {
 
   return (
     <form className="gap-6 flex flex-col" noValidate onSubmit={handleSubmit}>
+      <form.Subscribe selector={selectPreviewFormValues}>
+        {(values) => (
+          <SettingsIdentityPreview
+            displayName={values.name}
+            fallbackLabel="avatar"
+            imageUrl={toNullableTrimmedValue(values.image)}
+            supportingCopy={`Email context: ${accountProfile.email}.`}
+          />
+        )}
+      </form.Subscribe>
       <FieldGroup>
         <form.Field name="name">
           {(field) => (

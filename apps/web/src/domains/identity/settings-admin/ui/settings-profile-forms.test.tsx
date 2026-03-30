@@ -28,6 +28,26 @@ const workspaceProfile: SettingsAdminWorkspaceProfile = {
   slug: "operations-control",
 }
 
+class MockImage {
+  onerror: ((event: Event) => unknown) | null = null
+  onload: ((event: Event) => unknown) | null = null
+  private currentSrc = ""
+
+  crossOrigin: string | null = null
+  referrerPolicy = ""
+
+  set src(value: string) {
+    this.currentSrc = value
+    queueMicrotask(() => {
+      this.onload?.(new Event("load"))
+    })
+  }
+
+  get src() {
+    return this.currentSrc
+  }
+}
+
 const snapshot: SettingsAdminSnapshot = {
   accountProfile,
   members: [],
@@ -113,17 +133,19 @@ const resetMocks = () => {
   invalidateMock.mockReset()
   updateAccountProfileMock.mockReset()
   updateWorkspaceProfileMock.mockReset()
+  vi.unstubAllGlobals()
+  vi.stubGlobal("Image", MockImage)
   vi.resetModules()
 }
 
 describe("account settings profile form", () => {
-  it("hydrates from the loaded account snapshot", async () => {
+  it("shows the current account identity and avatar image from the snapshot", async () => {
     resetMocks()
     const { AccountSettingsPage, WorkspaceBootstrapProvider } = await loadUi()
 
     const view = render(
       <WorkspaceBootstrapProvider bootstrap={bootstrap}>
-        <AccountSettingsPage snapshot={snapshot} />
+        <AccountSettingsPage accountProfile={accountProfile} />
       </WorkspaceBootstrapProvider>
     )
 
@@ -131,9 +153,51 @@ describe("account settings profile form", () => {
       expect((screen.getByLabelText("Name") as HTMLInputElement).value).toBe(
         "Owner User"
       )
+      expect(screen.getByText("Owner User")).toBeTruthy()
+      expect(screen.getByText("Email context: owner@example.com.")).toBeTruthy()
+      await waitFor(() => {
+        expect(
+          screen.getByRole("img", { name: "Owner User avatar" })
+        ).toBeTruthy()
+      })
       expect(
         (screen.getByLabelText("Avatar image URL") as HTMLInputElement).value
       ).toBe("https://cdn.example.com/avatar-old.png")
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
+  it("updates the account preview as the name and avatar URL change", async () => {
+    resetMocks()
+    const { AccountSettingsPage, WorkspaceBootstrapProvider } = await loadUi()
+
+    const user = userEvent.setup()
+    const view = render(
+      <WorkspaceBootstrapProvider bootstrap={bootstrap}>
+        <AccountSettingsPage accountProfile={accountProfile} />
+      </WorkspaceBootstrapProvider>
+    )
+
+    try {
+      await user.clear(screen.getByLabelText("Name"))
+      await user.type(screen.getByLabelText("Name"), "Ada Lovelace")
+
+      await waitFor(() => {
+        expect(screen.getByText("Ada Lovelace")).toBeTruthy()
+      })
+      await waitFor(() => {
+        expect(
+          screen.getByRole("img", { name: "Ada Lovelace avatar" })
+        ).toBeTruthy()
+      })
+
+      await user.clear(screen.getByLabelText("Avatar image URL"))
+
+      await waitFor(() => {
+        expect(screen.getByText("AL")).toBeTruthy()
+      })
     } finally {
       view.unmount()
       cleanup()
@@ -152,7 +216,7 @@ describe("account settings profile form", () => {
     const user = userEvent.setup()
     const view = render(
       <WorkspaceBootstrapProvider bootstrap={bootstrap}>
-        <AccountSettingsPage snapshot={snapshot} />
+        <AccountSettingsPage accountProfile={accountProfile} />
       </WorkspaceBootstrapProvider>
     )
 
@@ -194,7 +258,7 @@ describe("account settings profile form", () => {
     const user = userEvent.setup()
     const view = render(
       <WorkspaceBootstrapProvider bootstrap={bootstrap}>
-        <AccountSettingsPage snapshot={snapshot} />
+        <AccountSettingsPage accountProfile={accountProfile} />
       </WorkspaceBootstrapProvider>
     )
 
@@ -216,6 +280,33 @@ describe("account settings profile form", () => {
     }
   })
 
+  it("shows a validation message when the account name is blank", async () => {
+    resetMocks()
+    const { AccountSettingsPage, WorkspaceBootstrapProvider } = await loadUi()
+
+    const user = userEvent.setup()
+    const view = render(
+      <WorkspaceBootstrapProvider bootstrap={bootstrap}>
+        <AccountSettingsPage accountProfile={accountProfile} />
+      </WorkspaceBootstrapProvider>
+    )
+
+    try {
+      await user.clear(screen.getByLabelText("Name"))
+      await user.click(
+        screen.getByRole("button", { name: "Save account profile" })
+      )
+
+      await waitFor(() => {
+        expect(screen.getByText("Name is required.")).toBeTruthy()
+      })
+      expect(updateAccountProfileMock).not.toHaveBeenCalled()
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
   it("disables the account form while the profile save is in flight", async () => {
     resetMocks()
     const pending = deferred<{
@@ -230,7 +321,7 @@ describe("account settings profile form", () => {
     const user = userEvent.setup()
     const view = render(
       <WorkspaceBootstrapProvider bootstrap={bootstrap}>
-        <AccountSettingsPage snapshot={snapshot} />
+        <AccountSettingsPage accountProfile={accountProfile} />
       </WorkspaceBootstrapProvider>
     )
 
@@ -272,7 +363,7 @@ describe("account settings profile form", () => {
 })
 
 describe("workspace settings profile form", () => {
-  it("hydrates from the loaded workspace snapshot and shows the slug context", async () => {
+  it("shows the current workspace identity and logo image from the snapshot", async () => {
     resetMocks()
     const { WorkspaceBootstrapProvider, WorkspaceSettingsPage } = await loadUi()
 
@@ -286,13 +377,54 @@ describe("workspace settings profile form", () => {
       expect(
         (screen.getByLabelText("Workspace name") as HTMLInputElement).value
       ).toBe("Operations Control")
+      expect(screen.getByText("Operations Control")).toBeTruthy()
+      expect(
+        screen.getByText("Workspace context: operations-control.")
+      ).toBeTruthy()
+      await waitFor(() => {
+        expect(
+          screen.getByRole("img", { name: "Operations Control logo" })
+        ).toBeTruthy()
+      })
       expect(
         (screen.getByLabelText("Logo URL") as HTMLInputElement).value
       ).toBe("https://cdn.example.com/logo-old.png")
       expect(
         (screen.getByLabelText("Workspace slug") as HTMLInputElement).value
       ).toBe("operations-control")
-      expect(screen.getByText(/Read only workspace context\./)).toBeTruthy()
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
+  it("updates the workspace preview as the name and logo URL change", async () => {
+    resetMocks()
+    const { WorkspaceBootstrapProvider, WorkspaceSettingsPage } = await loadUi()
+
+    const user = userEvent.setup()
+    const view = render(
+      <WorkspaceBootstrapProvider bootstrap={bootstrap}>
+        <WorkspaceSettingsPage snapshot={snapshot} />
+      </WorkspaceBootstrapProvider>
+    )
+
+    try {
+      await user.clear(screen.getByLabelText("Workspace name"))
+      await user.type(screen.getByLabelText("Workspace name"), "Field Ops")
+
+      await waitFor(() => {
+        expect(screen.getByText("Field Ops")).toBeTruthy()
+      })
+      await waitFor(() => {
+        expect(screen.getByRole("img", { name: "Field Ops logo" })).toBeTruthy()
+      })
+
+      await user.clear(screen.getByLabelText("Logo URL"))
+
+      await waitFor(() => {
+        expect(screen.getByText("FO")).toBeTruthy()
+      })
     } finally {
       view.unmount()
       cleanup()
@@ -373,6 +505,33 @@ describe("workspace settings profile form", () => {
           screen.getByText("Workspace profile access was revoked.")
         ).toBeTruthy()
       })
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
+  it("shows a validation message when the workspace name is blank", async () => {
+    resetMocks()
+    const { WorkspaceBootstrapProvider, WorkspaceSettingsPage } = await loadUi()
+
+    const user = userEvent.setup()
+    const view = render(
+      <WorkspaceBootstrapProvider bootstrap={bootstrap}>
+        <WorkspaceSettingsPage snapshot={snapshot} />
+      </WorkspaceBootstrapProvider>
+    )
+
+    try {
+      await user.clear(screen.getByLabelText("Workspace name"))
+      await user.click(
+        screen.getByRole("button", { name: "Save workspace profile" })
+      )
+
+      await waitFor(() => {
+        expect(screen.getByText("Workspace name is required.")).toBeTruthy()
+      })
+      expect(updateWorkspaceProfileMock).not.toHaveBeenCalled()
     } finally {
       view.unmount()
       cleanup()
