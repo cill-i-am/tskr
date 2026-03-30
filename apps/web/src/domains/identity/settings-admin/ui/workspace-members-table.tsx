@@ -174,6 +174,12 @@ const WorkspaceMembersTable = ({
       <TableBody>
         {members.map((member) => {
           const isPending = pendingMemberIds.has(member.id)
+          const canLeaveWorkspace =
+            member.isCurrentUser && member.permissions.canRemove
+          const isProtectedOwner =
+            member.isCurrentUser &&
+            !member.permissions.canRemove &&
+            member.role === "owner"
           const removeLabel = member.isCurrentUser
             ? "Leave workspace"
             : `Remove ${member.name}`
@@ -208,31 +214,43 @@ const WorkspaceMembersTable = ({
                 )}
               </TableCell>
               <TableCell>
-                <div className="gap-2 flex flex-wrap justify-end">
-                  {member.permissions.canChangeRole ? (
-                    <Button
-                      data-member-id={member.id}
-                      disabled={
-                        isPending || draftRoles[member.id] === member.role
-                      }
-                      onClick={handleRoleSave}
-                      size="sm"
-                      type="button"
-                    >
-                      {`Save role for ${member.name}`}
-                    </Button>
+                <div className="gap-1 flex flex-col items-end">
+                  <div className="gap-2 flex flex-wrap justify-end">
+                    {member.permissions.canChangeRole ? (
+                      <Button
+                        data-member-id={member.id}
+                        disabled={
+                          isPending || draftRoles[member.id] === member.role
+                        }
+                        onClick={handleRoleSave}
+                        size="sm"
+                        type="button"
+                      >
+                        {`Save role for ${member.name}`}
+                      </Button>
+                    ) : null}
+                    {member.permissions.canRemove ? (
+                      <Button
+                        data-member-id={member.id}
+                        disabled={isPending}
+                        onClick={handleRemove}
+                        size="sm"
+                        type="button"
+                        variant="outline"
+                      >
+                        {removeLabel}
+                      </Button>
+                    ) : null}
+                  </div>
+                  {canLeaveWorkspace ? (
+                    <p className="text-sm text-right text-muted-foreground">
+                      Leaving removes workspace access immediately.
+                    </p>
                   ) : null}
-                  {member.permissions.canRemove ? (
-                    <Button
-                      data-member-id={member.id}
-                      disabled={isPending}
-                      onClick={handleRemove}
-                      size="sm"
-                      type="button"
-                      variant="outline"
-                    >
-                      {removeLabel}
-                    </Button>
+                  {isProtectedOwner ? (
+                    <p className="text-sm text-right text-muted-foreground">
+                      Add or transfer another owner before leaving.
+                    </p>
                   ) : null}
                 </div>
               </TableCell>
