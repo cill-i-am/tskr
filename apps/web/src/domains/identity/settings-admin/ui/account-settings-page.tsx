@@ -1,4 +1,4 @@
-import type { SettingsAdminSnapshot } from "@/domains/identity/settings-admin/contracts/settings-admin-contract"
+import type { SettingsAdminAccountProfile } from "@/domains/identity/settings-admin/contracts/settings-admin-contract"
 import { useWorkspaceBootstrap } from "@/domains/workspaces/bootstrap/ui/use-workspace-bootstrap"
 
 import {
@@ -11,10 +11,10 @@ import {
 import { AccountProfileForm } from "./account-profile-form"
 
 interface AccountSettingsPageProps {
-  snapshot: SettingsAdminSnapshot | null
+  accountProfile: SettingsAdminAccountProfile
 }
 
-const AccountSettingsPage = ({ snapshot }: AccountSettingsPageProps) => {
+const AccountSettingsPage = ({ accountProfile }: AccountSettingsPageProps) => {
   const { activeWorkspace } = useWorkspaceBootstrap()
 
   return (
@@ -31,28 +31,10 @@ const AccountSettingsPage = ({ snapshot }: AccountSettingsPageProps) => {
         </CardDescription>
       </CardHeader>
       <CardContent className="gap-4 flex flex-col">
-        {snapshot ? (
-          <>
-            <p className="text-sm text-muted-foreground">
-              Signed in as {snapshot.accountProfile.email}.
-            </p>
-            <AccountProfileForm
-              key={`${snapshot.accountProfile.name}|${snapshot.accountProfile.image ?? ""}`}
-              accountProfile={snapshot.accountProfile}
-            />
-          </>
-        ) : (
-          <>
-            <p className="text-sm text-muted-foreground">
-              This route stays available for any authenticated member with an
-              active workspace session.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Workspace-admin settings remain hidden until your role allows
-              them.
-            </p>
-          </>
-        )}
+        <AccountProfileForm
+          key={`${accountProfile.name}|${accountProfile.image ?? ""}`}
+          accountProfile={accountProfile}
+        />
       </CardContent>
     </Card>
   )

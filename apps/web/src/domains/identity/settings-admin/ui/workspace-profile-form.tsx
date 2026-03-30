@@ -21,6 +21,12 @@ import {
 } from "@workspace/ui/components/form"
 import { Input } from "@workspace/ui/components/input"
 
+import { SettingsIdentityPreview } from "./settings-identity-preview"
+import {
+  selectPreviewFormValues,
+  toNullableTrimmedValue,
+} from "./settings-profile-form-utils"
+
 const workspaceProfileFormSchema = z.object({
   logo: z.string(),
   name: z.string().trim().min(1, "Workspace name is required."),
@@ -28,12 +34,6 @@ const workspaceProfileFormSchema = z.object({
 
 interface WorkspaceProfileFormProps {
   workspaceProfile: SettingsAdminWorkspaceProfile
-}
-
-const toNullableLogo = (value: string) => {
-  const trimmedValue = value.trim()
-
-  return trimmedValue.length > 0 ? trimmedValue : null
 }
 
 const WorkspaceProfileForm = ({
@@ -51,7 +51,7 @@ const WorkspaceProfileForm = ({
 
       try {
         await updateWorkspaceProfile({
-          logo: toNullableLogo(value.logo),
+          logo: toNullableTrimmedValue(value.logo),
           name: value.name.trim(),
           workspaceId: workspaceProfile.id,
         })
@@ -82,6 +82,16 @@ const WorkspaceProfileForm = ({
 
   return (
     <form className="gap-6 flex flex-col" noValidate onSubmit={handleSubmit}>
+      <form.Subscribe selector={selectPreviewFormValues}>
+        {(values) => (
+          <SettingsIdentityPreview
+            displayName={values.name}
+            fallbackLabel="logo"
+            imageUrl={toNullableTrimmedValue(values.logo)}
+            supportingCopy={`Workspace context: ${workspaceProfile.slug}.`}
+          />
+        )}
+      </form.Subscribe>
       <FieldGroup>
         <Field>
           <FieldLabel htmlFor="workspace-slug">Workspace slug</FieldLabel>

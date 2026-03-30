@@ -1,4 +1,5 @@
 import type { SettingsAdminSnapshot } from "@/domains/identity/settings-admin/contracts/settings-admin-contract"
+import { getAccountProfile } from "@/domains/identity/settings-admin/infra/get-account-profile"
 import { getSettingsSnapshot } from "@/domains/identity/settings-admin/infra/get-settings-snapshot"
 import { updateActiveWorkspace } from "@/domains/workspaces/active-workspace/infra/update-active-workspace"
 import type { WorkspaceBootstrap } from "@/domains/workspaces/bootstrap/contracts/workspace-bootstrap"
@@ -27,6 +28,13 @@ vi.mock(
 )
 
 vi.mock(
+  import("@/domains/identity/settings-admin/infra/get-account-profile"),
+  () => ({
+    getAccountProfile: vi.fn(),
+  })
+)
+
+vi.mock(
   import("@/domains/identity/settings-admin/infra/get-settings-snapshot"),
   () => ({
     getSettingsSnapshot: vi.fn(),
@@ -41,6 +49,7 @@ vi.mock(
 )
 
 const getWorkspaceBootstrapMock = vi.mocked(getWorkspaceBootstrap)
+const getAccountProfileMock = vi.mocked(getAccountProfile)
 const getSettingsSnapshotMock = vi.mocked(getSettingsSnapshot)
 const updateActiveWorkspaceMock = vi.mocked(updateActiveWorkspace)
 
@@ -175,6 +184,74 @@ const withoutActiveWorkspace = (): WorkspaceBootstrap => ({
   activeWorkspace: null,
 })
 
+const settingsAdminNavigationLinks = [
+  ["Account", "/app/settings/account"],
+  ["Workspace", "/app/settings/workspace"],
+  ["People", "/app/settings/people"],
+  ["Labels", "/app/settings/labels"],
+  ["Service zones", "/app/settings/service-zones"],
+  ["Notifications", "/app/settings/notifications"],
+] as const
+
+const expectSettingsNavigationLinks = (
+  links: readonly (readonly [name: string, href: string])[]
+) => {
+  expect(
+    links.map(([name]) =>
+      screen
+        .getByRole("link", {
+          name,
+        })
+        .getAttribute("href")
+    )
+  ).toStrictEqual(links.map(([, href]) => href))
+}
+
+const expectAccountSettingsPage = () => {
+  expect(
+    screen.getByRole("heading", {
+      name: "Account settings",
+    })
+  ).toBeTruthy()
+  expect(screen.getByLabelText("Name")).toBeTruthy()
+  expect(
+    screen.getByRole("button", {
+      name: "Save account profile",
+    })
+  ).toBeTruthy()
+  expectSettingsNavigationLinks([settingsAdminNavigationLinks[0]])
+  expect(
+    ["Workspace", "People"].every(
+      (name) => screen.queryByRole("link", { name }) === null
+    )
+  ).toBeTruthy()
+}
+
+const expectAdminSettingsNavigation = () => {
+  expectSettingsNavigationLinks(settingsAdminNavigationLinks)
+  expect(
+    ["Available now", "Coming soon"].every(
+      (text) => screen.getByText(text) !== null
+    )
+  ).toBeTruthy()
+}
+
+const expectWorkspaceSettingsPage = () => {
+  expect(
+    screen.getByRole("heading", {
+      name: "Workspace settings",
+    })
+  ).toBeTruthy()
+  expect(screen.getByLabelText("Workspace name")).toBeTruthy()
+  expect(screen.getByLabelText("Logo URL")).toBeTruthy()
+  expect(
+    screen.getByRole("button", {
+      name: "Save workspace profile",
+    })
+  ).toBeTruthy()
+  expectSettingsNavigationLinks(settingsAdminNavigationLinks)
+}
+
 const createTestRouter = (path: string) =>
   createRouter({
     defaultErrorComponent: ({ error }) => (
@@ -219,6 +296,7 @@ const loadPath = async ({
 }) => {
   prepareTestEnvironment()
   getWorkspaceBootstrapMock.mockResolvedValue(bootstrap)
+  getAccountProfileMock.mockResolvedValue(activeSettingsSnapshot.accountProfile)
 
   const router = createTestRouter(path)
 
@@ -238,6 +316,7 @@ const renderPath = async ({
 }) => {
   prepareTestEnvironment()
   getWorkspaceBootstrapMock.mockResolvedValue(bootstrap)
+  getAccountProfileMock.mockResolvedValue(activeSettingsSnapshot.accountProfile)
 
   const router = createTestRouter(path)
 
@@ -575,6 +654,30 @@ describe("workspace app shell routes", () => {
     ).resolves.toBeTruthy()
   })
 
+  it("keeps workspace admin navigation on account settings when the snapshot succeeds", async () => {
+    getSettingsSnapshotMock.mockResolvedValue(activeSettingsSnapshot)
+
+    const router = await renderPath({
+      bootstrap: withActiveWorkspaceRole("owner"),
+      path: "/app/settings/account",
+    })
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/app/settings/account")
+    })
+
+    expect(getAccountProfileMock).toHaveBeenCalledWith()
+    expect(getSettingsSnapshotMock).toHaveBeenCalledWith({
+      workspaceId: "workspace_123",
+    })
+    await expect(
+      screen.findByRole("heading", {
+        name: "Account settings",
+      })
+    ).resolves.toBeTruthy()
+    expectAdminSettingsNavigation()
+  })
+
   it("adds a settings destination to the authenticated app shell", async () => {
     getSettingsSnapshotMock.mockResolvedValue(activeSettingsSnapshot)
 
@@ -778,6 +881,51 @@ describe("workspace app shell routes", () => {
     expect(getSettingsSnapshotMock).not.toHaveBeenCalled()
   })
 
+  it("keeps account settings reachable for owners even when the admin snapshot fails", async () => {
+    getSettingsSnapshotMock.mockRejectedValue(
+      new Error("Workspace settings are temporarily unavailable.")
+    )
+
+    const router = await renderPath({
+      bootstrap: withActiveWorkspaceRole("owner"),
+      path: "/app/settings/account",
+    })
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/app/settings/account")
+    })
+
+    expect(getAccountProfileMock).toHaveBeenCalledWith()
+    expect(getSettingsSnapshotMock).toHaveBeenCalledWith({
+      workspaceId: "workspace_123",
+    })
+    await expect(
+      screen.findByRole("heading", {
+        name: "Account settings",
+      })
+    ).resolves.toBeTruthy()
+    expect(screen.getByLabelText("Name")).toBeTruthy()
+    expectAccountSettingsPage()
+  })
+
+  it("surfaces malformed admin snapshot errors on account settings", async () => {
+    getSettingsSnapshotMock.mockRejectedValue(
+      new TypeError("Malformed settings snapshot JSON.")
+    )
+    getAccountProfileMock.mockResolvedValue(
+      activeSettingsSnapshot.accountProfile
+    )
+
+    await renderPath({
+      bootstrap: withActiveWorkspaceRole("owner"),
+      path: "/app/settings/account",
+    })
+
+    await expect(
+      screen.findByText("Malformed settings snapshot JSON.")
+    ).resolves.toBeTruthy()
+  })
+
   it("keeps account settings reachable for members without loading the admin snapshot", async () => {
     const router = await renderPath({
       bootstrap: withActiveWorkspaceRole("dispatcher"),
@@ -788,13 +936,41 @@ describe("workspace app shell routes", () => {
       expect(router.state.location.pathname).toBe("/app/settings/account")
     })
 
+    expect(getAccountProfileMock).toHaveBeenCalledWith()
     expect(getSettingsSnapshotMock).not.toHaveBeenCalled()
     await expect(
       screen.findByRole("heading", {
         name: "Account settings",
       })
     ).resolves.toBeTruthy()
+    expectAccountSettingsPage()
   })
+
+  it.each(["owner", "admin"] as const)(
+    "shows the editable workspace settings page for %s viewers",
+    async (role) => {
+      getSettingsSnapshotMock.mockResolvedValue(activeSettingsSnapshot)
+
+      const router = await renderPath({
+        bootstrap: withActiveWorkspaceRole(role),
+        path: "/app/settings/workspace",
+      })
+
+      await waitFor(() => {
+        expect(router.state.location.pathname).toBe("/app/settings/workspace")
+      })
+
+      expect(getSettingsSnapshotMock).toHaveBeenCalledWith({
+        workspaceId: "workspace_123",
+      })
+      await expect(
+        screen.findByRole("heading", {
+          name: "Workspace settings",
+        })
+      ).resolves.toBeTruthy()
+      expectWorkspaceSettingsPage()
+    }
+  )
 
   it("falls back to account settings when members visit admin-only settings routes", async () => {
     const router = await renderPath({
