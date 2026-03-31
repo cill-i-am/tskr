@@ -15,7 +15,7 @@ interface CapturedEmailSnapshot {
   files: string[]
 }
 
-const sortFiles = (files: string[]) => [...files].sort()
+const sortFiles = (files: string[]) => files.toSorted()
 
 const clearEmailCaptures = async (directory: string) => {
   await rm(directory, {

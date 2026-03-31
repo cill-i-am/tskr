@@ -13,7 +13,7 @@ interface WorkerFixtures {
   webBaseUrl: string
 }
 
-const test = base.extend<{}, WorkerFixtures>({
+const test = base.extend<Record<never, never>, WorkerFixtures>({
   authBaseUrl: [
     async ({}, runFixture) => {
       await runFixture(e2eConfig.authBaseUrl)
