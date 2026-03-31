@@ -36,7 +36,7 @@
     "db:generate": "pnpm exec drizzle-kit generate --config drizzle.config.ts",
     "db:migrate": "pnpm exec drizzle-kit migrate --config drizzle.config.ts",
     "dev": "sh -c 'case \"$1\" in --) shift;; esac; exec tsdown --watch \"$@\"' sh",
-    "test": "node --test --experimental-strip-types src/database-url.test.mjs src/schema/auth-schema.test.mjs",
+    "test": "node --test --experimental-strip-types src/database-url.test.mjs src/replication.test.mjs src/schema/auth-schema.test.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
