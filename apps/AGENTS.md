@@ -23,6 +23,9 @@ applications under `apps/*`.
   instance per workspace.
 - Direct `pnpm dev*` workflows remain valid for narrow single-app or package
   loops where sandbox isolation is not needed.
+- Keep app-owned adapters around the shared sync and command architecture local
+  to the app that exposes them instead of pushing runtime concerns into
+  `packages/*`.
 - When wiring Railway app variables to managed services or sibling apps, prefer
   Railway interpolation such as `${{Postgres.DATABASE_URL}}` and
   `https://${{service.RAILWAY_PUBLIC_DOMAIN}}` over hard-coded environment
