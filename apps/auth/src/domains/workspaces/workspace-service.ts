@@ -750,7 +750,7 @@ const createWorkspaceService = ({
         workspaceId,
       })
     } catch (error) {
-      mapBetterAuthError(error)
+      return mapBetterAuthError(error)
     }
   }
 
@@ -801,7 +801,7 @@ const createWorkspaceService = ({
         headers,
       })
     } catch (error) {
-      mapBetterAuthError(error)
+      return mapBetterAuthError(error)
     }
   }
 
@@ -968,7 +968,7 @@ const createWorkspaceService = ({
         workspaceId,
       }
     } catch (error) {
-      mapBetterAuthError(error)
+      return mapBetterAuthError(error)
     }
   }
 
