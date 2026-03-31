@@ -34,6 +34,6 @@ describe(resolveAuthBaseUrl, () => {
       resolveAuthBaseUrl({
         hostname: "web.tskr.localhost",
       })
-    ).toBe("https://auth.tskr.localhost:1355")
+    ).toBe("https://auth.tskr.localhost")
   })
 })

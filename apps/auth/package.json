@@ -7,7 +7,7 @@
     "check": "git -C ../.. ls-files -- apps/auth | xargs pnpm --dir ../.. exec ultracite check",
     "db:ensure": "node ../../scripts/local-postgres.mjs ensure",
     "db:migrate": "pnpm --filter @workspace/db db:migrate",
-    "dev": "pnpm --filter @workspace/db build && pnpm --filter @workspace/email build && portless --name auth.tskr node ../../scripts/local-postgres-launcher.mjs -- tsx watch src/index.ts",
+    "dev": "pnpm --filter @workspace/db build && pnpm --filter @workspace/email build && portless run --name auth.tskr node ../../scripts/local-postgres-launcher.mjs -- tsx watch src/index.ts",
     "dev:sandbox": "pnpm --filter @workspace/db build && pnpm --filter @workspace/email build && PORTLESS=0 PORT=3002 tsx watch src/index.ts",
     "build": "pnpm --filter @workspace/db build && pnpm --filter @workspace/email build && tsc --project tsconfig.json",
     "start": "node dist/index.js",

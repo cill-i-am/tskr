@@ -125,9 +125,9 @@ const deriveSandboxPorts = (hash: string): SandboxPorts => {
 }
 
 const buildLocalSandboxUrls = (slug: string): SandboxUrls => ({
-  api: `https://${slug}.api.tskr.localhost:1355`,
-  auth: `https://${slug}.auth.tskr.localhost:1355`,
-  web: `https://${slug}.web.tskr.localhost:1355`,
+  api: `https://${slug}.api.tskr.localhost`,
+  auth: `https://${slug}.auth.tskr.localhost`,
+  web: `https://${slug}.web.tskr.localhost`,
 })
 
 const buildHostedSandboxUrls = ({
