@@ -20,13 +20,15 @@ import {
 import type { SandboxState } from "./store.js"
 
 type SandboxMode = "hosted" | "local"
-type SandboxService =
-  | "api"
-  | "auth"
-  | "electric"
-  | "ingress"
-  | "postgres"
-  | "web"
+const SANDBOX_SERVICES = [
+  "api",
+  "auth",
+  "electric",
+  "ingress",
+  "postgres",
+  "web",
+] as const
+type SandboxService = (typeof SANDBOX_SERVICES)[number]
 
 interface CreateSandboxInput {
   hostedDomainRoot?: string
@@ -283,7 +285,12 @@ const SandboxManagerLive = Layer.succeed(SandboxManager, {
     }).pipe(Effect.map((state) => state.urls[mode])),
 })
 
-export { DEFAULT_HOSTED_DOMAIN_ROOT, SandboxManager, SandboxManagerLive }
+export {
+  DEFAULT_HOSTED_DOMAIN_ROOT,
+  SANDBOX_SERVICES,
+  SandboxManager,
+  SandboxManagerLive,
+}
 export type {
   CreateSandboxInput,
   DestroySandboxInput,

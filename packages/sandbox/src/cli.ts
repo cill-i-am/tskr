@@ -6,10 +6,11 @@ import { Console, Effect, Layer, Option } from "effect"
 
 import {
   DEFAULT_HOSTED_DOMAIN_ROOT,
+  SANDBOX_SERVICES,
   SandboxManager,
   SandboxManagerLive,
 } from "./manager.js"
-import type { SandboxMode, SandboxService } from "./manager.js"
+import type { SandboxMode } from "./manager.js"
 
 const sandboxModeOption = Options.choice("mode", [
   "local",
@@ -21,14 +22,9 @@ const hostedDomainRootOption = Options.text("hosted-domain-root").pipe(
 const sandboxNameArgument = Args.text({
   name: "name",
 })
-const sandboxServiceOption = Options.choice("service", [
-  "api",
-  "auth",
-  "electric",
-  "ingress",
-  "postgres",
-  "web",
-] as const).pipe(Options.optional)
+const sandboxServiceOption = Options.choice("service", SANDBOX_SERVICES).pipe(
+  Options.optional
+)
 
 const resolveSandboxMode = (mode: Option.Option<SandboxMode>): SandboxMode =>
   Option.getOrElse(mode, () => "local")
@@ -152,7 +148,7 @@ const logsCommand = Command.make(
       yield* sandboxManager.logs({
         mode: resolveSandboxMode(mode),
         name,
-        service: service as Option.Option<SandboxService>,
+        service,
       })
     })
 )
