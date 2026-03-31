@@ -1,0 +1,54 @@
+services:
+  postgres:
+    container_name: ${POSTGRES_CONTAINER_NAME}
+    image: postgres:16-alpine
+    env_file:
+      - ${SANDBOX_ENV_POSTGRES_FILE}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 2s
+    ports:
+      - "${SANDBOX_POSTGRES_PORT}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  api:
+    env_file:
+      - ${SANDBOX_ENV_API_FILE}
+    environment:
+      PNPM_HOME: /pnpm
+      PNPM_STORE_DIR: /pnpm/store
+    working_dir: /workspace
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  auth:
+    env_file:
+      - ${SANDBOX_ENV_AUTH_FILE}
+    environment:
+      PNPM_HOME: /pnpm
+      PNPM_STORE_DIR: /pnpm/store
+    working_dir: /workspace
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    env_file:
+      - ${SANDBOX_ENV_WEB_FILE}
+    environment:
+      PNPM_HOME: /pnpm
+      PNPM_STORE_DIR: /pnpm/store
+    working_dir: /workspace
+    depends_on:
+      auth:
+        condition: service_started
+
+volumes:
+  postgres-data:
+  pnpm-store:
+  workspace-node-modules:

@@ -1,0 +1,36 @@
+services:
+  api:
+    build:
+      context: ${SANDBOX_REPOSITORY_ROOT}
+      dockerfile: apps/api/Dockerfile
+      target: runtime
+
+  auth:
+    build:
+      context: ${SANDBOX_REPOSITORY_ROOT}
+      dockerfile: apps/auth/Dockerfile
+      target: runtime
+
+  web:
+    build:
+      context: ${SANDBOX_REPOSITORY_ROOT}
+      dockerfile: apps/web/Dockerfile
+      target: runtime
+
+  ingress:
+    image: caddy:2.10-alpine
+    depends_on:
+      api:
+        condition: service_started
+      auth:
+        condition: service_started
+      web:
+        condition: service_started
+    environment:
+      SANDBOX_API_DOMAIN: ${SANDBOX_API_DOMAIN}
+      SANDBOX_AUTH_DOMAIN: ${SANDBOX_AUTH_DOMAIN}
+      SANDBOX_WEB_DOMAIN: ${SANDBOX_WEB_DOMAIN}
+    ports:
+      - "${SANDBOX_INGRESS_PORT}:80"
+    volumes:
+      - ${SANDBOX_REPOSITORY_ROOT}/infra/sandbox/Caddyfile:/etc/caddy/Caddyfile:ro

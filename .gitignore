@@ -18,6 +18,7 @@ playwright-report
 .turbo
 .worktrees
 .tmp
+.sandbox
 
 # Vercel
 .vercel

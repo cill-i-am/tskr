@@ -22,6 +22,7 @@
     "format": "pnpm fix",
     "lint": "pnpm check",
     "opensrc:sync": "node scripts/sync-opensrc.mjs",
+    "sandbox": "pnpm --filter @workspace/sandbox sandbox",
     "precheck": "pnpm exec ultracite check package.json turbo.json tsconfig.json .oxlintrc.json opencode.json scripts",
     "playwright:install": "pnpm exec playwright install chromium",
     "test:db-infra": "node --test scripts/lib/local-postgres-config.test.mjs scripts/lib/local-postgres.test.mjs scripts/lib/local-postgres-launcher.test.mjs",
