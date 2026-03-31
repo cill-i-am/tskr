@@ -96,7 +96,6 @@ const getLocalPortlessAliasName = (
   })
 
 const runLocalPortlessAliasEffects = (
-  state: SandboxState,
   buildEffect: (
     service: (typeof LOCAL_PORTLESS_SERVICES)[number]
   ) => Effect.Effect<unknown, Error>
@@ -106,7 +105,7 @@ const runLocalPortlessAliasEffects = (
   ).pipe(Effect.asVoid)
 
 const ensureLocalPortlessAliases = (state: SandboxState) =>
-  runLocalPortlessAliasEffects(state, (service) =>
+  runLocalPortlessAliasEffects((service) =>
     runCheckedCommand({
       args: buildPortlessAliasArgs({
         name: getLocalPortlessAliasName(service, state),
@@ -118,7 +117,7 @@ const ensureLocalPortlessAliases = (state: SandboxState) =>
   )
 
 const removeLocalPortlessAliases = (state: SandboxState) =>
-  runLocalPortlessAliasEffects(state, (service) =>
+  runLocalPortlessAliasEffects((service) =>
     runCheckedCommand({
       args: buildPortlessRemoveAliasArgs(
         getLocalPortlessAliasName(service, state)
