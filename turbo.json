@@ -7,8 +7,10 @@
     "BETTER_AUTH_TRUSTED_ORIGINS",
     "BETTER_AUTH_URL",
     "DATABASE_URL",
+    "E2E_EMAIL_CAPTURE_DIR",
     "EMAIL_FROM",
     "EMAIL_PROVIDER",
+    "NODE_TLS_REJECT_UNAUTHORIZED",
     "NODE_ENV",
     "PORT",
     "PORTLESS",
@@ -32,7 +34,7 @@
       "outputs": ["dist/**", ".output/**", "node_modules/.nitro/**"]
     },
     "typecheck": {
-      "dependsOn": ["^typecheck"],
+      "dependsOn": ["^build", "^typecheck"],
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/tsconfig.json"]
     },
     "dev": {
@@ -49,6 +51,11 @@
     },
     "db:migrate": {
       "cache": false
+    },
+    "e2e:dev": {
+      "cache": false,
+      "dependsOn": ["^build"],
+      "persistent": true
     },
     "web#dev": {
       "cache": false,

@@ -10,6 +10,28 @@ const readPackageJson = (relativePath) =>
     readFileSync(fileURLToPath(new URL(relativePath, repoRoot)), "utf8")
   )
 
+const readTurboJson = () =>
+  JSON.parse(
+    readFileSync(fileURLToPath(new URL("turbo.json", repoRoot)), "utf8")
+  )
+
+test("root e2e scripts delegate directly to the shared runner", () => {
+  const rootPackage = readPackageJson("package.json")
+
+  assert.match(
+    rootPackage.scripts["test:e2e"],
+    /^node scripts\/e2e\/run-playwright\.mjs$/u
+  )
+  assert.match(
+    rootPackage.scripts["test:e2e:headed"],
+    /^node scripts\/e2e\/run-playwright\.mjs --headed$/u
+  )
+  assert.match(
+    rootPackage.scripts["test:e2e:debug"],
+    /^node scripts\/e2e\/run-playwright\.mjs --debug$/u
+  )
+})
+
 test("e2e dev scripts pin distinct app ports for web and auth", () => {
   const webPackage = readPackageJson("apps/web/package.json")
   const authPackage = readPackageJson("apps/auth/package.json")
@@ -18,28 +40,44 @@ test("e2e dev scripts pin distinct app ports for web and auth", () => {
   assert.match(authPackage.scripts["e2e:dev"], /--app-port 4792/u)
 })
 
-test("web startup scripts build the ui package before vite boots", () => {
+test("app typecheck scripts stay focused on local typechecking", () => {
+  const authPackage = readPackageJson("apps/auth/package.json")
   const webPackage = readPackageJson("apps/web/package.json")
 
-  assert.match(
-    webPackage.scripts.dev,
-    /^pnpm --filter @workspace\/ui build && /u
+  assert.equal(
+    authPackage.scripts.typecheck,
+    "tsc --project tsconfig.json --noEmit"
   )
-  assert.match(
-    webPackage.scripts["e2e:dev"],
-    /^pnpm --filter @workspace\/ui build && /u
-  )
-  assert.match(
-    webPackage.scripts["dev:sandbox"],
-    /^pnpm --filter @workspace\/ui build && /u
+  assert.equal(webPackage.scripts.typecheck, "tsc --noEmit")
+})
+
+test("turbo e2e dev tasks wait for dependent package builds", () => {
+  const turboJson = readTurboJson()
+
+  assert.deepEqual(turboJson.tasks["e2e:dev"]?.dependsOn, ["^build"])
+  assert.equal(turboJson.tasks["e2e:dev"]?.cache, false)
+  assert.equal(turboJson.tasks["e2e:dev"]?.persistent, true)
+})
+
+test("turbo forwards the e2e email capture directory into app tasks", () => {
+  const turboJson = readTurboJson()
+
+  assert.ok(turboJson.globalPassThroughEnv.includes("E2E_EMAIL_CAPTURE_DIR"))
+})
+
+test("turbo forwards the e2e tls override into app tasks", () => {
+  const turboJson = readTurboJson()
+
+  assert.ok(
+    turboJson.globalPassThroughEnv.includes("NODE_TLS_REJECT_UNAUTHORIZED")
   )
 })
 
-test("web typecheck builds required workspace packages first", () => {
-  const webPackage = readPackageJson("apps/web/package.json")
+test("turbo typecheck waits for dependency builds before downstream apps", () => {
+  const turboJson = readTurboJson()
 
-  assert.match(
-    webPackage.scripts.typecheck,
-    /^pnpm --filter @workspace\/db build && pnpm --filter @workspace\/ui build && tsc --noEmit$/u
-  )
+  assert.deepEqual(turboJson.tasks.typecheck?.dependsOn, [
+    "^build",
+    "^typecheck",
+  ])
 })

@@ -83,6 +83,7 @@ const ensurePortlessReady = async () => {
 const spawnManagedProcess = (command, args, env) => {
   const child = spawn(command, args, {
     cwd: rootDirectory,
+    detached: true,
     env,
     stdio: "inherit",
   })
@@ -90,12 +91,31 @@ const spawnManagedProcess = (command, args, env) => {
   return child
 }
 
+const sendManagedSignal = (child, signal) => {
+  if (typeof child.pid === "number") {
+    try {
+      process.kill(-child.pid, signal)
+    } catch (error) {
+      if (
+        !(error instanceof Error) ||
+        !("code" in error && error.code === "ESRCH")
+      ) {
+        throw error
+      }
+    }
+
+    return
+  }
+
+  child.kill(signal)
+}
+
 const stopManagedProcess = async (child) => {
   if (child.exitCode !== null || child.killed) {
     return
   }
 
-  child.kill("SIGTERM")
+  sendManagedSignal(child, "SIGTERM")
 
   const deadline = Date.now() + 10_000
 
@@ -104,7 +124,7 @@ const stopManagedProcess = async (child) => {
   }
 
   if (child.exitCode === null) {
-    child.kill("SIGKILL")
+    sendManagedSignal(child, "SIGKILL")
   }
 }
 
@@ -191,22 +211,14 @@ const main = async () => {
     emailCaptureDirectory,
   })
 
-  const authProcess = spawnManagedProcess(
+  const devProcess = spawnManagedProcess(
     "pnpm",
-    ["--filter", "auth", "run", "e2e:dev"],
-    sharedEnv
-  )
-  const webProcess = spawnManagedProcess(
-    "pnpm",
-    ["--filter", "web", "run", "e2e:dev"],
+    ["exec", "turbo", "run", "e2e:dev", "--filter=auth", "--filter=web"],
     sharedEnv
   )
 
   const shutdown = async () => {
-    await Promise.all([
-      stopManagedProcess(webProcess),
-      stopManagedProcess(authProcess),
-    ])
+    await stopManagedProcess(devProcess)
   }
 
   process.on("SIGINT", () => {

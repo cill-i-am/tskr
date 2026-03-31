@@ -6,13 +6,13 @@
   "scripts": {
     "check": "git -C ../.. ls-files -- apps/web ':(exclude)apps/web/public/favicon.ico' | xargs pnpm --dir ../.. exec ultracite check",
     "dev": "pnpm --filter @workspace/ui build && portless --name web.tskr vite dev",
-    "e2e:dev": "pnpm --filter @workspace/ui build && portless run --name e2e-web.tskr --app-port 4791 --force vite dev",
+    "e2e:dev": "portless run --name e2e-web.tskr --app-port 4791 --force vite dev",
     "dev:sandbox": "pnpm --filter @workspace/ui build && PORTLESS=0 vite dev --host 0.0.0.0 --port 3000",
     "build": "pnpm --filter @workspace/ui build && vite build",
     "preview": "vite preview",
     "start": "node .output/server/index.mjs",
     "test": "pnpm --filter @workspace/ui build && vitest run",
-    "typecheck": "pnpm --filter @workspace/db build && pnpm --filter @workspace/ui build && tsc --noEmit"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.2.8",

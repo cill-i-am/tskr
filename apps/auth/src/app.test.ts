@@ -146,6 +146,14 @@ const latestWorkspaceInvitationEmail = () =>
       }
     | undefined
 
+const waitForLatestWorkspaceInvitationEmail = async (message: string) => {
+  await vi.waitFor(() => {
+    expect(latestWorkspaceInvitationEmail()).toBeDefined()
+  })
+
+  return requireValue(latestWorkspaceInvitationEmail(), message)
+}
+
 const truncateAuthTables = async () => {
   try {
     await pool.query(
@@ -642,8 +650,7 @@ describe("auth app", () => {
       workspaceId: activeWorkspace.id,
     })
 
-    const invitationEmail = requireValue(
-      latestWorkspaceInvitationEmail(),
+    const invitationEmail = await waitForLatestWorkspaceInvitationEmail(
       "Expected the latest workspace invitation email"
     )
 
