@@ -64,7 +64,16 @@ These instructions are the project-local AI rules for Codex and OpenCode, and th
 - Shared packages in `packages/*` are for true cross-cutting infrastructure such as design system, tooling, or stable shared contracts. Do not move feature logic there just because multiple apps need it.
 - Extract feature code into a shared package only after there is a real second consumer or a clear platform boundary that justifies it.
 - Not every feature needs code in every app. A slice should span only the layers it actually requires.
+- For collaborative product state, prefer a sync-backed read model plus
+  command-owned server mutations over RPC-only client state orchestration.
+- Treat Postgres as the canonical system of record. Sync infrastructure may
+  project authenticated subsets into clients, but permission-checked writes,
+  AI-assisted workflows, and other side effects should still cross an app-owned
+  command boundary.
 - Follow the detailed architecture guidance in `docs/architecture/domain-driven-feature-slices.md`.
+- Follow the locked sync and command boundary in
+  `docs/superpowers/specs/2026-03-31-sync-read-model-and-command-boundary-decision.md`
+  when working on collaborative task state.
 
 ## Local Source Mirrors
 
@@ -83,7 +92,7 @@ These instructions are the project-local AI rules for Codex and OpenCode, and th
 - GitHub Copilot and Cursor: read the canonical `AGENTS.md` instruction nodes directly, so no separate mirror file is maintained for them.
 - Narrower subtree intent lives in `apps/AGENTS.md`, `apps/web/AGENTS.md`,
   `apps/api/AGENTS.md`, `apps/auth/AGENTS.md`, `packages/AGENTS.md`,
-  `packages/db/AGENTS.md`, `packages/email/AGENTS.md`, and
-  `packages/ui/AGENTS.md`; when working in those areas, follow the closest
+  `packages/db/AGENTS.md`, `packages/email/AGENTS.md`, `packages/ui/AGENTS.md`,
+  and `docs/AGENTS.md`; when working in those areas, follow the closest
   matching node in addition to this root file.
 - `.mcp.json` exists only to preserve the existing `shadcn` MCP server for Claude Code. Ultracite is configured through committed instruction files, not through MCP.
