@@ -150,7 +150,7 @@ Auth base URL resolution order:
 1. `document.documentElement.dataset.authBaseUrl`
 2. `import.meta.env.VITE_AUTH_BASE_URL`
 3. `http://localhost:3002` for direct localhost
-4. `https://auth.tskr.localhost:1355` otherwise
+4. `https://auth.tskr.localhost` otherwise
 
 The root route in `apps/web/src/routes/__root.tsx` injects the runtime data attribute using:
 
@@ -166,8 +166,8 @@ That means the runtime service URL is part of the slice contract, not just a bui
 
 Portless mode defaults:
 
-- auth: `https://auth.tskr.localhost:1355`
-- web: `https://web.tskr.localhost:1355`
+- auth: `https://auth.tskr.localhost`
+- web: `https://web.tskr.localhost`
 
 Direct localhost mode defaults:
 
