@@ -16,22 +16,19 @@
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.2.8",
-    "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-form": "^1.28.5",
     "@tanstack/react-router": "^1.132.0",
     "@tanstack/react-start": "^1.132.0",
-    "@tanstack/router-plugin": "^1.132.0",
     "@workspace/ui": "workspace:*",
     "better-auth": "^1.5.5",
     "lucide-react": "^0.577.0",
-    "nitro": "^3.0.260311-beta",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "tailwindcss": "^4.1.18",
-    "vite-tsconfig-paths": "^5.1.4",
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.1.18",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
     "@types/node": "^25.1.0",
@@ -40,8 +37,10 @@
     "@vitejs/plugin-react": "^5.1.1",
     "@workspace/db": "workspace:*",
     "jsdom": "^29.0.0",
+    "nitro": "^3.0.260311-beta",
     "typescript": "^5.9.3",
     "vite": "^7.2.4",
+    "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^4.1.0"
   }
 }

@@ -5,7 +5,7 @@
   "scripts": {
     "bootstrap": "pnpm install && node scripts/sync-opensrc.mjs --soft-fail",
     "build": "turbo run build",
-    "check": "turbo run check",
+    "check": "pnpm knip && turbo run check",
     "db:down": "node scripts/local-postgres.mjs down",
     "db:ensure": "node scripts/local-postgres.mjs ensure",
     "db:generate": "turbo run db:generate --filter=@workspace/db",
@@ -20,6 +20,7 @@
     "fix": "pnpm exec ultracite fix && pnpm exec oxfmt --write .",
     "format:check": "pnpm exec oxfmt --check .",
     "format": "pnpm fix",
+    "knip": "E2E_WEB_BASE_URL=http://127.0.0.1:3000 knip",
     "lint": "pnpm check",
     "opensrc:sync": "node scripts/sync-opensrc.mjs",
     "sandbox": "pnpm --filter @workspace/sandbox sandbox",
@@ -38,6 +39,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
+    "knip": "^6.1.1",
     "opensrc": "0.6.0",
     "oxfmt": "^0.40.0",
     "oxlint": "^1.55.0",
