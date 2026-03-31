@@ -36,6 +36,11 @@
       "sourceType": "github",
       "computedHash": "13b0b2aa645c340d54fb7e91d7ff5d1417a4d10c9d4c381b4b0fd629a6398155"
     },
+    "bug-hunt-swarm": {
+      "source": "Dimillian/skills",
+      "sourceType": "github",
+      "computedHash": "7a4b4e7fd6590e9ee4d8b8540cf214aeb1d9d875c23a0382cd0f61980b89169f"
+    },
     "clarify": {
       "source": "pbakaus/impeccable",
       "sourceType": "github",
@@ -136,6 +141,11 @@
       "sourceType": "github",
       "computedHash": "72c2426ac9540884eb5032bb438324bb344d0e2dd2b80f300a9fb49fe38d624e"
     },
+    "project-skill-audit": {
+      "source": "Dimillian/skills",
+      "sourceType": "github",
+      "computedHash": "29d50ebe7302acf46580a42df68739b192a7e8ab913c3125f9c65350ffe7c29d"
+    },
     "quieter": {
       "source": "pbakaus/impeccable",
       "sourceType": "github",
@@ -155,6 +165,11 @@
       "source": "obra/superpowers",
       "sourceType": "github",
       "computedHash": "246e65cd72a7e360987d94e6c61564ce6d71c6361d1784d529d70e4cbbe8522d"
+    },
+    "review-swarm": {
+      "source": "Dimillian/skills",
+      "sourceType": "github",
+      "computedHash": "bbba1b61ca2817847089ad1cf794b2dde2d2b4215540f441105ac4d186f28d51"
     },
     "shadcn": {
       "source": "shadcn/ui",
