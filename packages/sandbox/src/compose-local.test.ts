@@ -12,13 +12,13 @@ describe("local sandbox compose topology", () => {
     const composeLocal = readFileSync(localComposePath, "utf8")
 
     expect([
-      /api:\n(?:.*\n)*? {4}depends_on:\n      workspace-deps:\n        condition: service_completed_successfully/s.test(
+      /api:\n(?:.*\n)*? {6}depends_on:\n {6}workspace-deps:\n {8}condition: service_completed_successfully/s.test(
         composeLocal
       ),
-      /auth:\n(?:.*\n)*? {4}depends_on:\n      workspace-deps:\n        condition: service_completed_successfully/s.test(
+      /auth:\n(?:.*\n)*? {6}depends_on:\n {6}workspace-deps:\n {8}condition: service_completed_successfully/s.test(
         composeLocal
       ),
-      /web:\n(?:.*\n)*? {4}depends_on:\n      workspace-deps:\n        condition: service_completed_successfully/s.test(
+      /web:\n(?:.*\n)*? {6}depends_on:\n {6}workspace-deps:\n {8}condition: service_completed_successfully/s.test(
         composeLocal
       ),
     ]).toStrictEqual([true, true, true])
