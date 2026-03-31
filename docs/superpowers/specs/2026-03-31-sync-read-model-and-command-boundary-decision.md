@@ -190,6 +190,22 @@ However, `@effect/rpc` and atom-driven client state should complement the sync
 architecture, not replace it. They are tools for commands and local reactivity,
 not the default distributed data model for collaborative task state.
 
+## XState Decision
+
+XState is approved for workflow-heavy slices where the explicit state graph is a
+real part of the product behavior, such as intake, review, retry, escalation,
+or multi-step recovery flows.
+
+It is not the default client-state layer for the product and should not replace:
+
+- the sync-backed read model for collaborative entities
+- ordinary form or CRUD state that is already clear without a machine
+- app-owned command handlers and server-side orchestration
+
+Prefer introducing XState one slice at a time when the workflow complexity is
+hard to reason about with plain hooks or functions. Keep the shared read model,
+command boundary, and domain ownership rules unchanged.
+
 ## Why We Are Not Choosing RPC-Only Client State
 
 We are explicitly not standardizing on a pure `@effect/rpc` plus atom-driven
