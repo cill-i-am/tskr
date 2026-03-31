@@ -53,7 +53,10 @@ const {
       id: "organization",
       options,
     })),
-    resolveCrossSubDomainCookiesMock: vi.fn(() => {}),
+    resolveCrossSubDomainCookiesMock: vi.fn().mockReturnValue({
+      domain: "tskr.localhost",
+      enabled: true,
+    }),
     resolveDefaultCookieAttributesMock: vi.fn(() => ({
       sameSite: "none" as const,
     })),
