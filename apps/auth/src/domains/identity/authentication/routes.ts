@@ -92,10 +92,13 @@ const authenticationRoutes = new Hono()
     const request = context.req.raw
 
     if (shouldRejectDuplicateSignup(request)) {
-      const email = await findSignupEmail(request.clone())
+      // Better Auth reads the request body itself, so keep a fresh clone for
+      // the downstream handler after we inspect the original signup payload.
+      const authRequest = request.clone()
+      const email = await findSignupEmail(request)
 
       if (!email) {
-        return auth.handler(request)
+        return auth.handler(authRequest)
       }
 
       const client = await pool.connect()
@@ -107,7 +110,7 @@ const authenticationRoutes = new Hono()
           return context.json(DUPLICATE_SIGNUP_ERROR, 422)
         }
 
-        return await auth.handler(request)
+        return await auth.handler(authRequest)
       } finally {
         try {
           await releaseDuplicateSignupLock(email, client)

@@ -132,7 +132,7 @@ const createDuplicateSignupPoolClient = (existingEmails: Set<string>) => {
 }
 
 const readRequestEmail = async (request: Request) =>
-  ((await request.clone().json()) as { email: string }).email
+  ((await request.json()) as { email: string }).email
 
 const createDuplicateSignupAuthHandler =
   ({
