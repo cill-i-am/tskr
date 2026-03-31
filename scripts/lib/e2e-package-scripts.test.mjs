@@ -15,6 +15,12 @@ const readTurboJson = () =>
     readFileSync(fileURLToPath(new URL("turbo.json", repoRoot)), "utf8")
   )
 
+const readE2eRunner = () =>
+  readFileSync(
+    fileURLToPath(new URL("scripts/e2e/run-playwright.mjs", repoRoot)),
+    "utf8"
+  )
+
 test("root e2e scripts delegate directly to the shared runner", () => {
   const rootPackage = readPackageJson("package.json")
 
@@ -70,6 +76,17 @@ test("turbo forwards the e2e tls override into app tasks", () => {
 
   assert.ok(
     turboJson.globalPassThroughEnv.includes("NODE_TLS_REJECT_UNAUTHORIZED")
+  )
+})
+
+test("the e2e runner migrates the local postgres database before booting apps", () => {
+  const runner = readE2eRunner()
+
+  assert.match(runner, /const migrateLocalPostgres = async \(env\) =>/u)
+  assert.match(runner, /@workspace\/db", "db:migrate"/u)
+  assert.match(
+    runner,
+    /await migrateLocalPostgres\(sharedEnv\)\s+\n\s+const devProcess = spawnManagedProcess/u
   )
 })
 

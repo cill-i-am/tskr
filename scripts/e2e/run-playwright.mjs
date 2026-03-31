@@ -52,6 +52,17 @@ const execute = (command, args, options = {}) =>
     })
   })
 
+const assertCommandSucceeded = (command, args, result) => {
+  if (result.code === 0) {
+    return
+  }
+
+  const output = `${result.stderr ?? ""}\n${result.stdout ?? ""}`.trim()
+  const suffix = output.length > 0 ? `\n${output}` : ""
+
+  throw new Error(`Command failed: ${command} ${args.join(" ")}${suffix}`)
+}
+
 const ensurePortlessReady = async () => {
   try {
     const result = await execute("portless", ["list"], {
@@ -192,6 +203,16 @@ const runPlaywright = async (playwrightArgs, env) =>
     })
   })
 
+const migrateLocalPostgres = async (env) => {
+  const args = ["--filter", "@workspace/db", "db:migrate"]
+  const result = await execute("pnpm", args, {
+    cwd: rootDirectory,
+    env,
+  })
+
+  assertCommandSucceeded("pnpm", args, result)
+}
+
 const main = async () => {
   await ensurePortlessReady()
   await rm(emailCaptureDirectory, {
@@ -210,6 +231,8 @@ const main = async () => {
     databaseUrl: database.databaseUrl,
     emailCaptureDirectory,
   })
+
+  await migrateLocalPostgres(sharedEnv)
 
   const devProcess = spawnManagedProcess(
     "pnpm",
