@@ -47,57 +47,69 @@ const createAuthenticationEmailService = (
     return baseService
   }
 
+  const captureDirectory = environment.e2eEmailCaptureDir
+
   return {
     ...baseService,
-    async sendEmailVerificationEmail(input) {
+    async sendEmailVerificationEmail(
+      input: Parameters<typeof baseService.sendEmailVerificationEmail>[0]
+    ) {
       const result = await baseService.sendEmailVerificationEmail(input)
 
       await captureE2eEmail({
-        directory: environment.e2eEmailCaptureDir,
+        directory: captureDirectory,
         payload: input,
         type: "email-verification",
       })
 
       return result
     },
-    async sendExistingUserSignupNotice(input) {
+    async sendExistingUserSignupNotice(
+      input: Parameters<typeof baseService.sendExistingUserSignupNotice>[0]
+    ) {
       const result = await baseService.sendExistingUserSignupNotice(input)
 
       await captureE2eEmail({
-        directory: environment.e2eEmailCaptureDir,
+        directory: captureDirectory,
         payload: input,
         type: "existing-user-signup-notice",
       })
 
       return result
     },
-    async sendPasswordResetEmail(input) {
+    async sendPasswordResetEmail(
+      input: Parameters<typeof baseService.sendPasswordResetEmail>[0]
+    ) {
       const result = await baseService.sendPasswordResetEmail(input)
 
       await captureE2eEmail({
-        directory: environment.e2eEmailCaptureDir,
+        directory: captureDirectory,
         payload: input,
         type: "password-reset",
       })
 
       return result
     },
-    async sendSignupVerificationOtpEmail(input) {
+    async sendSignupVerificationOtpEmail(
+      input: Parameters<typeof baseService.sendSignupVerificationOtpEmail>[0]
+    ) {
       const result = await baseService.sendSignupVerificationOtpEmail(input)
 
       await captureE2eEmail({
-        directory: environment.e2eEmailCaptureDir,
+        directory: captureDirectory,
         payload: input,
         type: "signup-verification-otp",
       })
 
       return result
     },
-    async sendWorkspaceInvitationEmail(input) {
+    async sendWorkspaceInvitationEmail(
+      input: Parameters<typeof baseService.sendWorkspaceInvitationEmail>[0]
+    ) {
       const result = await baseService.sendWorkspaceInvitationEmail(input)
 
       await captureE2eEmail({
-        directory: environment.e2eEmailCaptureDir,
+        directory: captureDirectory,
         payload: input,
         type: "workspace-invitation",
       })

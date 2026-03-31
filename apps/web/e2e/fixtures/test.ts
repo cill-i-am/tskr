@@ -6,12 +6,14 @@ import { e2eConfig } from "../support/config"
 import { createE2eSeedHelpers } from "../support/database"
 import { clearEmailCaptures } from "../support/email-capture"
 
-const test = base.extend<{
+interface WorkerFixtures {
   authBaseUrl: string
   emailCaptureDir: string
   seed: ReturnType<typeof createE2eSeedHelpers>
   webBaseUrl: string
-}>({
+}
+
+const test = base.extend<{}, WorkerFixtures>({
   authBaseUrl: [
     async ({}, runFixture) => {
       await runFixture(e2eConfig.authBaseUrl)

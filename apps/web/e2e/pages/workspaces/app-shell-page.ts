@@ -16,7 +16,7 @@ class AppShellPage {
         })
       ).toBeVisible()
     } catch (error) {
-      const bodyText = await this.page.locator("body").textContent()
+      const bodyText = (await this.page.locator("body").textContent()) ?? ""
       const compactBodyText = bodyText.replaceAll(/\s+/gu, " ").slice(0, 500)
 
       throw new Error(

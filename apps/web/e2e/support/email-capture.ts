@@ -15,6 +15,8 @@ interface CapturedEmailSnapshot {
   files: string[]
 }
 
+const sortFiles = (files: string[]) => [...files].sort()
+
 const clearEmailCaptures = async (directory: string) => {
   await rm(directory, {
     force: true,
@@ -41,7 +43,7 @@ const readCapturedEmails = async (
 ): Promise<CapturedEmail[]> => {
   try {
     const directoryEntries = await readdir(directory)
-    const files = [...directoryEntries].toSorted()
+    const files = sortFiles(directoryEntries)
 
     return await readCapturedEmailFiles(directory, files)
   } catch {
@@ -54,7 +56,7 @@ const readCapturedEmailSnapshot = async (
   previousSnapshot: CapturedEmailSnapshot
 ): Promise<CapturedEmailSnapshot> => {
   try {
-    const files = [...(await readdir(directory))].toSorted()
+    const files = sortFiles(await readdir(directory))
     const currentFiles = new Set(files)
 
     const shouldReloadAll =
