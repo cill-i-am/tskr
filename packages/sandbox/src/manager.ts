@@ -20,7 +20,13 @@ import {
 import type { SandboxState } from "./store.js"
 
 type SandboxMode = "hosted" | "local"
-type SandboxService = "api" | "auth" | "ingress" | "postgres" | "web"
+type SandboxService =
+  | "api"
+  | "auth"
+  | "electric"
+  | "ingress"
+  | "postgres"
+  | "web"
 
 interface CreateSandboxInput {
   hostedDomainRoot?: string
@@ -123,7 +129,7 @@ const removeLocalPortlessAliases = (state: SandboxState) =>
         getLocalPortlessAliasName(service, state)
       ),
       command: "portless",
-      stdio: "inherit",
+      stdio: "pipe",
     }).pipe(Effect.ignore)
   )
 

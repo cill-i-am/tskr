@@ -71,7 +71,9 @@ to avoid Portless proxy loops.
 
 The repo now includes a Docker Compose sandbox workflow for isolated full-stack
 instances. Each sandbox gets its own `web`, `api`, `auth`, and `postgres`
-services, plus generated env files under `.sandbox/<name>/`.
+services, plus generated env files under `.sandbox/<name>/`. Local sandboxes
+also run the repo-owned `apps/electric` service inside the same sandbox
+topology.
 
 Create and inspect a sandbox from the repo root:
 
@@ -85,6 +87,7 @@ Start and stop the local sandbox profile:
 
 ```bash
 pnpm sandbox start "Feature Review"
+pnpm sandbox logs "Feature Review" --service electric
 pnpm sandbox stop "Feature Review"
 pnpm sandbox destroy "Feature Review"
 ```
@@ -93,6 +96,11 @@ Useful notes:
 
 - Local sandboxes keep Portless at the host level and register static aliases
   like `https://feature-review.web.tskr.localhost`.
+- Local sandbox env generation now includes
+  `.sandbox/<name>/local/electric.env` alongside the existing app env files.
+- Electric runs only in the local sandbox profile for now and uses
+  `apps/electric/Dockerfile` plus the sandbox Postgres service with logical
+  replication enabled.
 - Hosted sandboxes use the hosted Compose overlay plus the generated domain
   values in `.sandbox/<name>/hosted/compose.env`.
 - The local sandbox workflow still expects Docker and a global `portless`

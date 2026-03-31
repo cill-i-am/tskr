@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises"
+import { access, mkdtemp, readFile, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
@@ -50,12 +50,42 @@ describe("sandbox store", () => {
         ),
         "utf8"
       )
+      const localElectricEnv = await readFile(
+        join(
+          rootDirectory,
+          ".sandbox",
+          "feature-review-12",
+          "local",
+          "electric.env"
+        ),
+        "utf8"
+      )
+      const hostedElectricEnvPath = join(
+        rootDirectory,
+        ".sandbox",
+        "feature-review-12",
+        "hosted",
+        "electric.env"
+      )
+      const hostedElectricEnvExists = await access(hostedElectricEnvPath).then(
+        () => true,
+        () => false
+      )
 
       expect(sandboxJson).toContain('"slug": "feature-review-12"')
       expect(localComposeEnv).toContain("SANDBOX_MODE=local")
-      expect(hostedAuthEnv).toContain(
-        "BETTER_AUTH_URL=https://auth.feature-review-12.sandboxes.example.com"
-      )
+      expect(
+        ["SANDBOX_ENV_ELECTRIC_FILE=", "SANDBOX_ELECTRIC_PORT="].every(
+          (entry) => localComposeEnv.includes(entry)
+        )
+      ).toBeTruthy()
+      expect([
+        localElectricEnv.includes("ELECTRIC_INSECURE=true"),
+        hostedAuthEnv.includes(
+          "BETTER_AUTH_URL=https://auth.feature-review-12.sandboxes.example.com"
+        ),
+        hostedElectricEnvExists,
+      ]).toStrictEqual([true, true, false])
     } finally {
       await rm(rootDirectory, {
         force: true,

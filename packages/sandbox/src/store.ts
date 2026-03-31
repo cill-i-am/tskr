@@ -66,8 +66,8 @@ const writeSandboxModeFiles = ({
 }: {
   directory: string
   envFiles: ReturnType<typeof buildSandboxEnvFiles>
-}) =>
-  Effect.all([
+}) => {
+  const writes = [
     Effect.tryPromise(() =>
       writeFile(join(directory, "api.env"), envFiles.api, "utf8")
     ),
@@ -83,7 +83,20 @@ const writeSandboxModeFiles = ({
     Effect.tryPromise(() =>
       writeFile(join(directory, "web.env"), envFiles.web, "utf8")
     ),
-  ]).pipe(Effect.asVoid)
+  ]
+
+  const electricEnv = envFiles.electric
+
+  if (electricEnv) {
+    writes.push(
+      Effect.tryPromise(() =>
+        writeFile(join(directory, "electric.env"), electricEnv, "utf8")
+      )
+    )
+  }
+
+  return Effect.all(writes).pipe(Effect.asVoid)
+}
 
 const createSandboxState = ({
   emailFrom,

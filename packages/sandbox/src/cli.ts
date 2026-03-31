@@ -24,6 +24,7 @@ const sandboxNameArgument = Args.text({
 const sandboxServiceOption = Options.choice("service", [
   "api",
   "auth",
+  "electric",
   "ingress",
   "postgres",
   "web",
