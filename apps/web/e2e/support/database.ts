@@ -1,10 +1,14 @@
 /* oxlint-disable import/no-relative-parent-imports */
 
-import { createHmac, randomBytes, randomUUID } from "node:crypto"
+import { randomUUID } from "node:crypto"
 import { setTimeout as delay } from "node:timers/promises"
 
 import { createPgPool } from "@workspace/db"
 
+import {
+  buildWorkspaceInviteAcceptUrl,
+  createWorkspaceInviteCode,
+} from "../../../auth/src/domains/identity/authentication/infra/workspace-invite-token"
 import { waitForCapturedEmail } from "./email-capture"
 
 interface E2eSeedHelpersOptions {
@@ -26,41 +30,6 @@ interface WorkspaceSeed {
   name: string
   organizationId: string
   slug: string
-}
-
-const workspaceInviteCodeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-const trimTrailingSlash = (value: string) => value.replace(/\/+$/u, "")
-
-const createWorkspaceInviteCode = (length = 8) =>
-  Array.from(
-    randomBytes(length),
-    (value) =>
-      workspaceInviteCodeAlphabet[value % workspaceInviteCodeAlphabet.length]
-  ).join("")
-
-const createWorkspaceInviteToken = (code: string, secret: string) => {
-  const payload = Buffer.from(code, "utf8").toString("base64url")
-  const signature = createHmac("sha256", secret)
-    .update(payload)
-    .digest("base64url")
-
-  return `${payload}.${signature}`
-}
-
-const buildWorkspaceInviteAcceptUrl = ({
-  code,
-  secret,
-  webBaseUrl,
-}: {
-  code: string
-  secret: string
-  webBaseUrl: string
-}) => {
-  const url = new URL("/join-workspace", trimTrailingSlash(webBaseUrl))
-
-  url.searchParams.set("token", createWorkspaceInviteToken(code, secret))
-
-  return url.toString()
 }
 
 const describeFailedResponse = async (response: Response) => {

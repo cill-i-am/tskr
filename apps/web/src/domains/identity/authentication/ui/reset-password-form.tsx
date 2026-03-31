@@ -1,6 +1,7 @@
+import { useIsHydrated } from "@/domains/shared/ui/use-is-hydrated"
 import { useForm, useStore } from "@tanstack/react-form"
 import { Link, useNavigate } from "@tanstack/react-router"
-import { useEffect, useEffectEvent, useState, useTransition } from "react"
+import { useEffectEvent, useState, useTransition } from "react"
 import type { FormEvent } from "react"
 
 import { Button } from "@workspace/ui/components/button"
@@ -21,7 +22,7 @@ interface ResetPasswordFormProps {
 const ResetPasswordForm = ({ token }: ResetPasswordFormProps) => {
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
-  const [isHydrated, setIsHydrated] = useState(false)
+  const isHydrated = useIsHydrated()
   const [isNavigating, startTransition] = useTransition()
   const form = useForm({
     defaultValues: {
@@ -54,10 +55,6 @@ const ResetPasswordForm = ({ token }: ResetPasswordFormProps) => {
   })
   const isSubmitting = useStore(form.store, (state) => state.isSubmitting)
   const isDisabled = !isHydrated || isSubmitting || isNavigating
-
-  useEffect(() => {
-    setIsHydrated(true)
-  }, [])
 
   const handleSubmit = useEffectEvent(
     async (event: FormEvent<HTMLFormElement>) => {

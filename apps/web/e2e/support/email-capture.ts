@@ -10,6 +10,11 @@ interface CapturedEmail<TPayload = unknown> {
   type: string
 }
 
+interface CapturedEmailSnapshot {
+  emails: CapturedEmail[]
+  files: string[]
+}
+
 const clearEmailCaptures = async (directory: string) => {
   await rm(directory, {
     force: true,
@@ -21,20 +26,67 @@ const clearEmailCaptures = async (directory: string) => {
   })
 }
 
+const readCapturedEmailFiles = async (
+  directory: string,
+  files: string[]
+): Promise<CapturedEmail[]> =>
+  await Promise.all(
+    files.map(async (file) =>
+      JSON.parse(await readFile(join(directory, file), "utf8"))
+    )
+  )
+
 const readCapturedEmails = async (
   directory: string
 ): Promise<CapturedEmail[]> => {
   try {
     const directoryEntries = await readdir(directory)
-    const files = directoryEntries.toSorted()
+    const files = [...directoryEntries].toSorted()
 
-    return await Promise.all(
-      files.map(async (file) =>
-        JSON.parse(await readFile(join(directory, file), "utf8"))
-      )
-    )
+    return await readCapturedEmailFiles(directory, files)
   } catch {
     return []
+  }
+}
+
+const readCapturedEmailSnapshot = async (
+  directory: string,
+  previousSnapshot: CapturedEmailSnapshot
+): Promise<CapturedEmailSnapshot> => {
+  try {
+    const files = [...(await readdir(directory))].toSorted()
+    const currentFiles = new Set(files)
+
+    const shouldReloadAll =
+      files.length < previousSnapshot.files.length ||
+      previousSnapshot.files.some((file) => !currentFiles.has(file))
+
+    if (shouldReloadAll) {
+      return {
+        emails: await readCapturedEmailFiles(directory, files),
+        files,
+      }
+    }
+
+    const knownFiles = new Set(previousSnapshot.files)
+    const nextFiles = files.filter((file) => !knownFiles.has(file))
+
+    if (nextFiles.length === 0) {
+      return previousSnapshot
+    }
+
+    return {
+      emails: [
+        ...previousSnapshot.emails,
+        ...(await readCapturedEmailFiles(directory, nextFiles)),
+      ],
+      files,
+    }
+  } catch {
+    return {
+      emails: [],
+      files: [],
+    }
   }
 }
 
@@ -50,12 +102,19 @@ const waitForCapturedEmails = async <TPayload>({
   timeoutMs?: number
 }) => {
   const deadline = Date.now() + timeoutMs
+  const matches =
+    predicate === undefined
+      ? () => true
+      : (email: CapturedEmail<unknown>) =>
+          predicate(email as CapturedEmail<TPayload>)
+  let snapshot: CapturedEmailSnapshot = {
+    emails: [],
+    files: [],
+  }
 
   while (Date.now() < deadline) {
-    const capturedEmails = await readCapturedEmails(directory)
-    const emails = capturedEmails.filter(
-      predicate ?? (() => true)
-    ) as CapturedEmail<TPayload>[]
+    snapshot = await readCapturedEmailSnapshot(directory, snapshot)
+    const emails = snapshot.emails.filter(matches) as CapturedEmail<TPayload>[]
 
     if (emails.length >= minCount) {
       return emails

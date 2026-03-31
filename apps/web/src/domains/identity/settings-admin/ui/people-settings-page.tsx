@@ -1,6 +1,7 @@
 import type { SettingsAdminSnapshot } from "@/domains/identity/settings-admin/contracts/settings-admin-contract"
+import { useIsHydrated } from "@/domains/shared/ui/use-is-hydrated"
 import { useRouter } from "@tanstack/react-router"
-import { useEffect, useEffectEvent, useState } from "react"
+import { useEffectEvent, useState } from "react"
 
 import { Alert, AlertDescription } from "@workspace/ui/components/alert"
 import {
@@ -21,17 +22,13 @@ interface PeopleSettingsPageProps {
 const PeopleSettingsPage = ({ snapshot }: PeopleSettingsPageProps) => {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
-  const [isHydrated, setIsHydrated] = useState(false)
+  const isHydrated = useIsHydrated()
   const clearError = useEffectEvent(() => {
     setError(null)
   })
   const refreshSnapshot = useEffectEvent(async () => {
     await router.invalidate({ sync: true })
   })
-
-  useEffect(() => {
-    setIsHydrated(true)
-  }, [])
 
   return (
     <div className="gap-4 flex flex-col">

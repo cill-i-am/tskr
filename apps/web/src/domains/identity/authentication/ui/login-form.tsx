@@ -1,10 +1,11 @@
+import { useIsHydrated } from "@/domains/shared/ui/use-is-hydrated"
 import {
   buildJoinWorkspaceTargetPath,
   readPendingWorkspaceInviteFlow,
 } from "@/domains/workspaces/join-workspace/ui/workspace-invite-flow"
 import { useForm, useStore } from "@tanstack/react-form"
 import { Link, useNavigate } from "@tanstack/react-router"
-import { useEffect, useEffectEvent, useState, useTransition } from "react"
+import { useEffectEvent, useState, useTransition } from "react"
 import type { ChangeEvent, FormEvent } from "react"
 
 import { Button } from "@workspace/ui/components/button"
@@ -92,7 +93,7 @@ const LoginPasswordField = ({ disabled, field }: LoginPasswordFieldProps) => {
 const LoginForm = () => {
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
-  const [isHydrated, setIsHydrated] = useState(false)
+  const isHydrated = useIsHydrated()
   const [isNavigating, startTransition] = useTransition()
   const form = useForm({
     defaultValues: {
@@ -147,10 +148,6 @@ const LoginForm = () => {
   })
   const isSubmitting = useStore(form.store, (state) => state.isSubmitting)
   const isDisabled = !isHydrated || isSubmitting || isNavigating
-
-  useEffect(() => {
-    setIsHydrated(true)
-  }, [])
 
   const handleSubmit = useEffectEvent(
     async (event: FormEvent<HTMLFormElement>) => {

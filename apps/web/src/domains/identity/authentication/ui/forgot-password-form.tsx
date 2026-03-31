@@ -1,6 +1,7 @@
+import { useIsHydrated } from "@/domains/shared/ui/use-is-hydrated"
 import { useForm, useStore } from "@tanstack/react-form"
 import { Link } from "@tanstack/react-router"
-import { useEffect, useEffectEvent, useState } from "react"
+import { useEffectEvent, useState } from "react"
 import type { FormEvent } from "react"
 
 import { Button } from "@workspace/ui/components/button"
@@ -16,7 +17,7 @@ import { forgotPasswordFormSchema } from "./auth-form-schemas"
 
 const ForgotPasswordForm = () => {
   const [error, setError] = useState<string | null>(null)
-  const [isHydrated, setIsHydrated] = useState(false)
+  const isHydrated = useIsHydrated()
   const [success, setSuccess] = useState<string | null>(null)
   const form = useForm({
     defaultValues: {
@@ -50,10 +51,6 @@ const ForgotPasswordForm = () => {
   })
   const isSubmitting = useStore(form.store, (state) => state.isSubmitting)
   const isDisabled = !isHydrated || isSubmitting
-
-  useEffect(() => {
-    setIsHydrated(true)
-  }, [])
 
   const handleSubmit = useEffectEvent(
     async (event: FormEvent<HTMLFormElement>) => {

@@ -1,10 +1,11 @@
+import { useIsHydrated } from "@/domains/shared/ui/use-is-hydrated"
 import {
   buildJoinWorkspaceTargetPath,
   readPendingWorkspaceInviteFlow,
 } from "@/domains/workspaces/join-workspace/ui/workspace-invite-flow"
 import { useForm, useStore } from "@tanstack/react-form"
 import { Link, useNavigate } from "@tanstack/react-router"
-import { useEffect, useEffectEvent, useState, useTransition } from "react"
+import { useEffectEvent, useState, useTransition } from "react"
 import type { FormEvent } from "react"
 
 import { Button } from "@workspace/ui/components/button"
@@ -60,7 +61,7 @@ const VerifyEmailForm = ({
 }: VerifyEmailFormProps) => {
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
-  const [isHydrated, setIsHydrated] = useState(false)
+  const isHydrated = useIsHydrated()
   const [notice, setNotice] = useState<string | null>(null)
   const [isResending, setIsResending] = useState(false)
   const [isNavigating, startTransition] = useTransition()
@@ -102,10 +103,6 @@ const VerifyEmailForm = ({
   })
   const isSubmitting = useStore(form.store, (state) => state.isSubmitting)
   const isSubmitDisabled = !isHydrated || isSubmitting || isNavigating
-
-  useEffect(() => {
-    setIsHydrated(true)
-  }, [])
 
   const handleSubmit = useEffectEvent(
     async (event: FormEvent<HTMLFormElement>) => {
