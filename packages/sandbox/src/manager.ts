@@ -55,11 +55,12 @@ interface StopSandboxInput {
 
 interface SandboxDoctorReport {
   docker: "ok"
-  portless: "ok"
+  portless: "missing" | "ok"
 }
 
 const DEFAULT_HOSTED_DOMAIN_ROOT = "sandboxes.example.com"
 const DEFAULT_EMAIL_FROM = "TSKR <noreply@localhost>"
+const LOCAL_PORTLESS_SERVICES = ["web", "api", "auth"] as const
 const REPOSITORY_ROOT = resolve(
   fileURLToPath(new URL("../../..", import.meta.url))
 )
@@ -85,76 +86,47 @@ const getRepositoryRoot = () => REPOSITORY_ROOT
 const getComposeEnvFilePath = (state: SandboxState, mode: SandboxMode) =>
   join(mode === "local" ? state.paths.local : state.paths.hosted, "compose.env")
 
+const getLocalPortlessAliasName = (
+  service: (typeof LOCAL_PORTLESS_SERVICES)[number],
+  state: SandboxState
+) =>
+  buildPortlessAliasName({
+    service,
+    slug: state.identity.slug,
+  })
+
+const runLocalPortlessAliasEffects = (
+  state: SandboxState,
+  buildEffect: (
+    service: (typeof LOCAL_PORTLESS_SERVICES)[number]
+  ) => Effect.Effect<unknown, Error>
+) =>
+  Effect.all(
+    LOCAL_PORTLESS_SERVICES.map((service) => buildEffect(service))
+  ).pipe(Effect.asVoid)
+
 const ensureLocalPortlessAliases = (state: SandboxState) =>
-  Effect.all([
+  runLocalPortlessAliasEffects(state, (service) =>
     runCheckedCommand({
       args: buildPortlessAliasArgs({
-        name: buildPortlessAliasName({
-          service: "web",
-          slug: state.identity.slug,
-        }),
-        port: state.ports.web,
+        name: getLocalPortlessAliasName(service, state),
+        port: state.ports[service],
       }),
       command: "portless",
       stdio: "inherit",
-    }),
-    runCheckedCommand({
-      args: buildPortlessAliasArgs({
-        name: buildPortlessAliasName({
-          service: "api",
-          slug: state.identity.slug,
-        }),
-        port: state.ports.api,
-      }),
-      command: "portless",
-      stdio: "inherit",
-    }),
-    runCheckedCommand({
-      args: buildPortlessAliasArgs({
-        name: buildPortlessAliasName({
-          service: "auth",
-          slug: state.identity.slug,
-        }),
-        port: state.ports.auth,
-      }),
-      command: "portless",
-      stdio: "inherit",
-    }),
-  ]).pipe(Effect.asVoid)
+    })
+  )
 
 const removeLocalPortlessAliases = (state: SandboxState) =>
-  Effect.all([
+  runLocalPortlessAliasEffects(state, (service) =>
     runCheckedCommand({
       args: buildPortlessRemoveAliasArgs(
-        buildPortlessAliasName({
-          service: "web",
-          slug: state.identity.slug,
-        })
+        getLocalPortlessAliasName(service, state)
       ),
       command: "portless",
       stdio: "inherit",
-    }).pipe(Effect.ignore),
-    runCheckedCommand({
-      args: buildPortlessRemoveAliasArgs(
-        buildPortlessAliasName({
-          service: "api",
-          slug: state.identity.slug,
-        })
-      ),
-      command: "portless",
-      stdio: "inherit",
-    }).pipe(Effect.ignore),
-    runCheckedCommand({
-      args: buildPortlessRemoveAliasArgs(
-        buildPortlessAliasName({
-          service: "auth",
-          slug: state.identity.slug,
-        })
-      ),
-      command: "portless",
-      stdio: "inherit",
-    }).pipe(Effect.ignore),
-  ]).pipe(Effect.asVoid)
+    }).pipe(Effect.ignore)
+  )
 
 const runComposeCommand = ({
   mode,
@@ -199,7 +171,9 @@ const SandboxManagerLive = Layer.succeed(SandboxManager, {
         subcommand: ["down", "--remove-orphans", "--volumes"],
       }).pipe(Effect.ignore)
 
-      yield* removeLocalPortlessAliases(state)
+      if (mode === "local") {
+        yield* removeLocalPortlessAliases(state)
+      }
 
       yield* Effect.tryPromise(() =>
         rm(getSandboxPaths(getRepositoryRoot(), state.identity.slug).root, {
@@ -218,14 +192,17 @@ const SandboxManagerLive = Layer.succeed(SandboxManager, {
         args: ["info"],
         command: "docker",
       })
-      yield* runCheckedCommand({
+      const portless = yield* runCheckedCommand({
         args: ["--help"],
         command: "portless",
-      })
+      }).pipe(
+        Effect.as("ok" as const),
+        Effect.catchAll(() => Effect.succeed("missing" as const))
+      )
 
       return {
         docker: "ok",
-        portless: "ok",
+        portless,
       } satisfies SandboxDoctorReport
     }),
   list: () =>
@@ -272,7 +249,7 @@ const SandboxManagerLive = Layer.succeed(SandboxManager, {
       yield* runComposeCommand({
         mode,
         state,
-        subcommand: ["up", "-d", "--build"],
+        subcommand: mode === "hosted" ? ["up", "-d", "--build"] : ["up", "-d"],
       })
 
       return state

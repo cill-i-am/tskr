@@ -4,7 +4,12 @@ services:
       context: ${SANDBOX_REPOSITORY_ROOT}
       dockerfile: apps/web/Dockerfile
       target: dev
-    command: ["sh", "-lc", "pnpm install --frozen-lockfile"]
+    command:
+      [
+        "sh",
+        "-lc",
+        "if [ -f node_modules/.sandbox-pnpm-lock.yaml ] && cmp -s pnpm-lock.yaml node_modules/.sandbox-pnpm-lock.yaml; then exit 0; fi && pnpm install --frozen-lockfile && cp pnpm-lock.yaml node_modules/.sandbox-pnpm-lock.yaml",
+      ]
     volumes:
       - ${SANDBOX_REPOSITORY_ROOT}:/workspace
       - workspace-node-modules:/workspace/node_modules

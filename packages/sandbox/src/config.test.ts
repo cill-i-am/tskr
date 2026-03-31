@@ -113,4 +113,25 @@ describe("sandbox env files", () => {
       envFiles.postgres.includes("POSTGRES_CONTAINER_NAME="),
     ]).toStrictEqual([true, false])
   })
+
+  it("writes production env values for hosted sandboxes", () => {
+    const ports = deriveSandboxPorts("a9b3c4d5ef00")
+    const identity = deriveSandboxIdentity("Feature Review 12")
+    const envFiles = buildSandboxEnvFiles({
+      emailFrom: "TSKR <noreply@localhost>",
+      hostedDomainRoot: "sandboxes.example.com",
+      identity,
+      mode: "hosted",
+      ports,
+      postgresPassword: "postgres",
+      postgresUser: "postgres",
+      repositoryRoot: "/repo",
+    })
+
+    expect([
+      envFiles.api.includes("NODE_ENV=production"),
+      envFiles.auth.includes("NODE_ENV=production"),
+      envFiles.web.includes("NODE_ENV=production"),
+    ]).toStrictEqual([true, true, true])
+  })
 })

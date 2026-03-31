@@ -149,6 +149,7 @@ const buildSandboxEnvFiles = ({
   postgresUser,
   repositoryRoot,
 }: BuildSandboxEnvFilesOptions): SandboxEnvFiles => {
+  const appNodeEnv = mode === "hosted" ? "production" : "development"
   const modeStateDirectory = getModeStateDirectory({
     mode,
     repositoryRoot,
@@ -174,7 +175,7 @@ const buildSandboxEnvFiles = ({
   return {
     api: stringifyEnvFile({
       DATABASE_URL: databaseUrl,
-      NODE_ENV: "development",
+      NODE_ENV: appNodeEnv,
       PORT: 3001,
     }),
     auth: stringifyEnvFile({
@@ -184,7 +185,7 @@ const buildSandboxEnvFiles = ({
       DATABASE_URL: databaseUrl,
       EMAIL_FROM: emailFrom,
       EMAIL_PROVIDER: "console",
-      NODE_ENV: "development",
+      NODE_ENV: appNodeEnv,
       PORT: 3002,
       PORTLESS: 0,
       WEB_BASE_URL: urls.web,
@@ -216,7 +217,7 @@ const buildSandboxEnvFiles = ({
       POSTGRES_USER: postgresUser,
     }),
     web: stringifyEnvFile({
-      NODE_ENV: "development",
+      NODE_ENV: appNodeEnv,
       PORT: 3000,
       PORTLESS: 0,
       SERVER_AUTH_BASE_URL: "http://auth:3002",
