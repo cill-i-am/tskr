@@ -6,4 +6,15 @@ const resolveDefaultCookieAttributes = (
   sameSite: betterAuthUrl.startsWith("https://") ? "none" : "lax",
 })
 
-export { resolveDefaultCookieAttributes }
+const resolveCrossSubDomainCookies = (betterAuthUrl: string) => {
+  const { hostname } = new URL(betterAuthUrl)
+
+  if (hostname === "tskr.localhost" || hostname.endsWith(".tskr.localhost")) {
+    return {
+      domain: "tskr.localhost",
+      enabled: true,
+    }
+  }
+}
+
+export { resolveCrossSubDomainCookies, resolveDefaultCookieAttributes }

@@ -22,13 +22,18 @@
     "lint": "pnpm check",
     "opensrc:sync": "node scripts/sync-opensrc.mjs",
     "precheck": "pnpm exec ultracite check package.json turbo.json tsconfig.json .oxlintrc.json opencode.json scripts",
+    "playwright:install": "pnpm exec playwright install chromium",
     "test:db-infra": "node --test scripts/lib/local-postgres-config.test.mjs scripts/lib/local-postgres.test.mjs scripts/lib/local-postgres-launcher.test.mjs",
+    "test:e2e": "node scripts/e2e/run-playwright.mjs",
+    "test:e2e:debug": "node scripts/e2e/run-playwright.mjs --debug",
+    "test:e2e:headed": "node scripts/e2e/run-playwright.mjs --headed",
     "test:opensrc": "node --test scripts/lib/opensrc-sync.test.mjs scripts/lib/opensrc-package-coverage.test.mjs",
     "test:ui-propagation": "node --test scripts/lib/ui-propagation.test.mjs",
     "verify:ui-propagation": "node scripts/verify-ui-propagation.mjs",
     "typecheck": "turbo run typecheck"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "opensrc": "0.6.0",
     "oxfmt": "^0.40.0",
     "oxlint": "^1.55.0",

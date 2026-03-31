@@ -4,7 +4,7 @@ import {
 } from "@/domains/workspaces/join-workspace/ui/workspace-invite-flow"
 import { useForm, useStore } from "@tanstack/react-form"
 import { Link, useNavigate } from "@tanstack/react-router"
-import { useEffectEvent, useState, useTransition } from "react"
+import { useEffect, useEffectEvent, useState, useTransition } from "react"
 import type { FormEvent } from "react"
 
 import { Button } from "@workspace/ui/components/button"
@@ -60,6 +60,7 @@ const VerifyEmailForm = ({
 }: VerifyEmailFormProps) => {
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
+  const [isHydrated, setIsHydrated] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [isResending, setIsResending] = useState(false)
   const [isNavigating, startTransition] = useTransition()
@@ -100,6 +101,12 @@ const VerifyEmailForm = ({
     },
   })
   const isSubmitting = useStore(form.store, (state) => state.isSubmitting)
+  const isSubmitDisabled = !isHydrated || isSubmitting || isNavigating
+
+  useEffect(() => {
+    setIsHydrated(true)
+  }, [])
+
   const handleSubmit = useEffectEvent(
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault()
@@ -147,16 +154,28 @@ const VerifyEmailForm = ({
   })
 
   return (
-    <form className="gap-6 flex flex-col" noValidate onSubmit={handleSubmit}>
+    <form
+      className="gap-6 flex flex-col"
+      method="post"
+      noValidate
+      onSubmit={handleSubmit}
+    >
       <FieldGroup>
         <Field>
           <FieldLabel htmlFor="email">Email</FieldLabel>
-          <Input id="email" readOnly type="email" value={email} />
+          <Input
+            disabled={!isHydrated}
+            id="email"
+            readOnly
+            type="email"
+            value={email}
+          />
         </Field>
         <form.Field name="otp">
           {(field) => (
             <FormOtpField
               description="Codes expire after 5 minutes."
+              disabled={!isHydrated}
               field={field}
               inputMode="numeric"
               invalid={hasVerifyError}
@@ -175,12 +194,12 @@ const VerifyEmailForm = ({
         ) : null}
         {error ? <FormMessage>{error}</FormMessage> : null}
         <FormActions>
-          <Button disabled={isSubmitting || isNavigating} type="submit">
+          <Button disabled={isSubmitDisabled} type="submit">
             {isSubmitting || isNavigating ? "Verifying..." : "Verify email"}
           </Button>
           {canResend ? (
             <Button
-              disabled={isResending}
+              disabled={!isHydrated || isResending}
               onClick={handleResend}
               type="button"
               variant="outline"

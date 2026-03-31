@@ -1,6 +1,10 @@
 /* oxlint-disable vitest/prefer-called-once */
 /* eslint-disable @typescript-eslint/consistent-type-imports, jest/valid-title */
 
+import { mkdtemp, readFile, readdir } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+
 import { createAuthenticationEmailService } from "./email-service.js"
 
 const {
@@ -53,6 +57,11 @@ const resetEmailServiceMocks = () => {
   createConsoleTransportMock.mockClear()
   createEmailServiceMock.mockClear()
   createResendTransportMock.mockClear()
+  createEmailServiceResultMock.sendEmailVerificationEmail.mockClear()
+  createEmailServiceResultMock.sendExistingUserSignupNotice.mockClear()
+  createEmailServiceResultMock.sendPasswordResetEmail.mockClear()
+  createEmailServiceResultMock.sendSignupVerificationOtpEmail.mockClear()
+  createEmailServiceResultMock.sendWorkspaceInvitationEmail.mockClear()
 }
 
 describe(createAuthenticationEmailService, () => {
@@ -114,5 +123,51 @@ describe(createAuthenticationEmailService, () => {
         resendApiKey: undefined,
       })
     ).toThrow("RESEND_API_KEY must be set when EMAIL_PROVIDER is resend")
+  })
+
+  it("captures e2e email payloads when a capture directory is configured", async () => {
+    resetEmailServiceMocks()
+
+    const captureDirectory = await mkdtemp(join(tmpdir(), "tskr-e2e-email-"))
+    const service = createAuthenticationEmailService({
+      e2eEmailCaptureDir: captureDirectory,
+      emailFrom: "TSKR <noreply@tskr.app>",
+      emailProvider: "console",
+      emailReplyTo: "support@tskr.app",
+      resendApiKey: undefined,
+    })
+
+    await service.sendSignupVerificationOtpEmail({
+      code: "123456",
+      to: "ada@example.com",
+    })
+
+    expect(
+      createEmailServiceResultMock.sendSignupVerificationOtpEmail
+    ).toHaveBeenCalledWith({
+      code: "123456",
+      to: "ada@example.com",
+    })
+
+    const [captureFile] = await readdir(captureDirectory)
+    expect(captureFile).toBeTruthy()
+
+    const capture = JSON.parse(
+      await readFile(join(captureDirectory, captureFile), "utf8")
+    ) as {
+      payload: {
+        code: string
+        to: string
+      }
+      type: string
+    }
+
+    expect(capture).toMatchObject({
+      payload: {
+        code: "123456",
+        to: "ada@example.com",
+      },
+      type: "signup-verification-otp",
+    })
   })
 })

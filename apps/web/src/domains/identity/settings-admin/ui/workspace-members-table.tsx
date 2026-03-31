@@ -23,6 +23,7 @@ import {
 } from "@workspace/ui/components/table"
 
 interface WorkspaceMembersTableProps {
+  disabled: boolean
   members: SettingsAdminMember[]
   onClearError: () => void
   onError: (message: string) => void
@@ -45,6 +46,7 @@ const getRoleOptions = (member: SettingsAdminMember) => [
 ]
 
 const WorkspaceMembersTable = ({
+  disabled,
   members,
   onClearError,
   onError,
@@ -199,7 +201,7 @@ const WorkspaceMembersTable = ({
                   <NativeSelect
                     aria-label={`Role for ${member.name}`}
                     data-member-id={member.id}
-                    disabled={isPending}
+                    disabled={disabled || isPending}
                     onChange={handleDraftRoleChange}
                     value={draftRoles[member.id] ?? member.role}
                   >
@@ -220,7 +222,9 @@ const WorkspaceMembersTable = ({
                       <Button
                         data-member-id={member.id}
                         disabled={
-                          isPending || draftRoles[member.id] === member.role
+                          disabled ||
+                          isPending ||
+                          draftRoles[member.id] === member.role
                         }
                         onClick={handleRoleSave}
                         size="sm"
@@ -232,7 +236,7 @@ const WorkspaceMembersTable = ({
                     {member.permissions.canRemove ? (
                       <Button
                         data-member-id={member.id}
-                        disabled={isPending}
+                        disabled={disabled || isPending}
                         onClick={handleRemove}
                         size="sm"
                         type="button"

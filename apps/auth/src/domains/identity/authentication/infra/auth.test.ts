@@ -14,6 +14,7 @@ const {
   drizzleAdapterMock,
   emailOTPMock,
   organizationMock,
+  resolveCrossSubDomainCookiesMock,
   resolveDefaultCookieAttributesMock,
   sendEmailVerificationEmailMock,
   sendExistingUserSignupNoticeMock,
@@ -52,6 +53,7 @@ const {
       id: "organization",
       options,
     })),
+    resolveCrossSubDomainCookiesMock: vi.fn(() => {}),
     resolveDefaultCookieAttributesMock: vi.fn(() => ({
       sameSite: "none" as const,
     })),
@@ -90,6 +92,7 @@ vi.mock<typeof import("better-auth/plugins/organization")>(
 vi.mock<typeof import("./cookie-attributes.js")>(
   import("./cookie-attributes.js"),
   () => ({
+    resolveCrossSubDomainCookies: resolveCrossSubDomainCookiesMock as never,
     resolveDefaultCookieAttributes: resolveDefaultCookieAttributesMock as never,
   })
 )
@@ -172,6 +175,7 @@ const resetAuthMocks = () => {
   drizzleAdapterMock.mockClear()
   emailOTPMock.mockClear()
   organizationMock.mockClear()
+  resolveCrossSubDomainCookiesMock.mockClear()
   resolveDefaultCookieAttributesMock.mockClear()
   sendEmailVerificationEmailMock.mockClear()
   sendExistingUserSignupNoticeMock.mockClear()

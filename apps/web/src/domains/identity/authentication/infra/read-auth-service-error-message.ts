@@ -11,15 +11,26 @@ const readAuthServiceErrorMessage = async (
     : `Auth service request failed with status ${response.status}.`
 
   try {
-    const payload = (await response.json()) as {
-      message?: string | undefined
+    const body = await response.text()
+    const trimmedBody = body.trim()
+
+    if (trimmedBody.length === 0) {
+      return message
     }
 
-    if (payload.message) {
-      ;({ message } = payload)
+    try {
+      const payload = JSON.parse(trimmedBody) as {
+        message?: string | undefined
+      }
+
+      if (payload.message) {
+        ;({ message } = payload)
+      }
+    } catch {
+      message = trimmedBody
     }
   } catch {
-    // Fall back to the generic message when the error payload is not JSON.
+    // Fall back to the generic message when the error payload is not readable.
   }
 
   return message

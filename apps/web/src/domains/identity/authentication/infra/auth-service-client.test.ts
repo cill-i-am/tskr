@@ -34,6 +34,19 @@ describe("runtime auth base url resolution", () => {
       })
     ).toBe("https://auth-production-6a1e.up.railway.app")
   })
+
+  it("derives the sibling auth url from the injected web Portless URL", () => {
+    expect(
+      resolveRuntimeAuthBaseUrl({
+        authBaseUrl: undefined,
+        browserAuthBaseUrl: undefined,
+        railwayServiceAuthUrl: undefined,
+        runtimeAuthBaseUrl: undefined,
+        serverAuthBaseUrl: undefined,
+        serverPortlessUrl: "https://feature-x.e2e-web.tskr.localhost:1355",
+      })
+    ).toBe("https://feature-x.e2e-auth.tskr.localhost:1355")
+  })
 })
 
 describe("auth service fetching", () => {

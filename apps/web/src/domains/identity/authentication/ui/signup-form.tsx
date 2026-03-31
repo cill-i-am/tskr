@@ -1,6 +1,6 @@
 import { useForm, useStore } from "@tanstack/react-form"
 import { Link, useNavigate } from "@tanstack/react-router"
-import { useEffectEvent, useState, useTransition } from "react"
+import { useEffect, useEffectEvent, useState, useTransition } from "react"
 import type { FormEvent } from "react"
 
 import { Button } from "@workspace/ui/components/button"
@@ -18,6 +18,7 @@ import { persistEmailVerificationFlow } from "./email-verification-flow"
 const SignupForm = () => {
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
+  const [isHydrated, setIsHydrated] = useState(false)
   const [isNavigating, startTransition] = useTransition()
   const form = useForm({
     defaultValues: {
@@ -61,6 +62,12 @@ const SignupForm = () => {
     },
   })
   const isSubmitting = useStore(form.store, (state) => state.isSubmitting)
+  const isDisabled = !isHydrated || isSubmitting || isNavigating
+
+  useEffect(() => {
+    setIsHydrated(true)
+  }, [])
+
   const handleSubmit = useEffectEvent(
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault()
@@ -69,12 +76,18 @@ const SignupForm = () => {
   )
 
   return (
-    <form className="gap-6 flex flex-col" noValidate onSubmit={handleSubmit}>
+    <form
+      className="gap-6 flex flex-col"
+      method="post"
+      noValidate
+      onSubmit={handleSubmit}
+    >
       <FieldGroup>
         <form.Field name="name">
           {(field) => (
             <FormTextField
               autoComplete="name"
+              disabled={isDisabled}
               field={field}
               label="Full name"
               placeholder="Ada Lovelace"
@@ -87,6 +100,7 @@ const SignupForm = () => {
             <FormTextField
               autoComplete="email"
               description="This is the email Better Auth will use for login and password resets."
+              disabled={isDisabled}
               field={field}
               label="Email"
               placeholder="m@example.com"
@@ -99,6 +113,7 @@ const SignupForm = () => {
             <FormTextField
               autoComplete="new-password"
               description="Use at least 8 characters."
+              disabled={isDisabled}
               field={field}
               label="Password"
               type="password"
@@ -109,6 +124,7 @@ const SignupForm = () => {
           {(field) => (
             <FormTextField
               autoComplete="new-password"
+              disabled={isDisabled}
               field={field}
               label="Confirm password"
               type="password"
@@ -117,7 +133,7 @@ const SignupForm = () => {
         </form.Field>
         {error ? <FormMessage>{error}</FormMessage> : null}
         <FormActions>
-          <Button disabled={isSubmitting || isNavigating} type="submit">
+          <Button disabled={isDisabled} type="submit">
             {isSubmitting || isNavigating
               ? "Creating account..."
               : "Create account"}

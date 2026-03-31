@@ -9,9 +9,48 @@ interface ResolveRuntimeAuthBaseUrlOptions {
   authBaseUrl?: string | undefined
   browserAuthBaseUrl?: string | undefined
   serverAuthBaseUrl?: string | undefined
+  serverPortlessUrl?: string | undefined
   runtimeAuthBaseUrl?: string | undefined
   railwayServiceAuthUrl?: string | undefined
 }
+
+const trimTrailingSlash = (value: string) => value.replace(/\/+$/u, "")
+
+const deriveSiblingPortlessUrl = (
+  portlessUrl: string | undefined,
+  {
+    currentServiceName,
+    siblingServiceName,
+  }: {
+    currentServiceName: string
+    siblingServiceName: string
+  }
+) => {
+  if (!portlessUrl) {
+    return
+  }
+
+  const url = new URL(portlessUrl)
+  const currentSuffix = `${currentServiceName}.localhost`
+
+  if (!url.hostname.endsWith(currentSuffix)) {
+    return
+  }
+
+  url.hostname = `${url.hostname.slice(0, -currentSuffix.length)}${siblingServiceName}.localhost`
+
+  return trimTrailingSlash(url.toString())
+}
+
+const resolveSiblingAuthPortlessUrl = (portlessUrl: string | undefined) =>
+  deriveSiblingPortlessUrl(portlessUrl, {
+    currentServiceName: "web.tskr",
+    siblingServiceName: "auth.tskr",
+  }) ??
+  deriveSiblingPortlessUrl(portlessUrl, {
+    currentServiceName: "e2e-web.tskr",
+    siblingServiceName: "e2e-auth.tskr",
+  })
 
 const resolveRuntimeAuthBaseUrl = ({
   authBaseUrl = import.meta.env.VITE_AUTH_BASE_URL,
@@ -24,6 +63,9 @@ const resolveRuntimeAuthBaseUrl = ({
   serverAuthBaseUrl = typeof process === "undefined"
     ? undefined
     : process.env.VITE_AUTH_BASE_URL,
+  serverPortlessUrl = typeof process === "undefined"
+    ? undefined
+    : process.env.PORTLESS_URL,
   runtimeAuthBaseUrl,
 }: ResolveRuntimeAuthBaseUrlOptions = {}) => {
   if (runtimeAuthBaseUrl) {
@@ -36,6 +78,13 @@ const resolveRuntimeAuthBaseUrl = ({
 
   if (serverAuthBaseUrl) {
     return serverAuthBaseUrl
+  }
+
+  const siblingAuthPortlessUrl =
+    resolveSiblingAuthPortlessUrl(serverPortlessUrl)
+
+  if (siblingAuthPortlessUrl) {
+    return siblingAuthPortlessUrl
   }
 
   if (authBaseUrl) {

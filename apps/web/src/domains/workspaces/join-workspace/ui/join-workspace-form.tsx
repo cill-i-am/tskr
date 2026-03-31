@@ -6,7 +6,7 @@ import {
 } from "@/domains/workspaces/join-workspace/ui/workspace-invite-flow"
 import { useForm, useStore } from "@tanstack/react-form"
 import { useNavigate } from "@tanstack/react-router"
-import { useEffectEvent, useState, useTransition } from "react"
+import { useEffect, useEffectEvent, useState, useTransition } from "react"
 import type { FormEvent } from "react"
 import { z } from "zod"
 
@@ -41,6 +41,7 @@ const JoinWorkspaceForm = ({
   const navigate = useNavigate()
   const session = authClient.useSession()
   const [error, setError] = useState<string | null>(null)
+  const [isHydrated, setIsHydrated] = useState(false)
   const [isNavigating, startTransition] = useTransition()
   const form = useForm({
     defaultValues: {
@@ -112,7 +113,13 @@ const JoinWorkspaceForm = ({
         : undefined,
   })
   const isSubmitting = useStore(form.store, (state) => state.isSubmitting)
-  const isDisabled = isSubmitting || isNavigating || session.isPending
+  const isDisabled =
+    !isHydrated || isSubmitting || isNavigating || session.isPending
+
+  useEffect(() => {
+    setIsHydrated(true)
+  }, [])
+
   const handleSubmit = useEffectEvent(
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault()
@@ -121,7 +128,12 @@ const JoinWorkspaceForm = ({
   )
 
   return (
-    <form className="gap-6 flex flex-col" noValidate onSubmit={handleSubmit}>
+    <form
+      className="gap-6 flex flex-col"
+      method="post"
+      noValidate
+      onSubmit={handleSubmit}
+    >
       <FieldGroup>
         {mode === "code" ? (
           <form.Field name="code">

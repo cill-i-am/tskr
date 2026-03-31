@@ -24,6 +24,7 @@ import {
 
 interface InviteMemberFormProps {
   canInviteRoles: SettingsAdminWorkspaceRole[]
+  disabled: boolean
   onClearError: () => void
   onError: (message: string) => void
   onRefresh: () => Promise<void>
@@ -83,6 +84,7 @@ const InviteRoleField = ({
 
 const InviteMemberForm = ({
   canInviteRoles,
+  disabled,
   onClearError,
   onError,
   onRefresh,
@@ -148,7 +150,7 @@ const InviteMemberForm = ({
       await form.handleSubmit()
     }
   )
-  const isDisabled = isSubmitting
+  const isDisabled = disabled || isSubmitting
 
   if (canInviteRoles.length === 0) {
     return (
@@ -162,6 +164,7 @@ const InviteMemberForm = ({
     <form
       aria-label="Invite member"
       className="gap-5 flex flex-col"
+      method="post"
       noValidate
       onSubmit={handleSubmit}
     >

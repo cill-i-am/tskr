@@ -4,11 +4,16 @@ import {
   createResendTransport,
 } from "@workspace/email"
 
+import { captureE2eEmail } from "./e2e-email-capture.js"
 import type { AuthenticationEnv } from "./env.js"
 
 type AuthenticationEmailEnv = Pick<
   AuthenticationEnv,
-  "emailFrom" | "emailProvider" | "emailReplyTo" | "resendApiKey"
+  | "e2eEmailCaptureDir"
+  | "emailFrom"
+  | "emailProvider"
+  | "emailReplyTo"
+  | "resendApiKey"
 >
 
 const requireResendApiKey = (apiKey: string | undefined) => {
@@ -29,7 +34,7 @@ const createAuthenticationEmailService = (
         })
       : createConsoleTransport()
 
-  return createEmailService({
+  const baseService = createEmailService({
     appName: "tskr",
     from: environment.emailFrom,
     replyTo: environment.emailReplyTo,
@@ -37,6 +42,69 @@ const createAuthenticationEmailService = (
     supportEmail: environment.emailReplyTo,
     transport,
   })
+
+  if (!environment.e2eEmailCaptureDir) {
+    return baseService
+  }
+
+  return {
+    ...baseService,
+    async sendEmailVerificationEmail(input) {
+      const result = await baseService.sendEmailVerificationEmail(input)
+
+      await captureE2eEmail({
+        directory: environment.e2eEmailCaptureDir,
+        payload: input,
+        type: "email-verification",
+      })
+
+      return result
+    },
+    async sendExistingUserSignupNotice(input) {
+      const result = await baseService.sendExistingUserSignupNotice(input)
+
+      await captureE2eEmail({
+        directory: environment.e2eEmailCaptureDir,
+        payload: input,
+        type: "existing-user-signup-notice",
+      })
+
+      return result
+    },
+    async sendPasswordResetEmail(input) {
+      const result = await baseService.sendPasswordResetEmail(input)
+
+      await captureE2eEmail({
+        directory: environment.e2eEmailCaptureDir,
+        payload: input,
+        type: "password-reset",
+      })
+
+      return result
+    },
+    async sendSignupVerificationOtpEmail(input) {
+      const result = await baseService.sendSignupVerificationOtpEmail(input)
+
+      await captureE2eEmail({
+        directory: environment.e2eEmailCaptureDir,
+        payload: input,
+        type: "signup-verification-otp",
+      })
+
+      return result
+    },
+    async sendWorkspaceInvitationEmail(input) {
+      const result = await baseService.sendWorkspaceInvitationEmail(input)
+
+      await captureE2eEmail({
+        directory: environment.e2eEmailCaptureDir,
+        payload: input,
+        type: "workspace-invitation",
+      })
+
+      return result
+    },
+  }
 }
 
 export { createAuthenticationEmailService }

@@ -80,7 +80,9 @@ const settingsAdminInviteSchema = z.object({
   workspaceId: z.string(),
 })
 
-const createWorkspaceInviteResponseSchema = settingsAdminInviteSchema
+const createWorkspaceInviteResponseSchema = settingsAdminInviteSchema.omit({
+  permissions: true,
+})
 
 const settingsAdminSnapshotSchema = z.object({
   accountProfile: settingsAdminAccountProfileSchema,
