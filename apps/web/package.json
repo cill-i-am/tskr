@@ -12,7 +12,7 @@
     "preview": "vite preview",
     "start": "node .output/server/index.mjs",
     "test": "pnpm --filter @workspace/ui build && vitest run",
-    "typecheck": "pnpm --filter @workspace/ui build && tsc --noEmit"
+    "typecheck": "pnpm --filter @workspace/db build && pnpm --filter @workspace/ui build && tsc --noEmit"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.2.8",

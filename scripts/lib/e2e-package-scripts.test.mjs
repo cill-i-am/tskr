@@ -34,3 +34,12 @@ test("web startup scripts build the ui package before vite boots", () => {
     /^pnpm --filter @workspace\/ui build && /u
   )
 })
+
+test("web typecheck builds required workspace packages first", () => {
+  const webPackage = readPackageJson("apps/web/package.json")
+
+  assert.match(
+    webPackage.scripts.typecheck,
+    /^pnpm --filter @workspace\/db build && pnpm --filter @workspace\/ui build && tsc --noEmit$/u
+  )
+})
