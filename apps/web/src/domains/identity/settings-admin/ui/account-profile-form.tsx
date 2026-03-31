@@ -15,10 +15,7 @@ import {
 } from "@workspace/ui/components/form"
 
 import { SettingsIdentityPreview } from "./settings-identity-preview"
-import {
-  selectPreviewFormValues,
-  toNullableTrimmedValue,
-} from "./settings-profile-form-utils"
+import { toNullableTrimmedValue } from "./settings-profile-form-utils"
 
 const accountProfileFormSchema = z.object({
   image: z.string(),
@@ -72,12 +69,12 @@ const AccountProfileForm = ({ accountProfile }: AccountProfileFormProps) => {
 
   return (
     <form className="gap-6 flex flex-col" noValidate onSubmit={handleSubmit}>
-      <form.Subscribe selector={selectPreviewFormValues}>
-        {(values) => (
+      <form.Subscribe>
+        {(state) => (
           <SettingsIdentityPreview
-            displayName={values.name}
+            displayName={state.values.name}
             fallbackLabel="avatar"
-            imageUrl={toNullableTrimmedValue(values.image)}
+            imageUrl={toNullableTrimmedValue(state.values.image)}
             supportingCopy={`Email context: ${accountProfile.email}.`}
           />
         )}

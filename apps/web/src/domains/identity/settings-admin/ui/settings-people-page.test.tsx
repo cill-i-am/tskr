@@ -414,11 +414,11 @@ const withInviteRoles = (
   },
 })
 
-const createDeferred = <T,>() => {
-  let resolveDeferred!: (value: T | PromiseLike<T>) => void
+const createDeferred = () => {
+  let resolveDeferred!: (value?: undefined | PromiseLike<undefined>) => void
   let rejectDeferred!: (reason?: unknown) => void
   // eslint-disable-next-line promise/avoid-new
-  const promise = new Promise<T>((resolve, reject) => {
+  const promise = new Promise<undefined>((resolve, reject) => {
     resolveDeferred = resolve
     rejectDeferred = reject
   })
@@ -428,6 +428,10 @@ const createDeferred = <T,>() => {
     reject: rejectDeferred,
     resolve: resolveDeferred,
   }
+}
+
+const resolveAsync = async () => {
+  await Promise.resolve()
 }
 
 const createTestRouter = (path: string) =>
@@ -586,7 +590,7 @@ describe("people settings page", () => {
   })
 
   it("copies invite details without changing resend or revoke pending behavior", async () => {
-    const writeText = vi.fn().mockResolvedValue()
+    const writeText = vi.fn(resolveAsync)
     await renderPeopleRoute()
 
     Object.defineProperty(navigator, "clipboard", {
@@ -887,7 +891,7 @@ describe("people settings page", () => {
   })
 
   it("resends invites when the row allows it and refreshes the snapshot", async () => {
-    resendWorkspaceInviteMock.mockResolvedValue()
+    resendWorkspaceInviteMock.mockImplementation(resolveAsync)
 
     const { user } = await renderPeopleRoute()
     const initialSnapshotReads = getSettingsSnapshotMock.mock.calls.length
@@ -932,8 +936,8 @@ describe("people settings page", () => {
   })
 
   it("keeps member action pending states isolated when multiple mutations overlap", async () => {
-    const roleUpdate = createDeferred<undefined>()
-    const memberRemoval = createDeferred<undefined>()
+    const roleUpdate = createDeferred()
+    const memberRemoval = createDeferred()
 
     updateWorkspaceMemberRoleMock.mockImplementation(async (input) => {
       await roleUpdate.promise
@@ -1032,8 +1036,8 @@ describe("people settings page", () => {
   })
 
   it("keeps invite action pending states isolated when multiple mutations overlap", async () => {
-    const resendInvite = createDeferred<undefined>()
-    const revokeInvite = createDeferred<undefined>()
+    const resendInvite = createDeferred()
+    const revokeInvite = createDeferred()
 
     resendWorkspaceInviteMock.mockImplementation(async () => {
       await resendInvite.promise
