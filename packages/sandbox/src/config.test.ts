@@ -52,9 +52,9 @@ describe("sandbox ports", () => {
 describe("sandbox urls", () => {
   it("builds local portless urls for each app", () => {
     expect(buildLocalSandboxUrls("feature-review")).toStrictEqual({
-      api: "https://feature-review.api.tskr.localhost:1355",
-      auth: "https://feature-review.auth.tskr.localhost:1355",
-      web: "https://feature-review.web.tskr.localhost:1355",
+      api: "https://feature-review.api.tskr.localhost",
+      auth: "https://feature-review.auth.tskr.localhost",
+      web: "https://feature-review.web.tskr.localhost",
     })
   })
 
@@ -99,13 +99,13 @@ describe("sandbox env files", () => {
       ].every((entry) => envFiles.compose.includes(entry))
     ).toBeTruthy()
     expect(envFiles.web).toContain(
-      "VITE_AUTH_BASE_URL=https://feature-review-12.auth.tskr.localhost:1355"
+      "VITE_AUTH_BASE_URL=https://feature-review-12.auth.tskr.localhost"
     )
     expect(envFiles.web).toContain("SERVER_AUTH_BASE_URL=http://auth:3002")
     expect(
       [
-        "BETTER_AUTH_TRUSTED_ORIGINS=https://feature-review-12.web.tskr.localhost:1355",
-        "WEB_BASE_URL=https://feature-review-12.web.tskr.localhost:1355",
+        "BETTER_AUTH_TRUSTED_ORIGINS=https://feature-review-12.web.tskr.localhost",
+        "WEB_BASE_URL=https://feature-review-12.web.tskr.localhost",
       ].every((entry) => envFiles.auth.includes(entry))
     ).toBeTruthy()
     expect([

@@ -201,7 +201,7 @@ describe("auth base url resolution", () => {
     expect(
       resolveAuthBaseUrl({
         hostname: "trace-smoke.web.tskr.localhost",
-        runtimeAuthBaseUrl: "https://trace-smoke.auth.tskr.localhost:1355",
+        runtimeAuthBaseUrl: "https://trace-smoke.auth.tskr.localhost",
         serverAuthBaseUrl: "http://auth:3002",
       })
     ).toBe("http://auth:3002")

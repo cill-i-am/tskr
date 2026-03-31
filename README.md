@@ -13,12 +13,6 @@ Install Portless globally:
 npm install -g portless
 ```
 
-Enable HTTPS once on your machine:
-
-```bash
-portless proxy start --https
-```
-
 Then start an app from the repo root:
 
 ```bash
@@ -30,17 +24,17 @@ pnpm dev:auth
 The main checkout runs at:
 
 ```text
-https://web.tskr.localhost:1355
-https://api.tskr.localhost:1355
-https://auth.tskr.localhost:1355
+https://web.tskr.localhost
+https://api.tskr.localhost
+https://auth.tskr.localhost
 ```
 
 Linked git worktrees get the branch name as a prefix automatically:
 
 ```text
-https://<branch>.web.tskr.localhost:1355
-https://<branch>.api.tskr.localhost:1355
-https://<branch>.auth.tskr.localhost:1355
+https://<branch>.web.tskr.localhost
+https://<branch>.api.tskr.localhost
+https://<branch>.auth.tskr.localhost
 ```
 
 Useful commands:
@@ -54,10 +48,12 @@ PORTLESS=0 pnpm --filter auth run dev
 
 - `portless list` shows the active route registrations.
 - `PORTLESS=0 ...` bypasses Portless and runs the app directly.
-- App scripts use `portless --name <service>.tskr ...` so worktrees inherit
+- App scripts use `portless run --name <service>.tskr ...` so worktrees inherit
   a branch-prefixed hostname automatically.
 - Portless is a global prerequisite for this repo, not a workspace dependency.
-- This workflow is tested with `portless@0.5.2+` on macOS and Linux.
+- This workflow is tested with `portless@0.9.0+` on macOS and Linux.
+- Portless now auto-starts its HTTPS proxy on first run; there is no separate
+  repo-specific proxy config step.
 
 If Safari cannot resolve the hostname, run:
 
@@ -96,7 +92,7 @@ pnpm sandbox destroy "Feature Review"
 Useful notes:
 
 - Local sandboxes keep Portless at the host level and register static aliases
-  like `https://feature-review.web.tskr.localhost:1355`.
+  like `https://feature-review.web.tskr.localhost`.
 - Hosted sandboxes use the hosted Compose overlay plus the generated domain
   values in `.sandbox/<name>/hosted/compose.env`.
 - The local sandbox workflow still expects Docker and a global `portless`
@@ -140,9 +136,9 @@ pnpm dev
 This runs the workspace dev tasks through Turbo and starts all apps. Default app
 URLs are:
 
-- `web`: Portless-managed URL (`https://web.tskr.localhost:1355`)
-- `api`: Portless-managed URL (`https://api.tskr.localhost:1355`)
-- `auth`: Portless-managed URL (`https://auth.tskr.localhost:1355`)
+- `web`: Portless-managed URL (`https://web.tskr.localhost`)
+- `api`: Portless-managed URL (`https://api.tskr.localhost`)
+- `auth`: Portless-managed URL (`https://auth.tskr.localhost`)
 
 `api` and `auth` respect `process.env.PORT` (including in Turbo-driven `pnpm dev`
 via package `turbo.json` env passthrough). Because `PORT` is shared, setting it
@@ -208,13 +204,13 @@ Required in GitHub Actions for shared production migrations:
 
 Useful local defaults:
 
-- `BETTER_AUTH_URL=https://auth.tskr.localhost:1355`
-- `BETTER_AUTH_TRUSTED_ORIGINS=https://web.tskr.localhost:1355,http://localhost:3000,http://localhost:5173`
-- `WEB_BASE_URL=https://web.tskr.localhost:1355` (or `http://localhost:3000` with `PORTLESS=0`)
+- `BETTER_AUTH_URL=https://auth.tskr.localhost`
+- `BETTER_AUTH_TRUSTED_ORIGINS=https://web.tskr.localhost,http://localhost:3000,http://localhost:5173`
+- `WEB_BASE_URL=https://web.tskr.localhost` (or `http://localhost:3000` with `PORTLESS=0`)
 - `EMAIL_FROM=TSKR <noreply@localhost>`
 - `EMAIL_PROVIDER=console` (default outside production)
 - `EMAIL_REPLY_TO=support@localhost` (optional)
-- `VITE_AUTH_BASE_URL=https://auth.tskr.localhost:1355`
+- `VITE_AUTH_BASE_URL=https://auth.tskr.localhost`
 
 For Resend-backed delivery, verify your sender domain in Resend first, then set
 `EMAIL_FROM` to a verified sender and provide `RESEND_API_KEY`. If you only need

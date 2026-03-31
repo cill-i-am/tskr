@@ -48,18 +48,18 @@ describe(parseAuthenticationEnv, () => {
       () => {
         expect(parseAuthenticationEnv()).toStrictEqual({
           betterAuthSecret: "dev-secret-dev-secret-dev-secret-dev-secret",
-          betterAuthUrl: "https://auth.tskr.localhost:1355",
+          betterAuthUrl: "https://auth.tskr.localhost",
           e2eEmailCaptureDir: undefined,
           emailFrom: "TSKR <noreply@tskr.app>",
           emailProvider: "console",
           emailReplyTo: undefined,
           resendApiKey: undefined,
           trustedOrigins: [
-            "https://web.tskr.localhost:1355",
+            "https://web.tskr.localhost",
             "https://web.example.com",
             "http://localhost:3000",
           ],
-          webBaseUrl: "https://web.tskr.localhost:1355",
+          webBaseUrl: "https://web.tskr.localhost",
         })
       }
     )
@@ -109,7 +109,7 @@ describe(parseAuthenticationEnv, () => {
           emailReplyTo: undefined,
           resendApiKey: undefined,
           trustedOrigins: [
-            "https://web.tskr.localhost:1355",
+            "https://web.tskr.localhost",
             "http://localhost:3002",
             "http://localhost:3000",
             "http://localhost:5173",
@@ -158,7 +158,7 @@ describe(parseAuthenticationEnv, () => {
           emailProvider: "resend",
           emailReplyTo: "support@tskr.app",
           resendApiKey: "resend_test_123",
-          webBaseUrl: "https://web.tskr.localhost:1355",
+          webBaseUrl: "https://web.tskr.localhost",
         })
       }
     )

@@ -197,7 +197,7 @@ const resolveAuthBaseUrl = (options: ResolveAuthBaseUrlOptions = {}) => {
     return "http://localhost:3002"
   }
 
-  return "https://auth.tskr.localhost:1355"
+  return "https://auth.tskr.localhost"
 }
 
 const fetchAuthService = (
