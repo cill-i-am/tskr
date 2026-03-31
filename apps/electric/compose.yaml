@@ -1,0 +1,60 @@
+services:
+  postgres:
+    image: docker.io/postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-electric}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-54321}:5432"
+    command:
+      - -c
+      - listen_addresses=*
+      - -c
+      - wal_level=logical
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-electric}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  electric:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: tskr-electric:local
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:password@postgres:5432/electric?sslmode=disable}
+      - ELECTRIC_PORT=${ELECTRIC_PORT:-3000}
+      - ELECTRIC_STORAGE_DIR=${ELECTRIC_STORAGE_DIR:-/var/lib/electric/persistent}
+      # Development default only. Production should remove this and set ELECTRIC_SECRET.
+      - ELECTRIC_INSECURE=${ELECTRIC_INSECURE:-true}
+      # Only pass the secret through when the environment actually sets it.
+      - ELECTRIC_SECRET
+    ports:
+      - "127.0.0.1:${ELECTRIC_PORT:-3000}:${ELECTRIC_PORT:-3000}"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'test "$(curl -so /dev/null -w ''%{http_code}'' http://127.0.0.1:${ELECTRIC_PORT:-3000}/v1/health)" = "200"',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    volumes:
+      - electric_storage:${ELECTRIC_STORAGE_DIR:-/var/lib/electric/persistent}
+
+volumes:
+  electric_storage:
+  postgres_data:

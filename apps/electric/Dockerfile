@@ -1,0 +1,8 @@
+FROM electricsql/electric:1.4.16@sha256:6d7c23aab402b98785af8211da91d883ac12c565c9a591b1e2705444166846e7
+
+ENV ELECTRIC_PORT=3000
+ENV ELECTRIC_STORAGE_DIR=/var/lib/electric/persistent
+
+VOLUME ["/var/lib/electric/persistent"]
+
+EXPOSE 3000
