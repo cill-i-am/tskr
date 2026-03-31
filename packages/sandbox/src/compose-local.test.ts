@@ -31,7 +31,7 @@ describe("local sandbox compose topology", () => {
       /postgres:\n(?:.*\n)*? {4}command:\n {6}- -c\n {6}- listen_addresses=\*\n {6}- -c\n {6}- wal_level=logical/s.test(
         composeLocal
       ),
-      /electric:\n(?:.*\n)*? {4}image: tskr-electric:local/s.test(composeLocal),
+      !/electric:\n(?:.*\n)*? {4}image:/s.test(composeLocal),
       /electric:\n(?:.*\n)*? {4}build:\n {6}context: \$\{SANDBOX_REPOSITORY_ROOT\}\/apps\/electric\n {6}dockerfile: Dockerfile/s.test(
         composeLocal
       ),

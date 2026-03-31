@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises"
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 
 import { Effect } from "effect"
@@ -91,6 +91,14 @@ const writeSandboxModeFiles = ({
     writes.push(
       Effect.tryPromise(() =>
         writeFile(join(directory, "electric.env"), electricEnv, "utf8")
+      )
+    )
+  } else {
+    writes.push(
+      Effect.tryPromise(() =>
+        rm(join(directory, "electric.env"), {
+          force: true,
+        })
       )
     )
   }

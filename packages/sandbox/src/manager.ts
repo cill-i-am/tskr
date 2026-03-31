@@ -256,7 +256,8 @@ const SandboxManagerLive = Layer.succeed(SandboxManager, {
       yield* runComposeCommand({
         mode,
         state,
-        subcommand: mode === "hosted" ? ["up", "-d", "--build"] : ["up", "-d"],
+        subcommand:
+          mode === "hosted" ? ["up", "-d", "--build"] : ["up", "-d", "--build"],
       })
 
       return state

@@ -55,7 +55,6 @@ services:
       - pnpm-store:/pnpm/store
 
   electric:
-    image: tskr-electric:local
     build:
       context: ${SANDBOX_REPOSITORY_ROOT}/apps/electric
       dockerfile: Dockerfile
