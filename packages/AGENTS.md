@@ -15,6 +15,9 @@ workspace packages under `packages/*`.
 - Keep public APIs explicit and intentional.
 - Put cross-cutting infrastructure here only when it has a real shared consumer
   or stable platform boundary.
+- Shared sync primitives, typed read contracts, and reusable command client
+  helpers belong under `packages/*` only when they define a true cross-app
+  platform boundary.
 - Shared database platforms, schema ownership, and migration history belong
   under `packages/*` when more than one app consumes the same Postgres
   database.

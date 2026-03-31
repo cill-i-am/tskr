@@ -21,6 +21,9 @@ for the deployable auth application in this subtree.
 - Keep server-side auth behavior here, but keep shared database schema,
   migrations, and Drizzle config owned by `@workspace/db` rather than inside
   the app.
+- Keep identity, session, membership, and authorization context here, but do
+  not let `apps/auth` become the default home for collaborative task commands
+  or sync orchestration that belongs to the product API boundary.
 - Preserve the `/up` response shape to match `apps/web`.
 - Export route contracts intentionally so typed consumers can use this app via
   Hono RPC without redefining endpoint types.
