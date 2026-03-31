@@ -1,4 +1,5 @@
 import { authClient } from "@/domains/identity/authentication/ui/auth-client"
+import { useIsHydrated } from "@/domains/shared/ui/use-is-hydrated"
 import { acceptWorkspaceInvite } from "@/domains/workspaces/join-workspace/infra/accept-workspace-invite"
 import {
   clearWorkspaceInviteFlow,
@@ -41,6 +42,7 @@ const JoinWorkspaceForm = ({
   const navigate = useNavigate()
   const session = authClient.useSession()
   const [error, setError] = useState<string | null>(null)
+  const isHydrated = useIsHydrated()
   const [isNavigating, startTransition] = useTransition()
   const form = useForm({
     defaultValues: {
@@ -112,7 +114,9 @@ const JoinWorkspaceForm = ({
         : undefined,
   })
   const isSubmitting = useStore(form.store, (state) => state.isSubmitting)
-  const isDisabled = isSubmitting || isNavigating || session.isPending
+  const isDisabled =
+    !isHydrated || isSubmitting || isNavigating || session.isPending
+
   const handleSubmit = useEffectEvent(
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault()
@@ -121,7 +125,12 @@ const JoinWorkspaceForm = ({
   )
 
   return (
-    <form className="gap-6 flex flex-col" noValidate onSubmit={handleSubmit}>
+    <form
+      className="gap-6 flex flex-col"
+      method="post"
+      noValidate
+      onSubmit={handleSubmit}
+    >
       <FieldGroup>
         {mode === "code" ? (
           <form.Field name="code">

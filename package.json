@@ -24,7 +24,11 @@
     "opensrc:sync": "node scripts/sync-opensrc.mjs",
     "sandbox": "pnpm --filter @workspace/sandbox sandbox",
     "precheck": "pnpm exec ultracite check package.json turbo.json tsconfig.json .oxlintrc.json opencode.json scripts",
+    "playwright:install": "pnpm exec playwright install chromium",
     "test:db-infra": "node --test scripts/lib/local-postgres-config.test.mjs scripts/lib/local-postgres.test.mjs scripts/lib/local-postgres-launcher.test.mjs",
+    "test:e2e": "node scripts/e2e/run-playwright.mjs",
+    "test:e2e:debug": "node scripts/e2e/run-playwright.mjs --debug",
+    "test:e2e:headed": "node scripts/e2e/run-playwright.mjs --headed",
     "test:integration": "mkdir -p .artifacts/test-results/integration && pnpm --filter @workspace/db build && pnpm --filter @workspace/email build && pnpm --filter @workspace/db db:migrate && pnpm --dir apps/auth exec vitest run --reporter=default --reporter=junit --outputFile=../../.artifacts/test-results/integration/auth.junit.xml",
     "test:opensrc": "node --test scripts/lib/opensrc-sync.test.mjs scripts/lib/opensrc-package-coverage.test.mjs",
     "test:unit": "mkdir -p .artifacts/test-results/unit && pnpm test:db-infra && pnpm test:opensrc && pnpm test:ui-propagation && pnpm --dir packages/db test && pnpm --dir packages/email exec vitest run --reporter=default --reporter=junit --outputFile=../../.artifacts/test-results/unit/email.junit.xml && pnpm --dir apps/api exec vitest run --globals src/app.test.ts --reporter=default --reporter=junit --outputFile=../../.artifacts/test-results/unit/api.junit.xml && pnpm --filter @workspace/ui build && pnpm --dir apps/web exec vitest run --reporter=default --reporter=junit --outputFile=../../.artifacts/test-results/unit/web.junit.xml",
@@ -33,6 +37,7 @@
     "typecheck": "turbo run typecheck"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "opensrc": "0.6.0",
     "oxfmt": "^0.40.0",
     "oxlint": "^1.55.0",

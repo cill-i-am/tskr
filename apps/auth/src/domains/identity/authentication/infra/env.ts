@@ -10,12 +10,14 @@ const DEFAULT_DIRECT_WEB_URLS = [
 const DEFAULT_DEV_SECRET = "dev-secret-dev-secret-dev-secret-dev-secret"
 const DEFAULT_DEV_EMAIL_PROVIDER = "console"
 const DEFAULT_PRODUCTION_EMAIL_PROVIDER = "resend"
+const trimTrailingSlash = (value: string) => value.replace(/\/+$/u, "")
 
 type EmailProvider = "console" | "resend"
 
 interface AuthenticationEnv {
   betterAuthSecret: string
   betterAuthUrl: string
+  e2eEmailCaptureDir?: string
   emailFrom: string
   emailProvider: EmailProvider
   emailReplyTo?: string
@@ -26,6 +28,32 @@ interface AuthenticationEnv {
 
 const unique = (values: string[]) => [...new Set(values)]
 
+const deriveSiblingPortlessUrl = (
+  portlessUrl: string | undefined,
+  {
+    currentServiceName,
+    siblingServiceName,
+  }: {
+    currentServiceName: string
+    siblingServiceName: string
+  }
+) => {
+  if (!portlessUrl) {
+    return
+  }
+
+  const url = new URL(portlessUrl)
+  const currentSuffix = `${currentServiceName}.localhost`
+
+  if (!url.hostname.endsWith(currentSuffix)) {
+    return
+  }
+
+  url.hostname = `${url.hostname.slice(0, -currentSuffix.length)}${siblingServiceName}.localhost`
+
+  return trimTrailingSlash(url.toString())
+}
+
 const splitCsv = (value?: string) =>
   value
     ?.split(",")
@@ -35,7 +63,17 @@ const splitCsv = (value?: string) =>
 const resolveDefaultAuthUrl = () =>
   process.env.PORTLESS === "0"
     ? DEFAULT_DIRECT_AUTH_URL
-    : DEFAULT_PORTLESS_AUTH_URL
+    : (process.env.PORTLESS_URL ?? DEFAULT_PORTLESS_AUTH_URL)
+
+const resolveDerivedPortlessWebBaseUrl = () =>
+  deriveSiblingPortlessUrl(process.env.PORTLESS_URL, {
+    currentServiceName: "auth.tskr",
+    siblingServiceName: "web.tskr",
+  }) ??
+  deriveSiblingPortlessUrl(process.env.PORTLESS_URL, {
+    currentServiceName: "e2e-auth.tskr",
+    siblingServiceName: "e2e-web.tskr",
+  })
 
 const resolveDefaultTrustedOrigins = () => {
   const directOrigins =
@@ -43,13 +81,16 @@ const resolveDefaultTrustedOrigins = () => {
       ? [DEFAULT_DIRECT_AUTH_URL, ...DEFAULT_DIRECT_WEB_URLS]
       : []
 
-  return unique([DEFAULT_PORTLESS_WEB_URL, ...directOrigins])
+  return unique([
+    resolveDerivedPortlessWebBaseUrl() ?? DEFAULT_PORTLESS_WEB_URL,
+    ...directOrigins,
+  ])
 }
 
 const resolveDefaultWebBaseUrl = () =>
   process.env.PORTLESS === "0"
     ? DEFAULT_DIRECT_WEB_URL
-    : DEFAULT_PORTLESS_WEB_URL
+    : (resolveDerivedPortlessWebBaseUrl() ?? DEFAULT_PORTLESS_WEB_URL)
 
 const requireValue = (value: string | undefined, name: string) => {
   if (!value) {
@@ -105,6 +146,7 @@ const parseAuthenticationEnv = (): AuthenticationEnv => {
         ? requireValue(process.env.BETTER_AUTH_SECRET, "BETTER_AUTH_SECRET")
         : DEFAULT_DEV_SECRET),
     betterAuthUrl: process.env.BETTER_AUTH_URL ?? resolveDefaultAuthUrl(),
+    e2eEmailCaptureDir: process.env.E2E_EMAIL_CAPTURE_DIR?.trim() || undefined,
     emailFrom: requireValue(process.env.EMAIL_FROM, "EMAIL_FROM"),
     emailProvider,
     emailReplyTo: process.env.EMAIL_REPLY_TO,

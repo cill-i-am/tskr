@@ -1,4 +1,5 @@
 import type { SettingsAdminSnapshot } from "@/domains/identity/settings-admin/contracts/settings-admin-contract"
+import { useIsHydrated } from "@/domains/shared/ui/use-is-hydrated"
 import { useRouter } from "@tanstack/react-router"
 import { useEffectEvent, useState } from "react"
 
@@ -21,6 +22,7 @@ interface PeopleSettingsPageProps {
 const PeopleSettingsPage = ({ snapshot }: PeopleSettingsPageProps) => {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
+  const isHydrated = useIsHydrated()
   const clearError = useEffectEvent(() => {
     setError(null)
   })
@@ -64,6 +66,7 @@ const PeopleSettingsPage = ({ snapshot }: PeopleSettingsPageProps) => {
           <CardContent>
             <InviteMemberForm
               canInviteRoles={snapshot.permissions.canInviteRoles}
+              disabled={!isHydrated}
               onClearError={clearError}
               onError={setError}
               onRefresh={refreshSnapshot}
@@ -83,6 +86,7 @@ const PeopleSettingsPage = ({ snapshot }: PeopleSettingsPageProps) => {
           </CardHeader>
           <CardContent>
             <WorkspaceMembersTable
+              disabled={!isHydrated}
               members={snapshot.members}
               onClearError={clearError}
               onError={setError}
@@ -104,6 +108,7 @@ const PeopleSettingsPage = ({ snapshot }: PeopleSettingsPageProps) => {
         </CardHeader>
         <CardContent>
           <WorkspaceInvitesTable
+            disabled={!isHydrated}
             invites={snapshot.pendingInvites}
             onClearError={clearError}
             onError={setError}

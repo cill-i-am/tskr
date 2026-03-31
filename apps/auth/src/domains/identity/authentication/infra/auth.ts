@@ -12,7 +12,10 @@ import {
 
 import { authDatabaseSchema } from "@workspace/db"
 
-import { resolveDefaultCookieAttributes } from "./cookie-attributes.js"
+import {
+  resolveCrossSubDomainCookies,
+  resolveDefaultCookieAttributes,
+} from "./cookie-attributes.js"
 import { database, pool } from "./database.js"
 import { createAuthenticationEmailService } from "./email-service.js"
 import { parseAuthenticationEnv } from "./env.js"
@@ -78,6 +81,9 @@ const getWorkspaceInvitationCode = async (invitationId: string) => {
 
 const auth = betterAuth({
   advanced: {
+    crossSubDomainCookies: resolveCrossSubDomainCookies(
+      authenticationEnv.betterAuthUrl
+    ),
     defaultCookieAttributes: resolveDefaultCookieAttributes(
       authenticationEnv.betterAuthUrl
     ),

@@ -192,6 +192,26 @@ describe("accept workspace invite client", () => {
       withoutAuthServiceFetch()
     }
   })
+
+  it("surfaces plain-text auth service messages", async () => {
+    const fetchMock = withAuthServiceFetch()
+
+    try {
+      fetchMock.mockResolvedValue(
+        new Response("You are not the recipient of that invite.", {
+          status: 403,
+        })
+      )
+
+      await expect(
+        acceptWorkspaceInvite({
+          token: "signed-token",
+        })
+      ).rejects.toThrow("You are not the recipient of that invite.")
+    } finally {
+      withoutAuthServiceFetch()
+    }
+  })
 })
 
 describe("workspace invite flow helper", () => {

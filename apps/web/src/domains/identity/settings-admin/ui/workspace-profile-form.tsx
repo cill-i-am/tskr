@@ -1,5 +1,6 @@
 import type { SettingsAdminWorkspaceProfile } from "@/domains/identity/settings-admin/contracts/settings-admin-contract"
 import { updateWorkspaceProfile } from "@/domains/identity/settings-admin/infra/update-workspace-profile"
+import { useIsHydrated } from "@/domains/shared/ui/use-is-hydrated"
 import { useForm, useStore } from "@tanstack/react-form"
 import { useRouter } from "@tanstack/react-router"
 import { useEffectEvent, useState } from "react"
@@ -38,6 +39,7 @@ const WorkspaceProfileForm = ({
 }: WorkspaceProfileFormProps) => {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
+  const isHydrated = useIsHydrated()
   const form = useForm({
     defaultValues: {
       logo: workspaceProfile.logo ?? "",
@@ -75,10 +77,16 @@ const WorkspaceProfileForm = ({
       await form.handleSubmit()
     }
   )
-  const isDisabled = isSubmitting
+
+  const isDisabled = !isHydrated || isSubmitting
 
   return (
-    <form className="gap-6 flex flex-col" noValidate onSubmit={handleSubmit}>
+    <form
+      className="gap-6 flex flex-col"
+      method="post"
+      noValidate
+      onSubmit={handleSubmit}
+    >
       <form.Subscribe>
         {(state) => (
           <SettingsIdentityPreview

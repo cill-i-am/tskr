@@ -12,10 +12,13 @@ node_modules
 
 # Testing
 coverage
+.artifacts
+playwright-report
 
 # Turbo
 .turbo
 .worktrees
+.tmp
 .sandbox
 
 # Vercel

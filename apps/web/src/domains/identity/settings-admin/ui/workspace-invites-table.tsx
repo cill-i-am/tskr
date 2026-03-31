@@ -21,6 +21,7 @@ const getCopyActionKey = (inviteId: string, copyTarget: string) =>
 interface WorkspaceInviteCopyButtonProps {
   copied: boolean
   copyTarget: "code" | "link"
+  disabled: boolean
   invite: SettingsAdminWorkspaceInvite
   onClearError: () => void
   onCopied: (key: string) => void
@@ -30,6 +31,7 @@ interface WorkspaceInviteCopyButtonProps {
 const WorkspaceInviteCopyButton = ({
   copied,
   copyTarget,
+  disabled,
   invite,
   onClearError,
   onCopied,
@@ -64,6 +66,7 @@ const WorkspaceInviteCopyButton = ({
   return (
     <Button
       aria-label={ariaLabel}
+      disabled={disabled}
       onClick={handleClick}
       size="sm"
       type="button"
@@ -75,6 +78,7 @@ const WorkspaceInviteCopyButton = ({
 }
 
 interface WorkspaceInvitesTableProps {
+  disabled: boolean
   invites: SettingsAdminWorkspaceInvite[]
   onClearError: () => void
   onError: (message: string) => void
@@ -83,6 +87,7 @@ interface WorkspaceInvitesTableProps {
 }
 
 const WorkspaceInvitesTable = ({
+  disabled,
   invites,
   onClearError,
   onError,
@@ -261,6 +266,7 @@ const WorkspaceInvitesTable = ({
                         <WorkspaceInviteCopyButton
                           copied={isCodeCopied}
                           copyTarget="code"
+                          disabled={disabled || isPending}
                           invite={invite}
                           onClearError={onClearError}
                           onCopied={markCopiedInviteAction}
@@ -282,6 +288,7 @@ const WorkspaceInvitesTable = ({
                         <WorkspaceInviteCopyButton
                           copied={isLinkCopied}
                           copyTarget="link"
+                          disabled={disabled || isPending}
                           invite={invite}
                           onClearError={onClearError}
                           onCopied={markCopiedInviteAction}
@@ -299,7 +306,7 @@ const WorkspaceInvitesTable = ({
                   {invite.permissions.canResend ? (
                     <Button
                       data-invite-id={invite.id}
-                      disabled={isPending}
+                      disabled={disabled || isPending}
                       onClick={handleResend}
                       size="sm"
                       type="button"
@@ -311,7 +318,7 @@ const WorkspaceInvitesTable = ({
                   {invite.permissions.canRevoke ? (
                     <Button
                       data-invite-id={invite.id}
-                      disabled={isPending}
+                      disabled={disabled || isPending}
                       onClick={handleRevoke}
                       size="sm"
                       type="button"

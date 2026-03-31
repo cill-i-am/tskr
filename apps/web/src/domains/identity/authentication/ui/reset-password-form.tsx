@@ -1,3 +1,4 @@
+import { useIsHydrated } from "@/domains/shared/ui/use-is-hydrated"
 import { useForm, useStore } from "@tanstack/react-form"
 import { Link, useNavigate } from "@tanstack/react-router"
 import { useEffectEvent, useState, useTransition } from "react"
@@ -21,6 +22,7 @@ interface ResetPasswordFormProps {
 const ResetPasswordForm = ({ token }: ResetPasswordFormProps) => {
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
+  const isHydrated = useIsHydrated()
   const [isNavigating, startTransition] = useTransition()
   const form = useForm({
     defaultValues: {
@@ -52,6 +54,8 @@ const ResetPasswordForm = ({ token }: ResetPasswordFormProps) => {
     },
   })
   const isSubmitting = useStore(form.store, (state) => state.isSubmitting)
+  const isDisabled = !isHydrated || isSubmitting || isNavigating
+
   const handleSubmit = useEffectEvent(
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault()
@@ -60,12 +64,18 @@ const ResetPasswordForm = ({ token }: ResetPasswordFormProps) => {
   )
 
   return (
-    <form className="gap-6 flex flex-col" noValidate onSubmit={handleSubmit}>
+    <form
+      className="gap-6 flex flex-col"
+      method="post"
+      noValidate
+      onSubmit={handleSubmit}
+    >
       <FieldGroup>
         <form.Field name="newPassword">
           {(field) => (
             <FormTextField
               autoComplete="new-password"
+              disabled={isDisabled}
               field={field}
               label="New password"
               type="password"
@@ -77,6 +87,7 @@ const ResetPasswordForm = ({ token }: ResetPasswordFormProps) => {
             <FormTextField
               autoComplete="new-password"
               description="After reset, use this password on the login page."
+              disabled={isDisabled}
               field={field}
               label="Confirm new password"
               type="password"
@@ -85,7 +96,7 @@ const ResetPasswordForm = ({ token }: ResetPasswordFormProps) => {
         </form.Field>
         {error ? <FormMessage>{error}</FormMessage> : null}
         <FormActions>
-          <Button disabled={isSubmitting || isNavigating} type="submit">
+          <Button disabled={isDisabled} type="submit">
             {isSubmitting || isNavigating
               ? "Resetting password..."
               : "Reset password"}

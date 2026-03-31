@@ -119,6 +119,14 @@ const latestWorkspaceInvitationEmail = () =>
       }
     | undefined
 
+const waitForLatestWorkspaceInvitationEmail = async (message: string) => {
+  await vi.waitFor(() => {
+    expect(latestWorkspaceInvitationEmail()).toBeDefined()
+  })
+
+  return requireValue(latestWorkspaceInvitationEmail(), message)
+}
+
 const resetEmailMocks = () => {
   sendEmailVerificationEmailMock.mockClear()
   sendExistingUserSignupNoticeMock.mockClear()
@@ -992,8 +1000,7 @@ describe("workspace routes", () => {
       workspaceId: activeWorkspace.id,
     })
 
-    const invitationEmail = requireValue(
-      latestWorkspaceInvitationEmail(),
+    const invitationEmail = await waitForLatestWorkspaceInvitationEmail(
       "Expected the latest workspace invitation email"
     )
 
@@ -1157,8 +1164,7 @@ describe("workspace routes", () => {
       ),
       "Expected invitation to exist after resend"
     )
-    const invitationEmail = requireValue(
-      latestWorkspaceInvitationEmail(),
+    const invitationEmail = await waitForLatestWorkspaceInvitationEmail(
       "Expected a resent invitation email"
     )
 

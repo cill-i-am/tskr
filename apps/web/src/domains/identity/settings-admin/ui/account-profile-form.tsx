@@ -1,5 +1,6 @@
 import type { SettingsAdminAccountProfile } from "@/domains/identity/settings-admin/contracts/settings-admin-contract"
 import { updateAccountProfile } from "@/domains/identity/settings-admin/infra/update-account-profile"
+import { useIsHydrated } from "@/domains/shared/ui/use-is-hydrated"
 import { useForm, useStore } from "@tanstack/react-form"
 import { useRouter } from "@tanstack/react-router"
 import { useEffectEvent, useState } from "react"
@@ -29,6 +30,7 @@ interface AccountProfileFormProps {
 const AccountProfileForm = ({ accountProfile }: AccountProfileFormProps) => {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
+  const isHydrated = useIsHydrated()
   const form = useForm({
     defaultValues: {
       image: accountProfile.image ?? "",
@@ -65,10 +67,16 @@ const AccountProfileForm = ({ accountProfile }: AccountProfileFormProps) => {
       await form.handleSubmit()
     }
   )
-  const isDisabled = isSubmitting
+
+  const isDisabled = !isHydrated || isSubmitting
 
   return (
-    <form className="gap-6 flex flex-col" noValidate onSubmit={handleSubmit}>
+    <form
+      className="gap-6 flex flex-col"
+      method="post"
+      noValidate
+      onSubmit={handleSubmit}
+    >
       <form.Subscribe>
         {(state) => (
           <SettingsIdentityPreview

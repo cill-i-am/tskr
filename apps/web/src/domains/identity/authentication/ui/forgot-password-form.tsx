@@ -1,3 +1,4 @@
+import { useIsHydrated } from "@/domains/shared/ui/use-is-hydrated"
 import { useForm, useStore } from "@tanstack/react-form"
 import { Link } from "@tanstack/react-router"
 import { useEffectEvent, useState } from "react"
@@ -16,6 +17,7 @@ import { forgotPasswordFormSchema } from "./auth-form-schemas"
 
 const ForgotPasswordForm = () => {
   const [error, setError] = useState<string | null>(null)
+  const isHydrated = useIsHydrated()
   const [success, setSuccess] = useState<string | null>(null)
   const form = useForm({
     defaultValues: {
@@ -48,6 +50,8 @@ const ForgotPasswordForm = () => {
     },
   })
   const isSubmitting = useStore(form.store, (state) => state.isSubmitting)
+  const isDisabled = !isHydrated || isSubmitting
+
   const handleSubmit = useEffectEvent(
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault()
@@ -56,13 +60,19 @@ const ForgotPasswordForm = () => {
   )
 
   return (
-    <form className="gap-6 flex flex-col" noValidate onSubmit={handleSubmit}>
+    <form
+      className="gap-6 flex flex-col"
+      method="post"
+      noValidate
+      onSubmit={handleSubmit}
+    >
       <FieldGroup>
         <form.Field name="email">
           {(field) => (
             <FormTextField
               autoComplete="email"
               description="We'll direct the completed reset back to this web app."
+              disabled={isDisabled}
               field={field}
               label="Email"
               placeholder="m@example.com"
@@ -77,7 +87,7 @@ const ForgotPasswordForm = () => {
           </FieldDescription>
         ) : null}
         <FormActions>
-          <Button disabled={isSubmitting} type="submit">
+          <Button disabled={isDisabled} type="submit">
             {isSubmitting ? "Sending reset link..." : "Send reset link"}
           </Button>
           <FieldDescription className="text-center">

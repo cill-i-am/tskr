@@ -1,3 +1,4 @@
+import { useIsHydrated } from "@/domains/shared/ui/use-is-hydrated"
 import {
   buildJoinWorkspaceTargetPath,
   readPendingWorkspaceInviteFlow,
@@ -33,6 +34,7 @@ const isEmailVerificationRequired = (
     error.message === "Email not verified")
 
 interface LoginPasswordFieldProps {
+  disabled: boolean
   field: {
     handleBlur: () => void
     handleChange: (value: string) => void
@@ -52,7 +54,7 @@ interface LoginPasswordFieldProps {
   }
 }
 
-const LoginPasswordField = ({ field }: LoginPasswordFieldProps) => {
+const LoginPasswordField = ({ disabled, field }: LoginPasswordFieldProps) => {
   const isInvalid =
     field.state.meta.isTouched && field.state.meta.errors.length > 0
   const handleChange = useEffectEvent(
@@ -75,6 +77,7 @@ const LoginPasswordField = ({ field }: LoginPasswordFieldProps) => {
       <Input
         aria-invalid={isInvalid || undefined}
         autoComplete="current-password"
+        disabled={disabled}
         id={field.name}
         name={field.name}
         onBlur={field.handleBlur}
@@ -90,6 +93,7 @@ const LoginPasswordField = ({ field }: LoginPasswordFieldProps) => {
 const LoginForm = () => {
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
+  const isHydrated = useIsHydrated()
   const [isNavigating, startTransition] = useTransition()
   const form = useForm({
     defaultValues: {
@@ -143,6 +147,8 @@ const LoginForm = () => {
     },
   })
   const isSubmitting = useStore(form.store, (state) => state.isSubmitting)
+  const isDisabled = !isHydrated || isSubmitting || isNavigating
+
   const handleSubmit = useEffectEvent(
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault()
@@ -151,12 +157,18 @@ const LoginForm = () => {
   )
 
   return (
-    <form className="gap-6 flex flex-col" noValidate onSubmit={handleSubmit}>
+    <form
+      className="gap-6 flex flex-col"
+      method="post"
+      noValidate
+      onSubmit={handleSubmit}
+    >
       <FieldGroup>
         <form.Field name="email">
           {(field) => (
             <FormTextField
               autoComplete="email"
+              disabled={isDisabled}
               field={field}
               label="Email"
               placeholder="m@example.com"
@@ -165,11 +177,13 @@ const LoginForm = () => {
           )}
         </form.Field>
         <form.Field name="password">
-          {(field) => <LoginPasswordField field={field} />}
+          {(field) => (
+            <LoginPasswordField disabled={isDisabled} field={field} />
+          )}
         </form.Field>
         {error ? <FormMessage>{error}</FormMessage> : null}
         <Field>
-          <Button disabled={isSubmitting || isNavigating} type="submit">
+          <Button disabled={isDisabled} type="submit">
             {isSubmitting || isNavigating ? "Signing in..." : "Login"}
           </Button>
           <FieldDescription className="text-center">

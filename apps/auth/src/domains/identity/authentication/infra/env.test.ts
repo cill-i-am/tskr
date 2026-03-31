@@ -41,6 +41,7 @@ describe(parseAuthenticationEnv, () => {
         EMAIL_REPLY_TO: undefined,
         NODE_ENV: "test",
         PORTLESS: "1",
+        PORTLESS_URL: undefined,
         RESEND_API_KEY: undefined,
         WEB_BASE_URL: undefined,
       },
@@ -48,6 +49,7 @@ describe(parseAuthenticationEnv, () => {
         expect(parseAuthenticationEnv()).toStrictEqual({
           betterAuthSecret: "dev-secret-dev-secret-dev-secret-dev-secret",
           betterAuthUrl: "https://auth.tskr.localhost",
+          e2eEmailCaptureDir: undefined,
           emailFrom: "TSKR <noreply@tskr.app>",
           emailProvider: "console",
           emailReplyTo: undefined,
@@ -87,11 +89,13 @@ describe(parseAuthenticationEnv, () => {
         BETTER_AUTH_SECRET: "test-secret",
         BETTER_AUTH_TRUSTED_ORIGINS: undefined,
         BETTER_AUTH_URL: undefined,
+        E2E_EMAIL_CAPTURE_DIR: "/tmp/tskr-e2e-mail",
         EMAIL_FROM: "TSKR <noreply@tskr.app>",
         EMAIL_PROVIDER: undefined,
         EMAIL_REPLY_TO: undefined,
         NODE_ENV: "test",
         PORTLESS: "0",
+        PORTLESS_URL: undefined,
         RESEND_API_KEY: undefined,
         WEB_BASE_URL: undefined,
       },
@@ -99,6 +103,7 @@ describe(parseAuthenticationEnv, () => {
         expect(parseAuthenticationEnv()).toStrictEqual({
           betterAuthSecret: "test-secret",
           betterAuthUrl: "http://localhost:3002",
+          e2eEmailCaptureDir: "/tmp/tskr-e2e-mail",
           emailFrom: "TSKR <noreply@tskr.app>",
           emailProvider: "console",
           emailReplyTo: undefined,
@@ -148,6 +153,7 @@ describe(parseAuthenticationEnv, () => {
       },
       () => {
         expect(parseAuthenticationEnv()).toMatchObject({
+          e2eEmailCaptureDir: undefined,
           emailFrom: "TSKR <noreply@tskr.app>",
           emailProvider: "resend",
           emailReplyTo: "support@tskr.app",
@@ -182,12 +188,38 @@ describe(parseAuthenticationEnv, () => {
         EMAIL_PROVIDER: "console",
         NODE_ENV: "test",
         PORTLESS: "0",
+        PORTLESS_URL: undefined,
         WEB_BASE_URL: "https://app.example.com",
       },
       () => {
         expect(parseAuthenticationEnv().webBaseUrl).toBe(
           "https://app.example.com"
         )
+      }
+    )
+  })
+
+  it("prefers the injected Portless URL and derives the sibling web URL", async () => {
+    await withEnvironment(
+      {
+        BETTER_AUTH_SECRET: "test-secret",
+        BETTER_AUTH_TRUSTED_ORIGINS: undefined,
+        BETTER_AUTH_URL: undefined,
+        EMAIL_FROM: "TSKR <noreply@tskr.app>",
+        EMAIL_PROVIDER: "console",
+        NODE_ENV: "test",
+        PORTLESS: "1",
+        PORTLESS_URL: "https://feature-x.e2e-auth.tskr.localhost:1355",
+        WEB_BASE_URL: undefined,
+      },
+      () => {
+        expect(parseAuthenticationEnv()).toMatchObject({
+          betterAuthUrl: "https://feature-x.e2e-auth.tskr.localhost:1355",
+          trustedOrigins: expect.arrayContaining([
+            "https://feature-x.e2e-web.tskr.localhost:1355",
+          ]),
+          webBaseUrl: "https://feature-x.e2e-web.tskr.localhost:1355",
+        })
       }
     )
   })

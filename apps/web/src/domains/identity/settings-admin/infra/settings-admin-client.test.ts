@@ -73,6 +73,16 @@ const invite: SettingsAdminWorkspaceInvite = {
   workspaceId: "workspace_123",
 }
 
+const createInviteResponse = {
+  acceptUrl: "https://auth.example.com/accept?token=signed-token",
+  code: "ABCD1234",
+  email: "worker@example.com",
+  id: "invite_123",
+  role: "field_worker",
+  status: "pending",
+  workspaceId: "workspace_123",
+}
+
 const snapshotPayload: SettingsAdminSnapshot = {
   accountProfile,
   members: [
@@ -167,9 +177,9 @@ describe("settings admin contract schema", () => {
   it("accepts member and invite settings schemas", () => {
     expect(settingsAdminMemberSchema.parse(member)).toStrictEqual(member)
     expect(settingsAdminInviteSchema.parse(invite)).toStrictEqual(invite)
-    expect(createWorkspaceInviteResponseSchema.parse(invite)).toStrictEqual(
-      invite
-    )
+    expect(
+      createWorkspaceInviteResponseSchema.parse(createInviteResponse)
+    ).toStrictEqual(createInviteResponse)
     expect(
       settingsAdminUpdateWorkspaceMemberRoleResponseSchema.parse(
         roleUpdatePayload
@@ -563,7 +573,7 @@ describe("settings admin clients", () => {
     const fetchMock = withAuthServiceFetch()
 
     try {
-      fetchMock.mockResolvedValue(Response.json(invite))
+      fetchMock.mockResolvedValue(Response.json(createInviteResponse))
 
       await expect(
         createWorkspaceInvite({
@@ -571,7 +581,7 @@ describe("settings admin clients", () => {
           role: "field_worker",
           workspaceId: "workspace_123",
         })
-      ).resolves.toStrictEqual(invite)
+      ).resolves.toStrictEqual(createInviteResponse)
 
       expect(fetchMock).toHaveBeenCalledWith(
         "https://auth.example.com/api/workspaces/workspace_123/invites",
