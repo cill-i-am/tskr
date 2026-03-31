@@ -1,0 +1,59 @@
+services:
+  workspace-deps:
+    build:
+      context: ${SANDBOX_REPOSITORY_ROOT}
+      dockerfile: apps/web/Dockerfile
+      target: dev
+    command: ["sh", "-lc", "pnpm install --frozen-lockfile"]
+    volumes:
+      - ${SANDBOX_REPOSITORY_ROOT}:/workspace
+      - workspace-node-modules:/workspace/node_modules
+      - pnpm-store:/pnpm/store
+
+  api:
+    build:
+      context: ${SANDBOX_REPOSITORY_ROOT}
+      dockerfile: apps/api/Dockerfile
+      target: dev
+    command: ["sh", "-lc", "pnpm exec turbo run dev:sandbox --filter=api"]
+    depends_on:
+      workspace-deps:
+        condition: service_completed_successfully
+    ports:
+      - "${SANDBOX_API_PORT}:3001"
+    volumes:
+      - ${SANDBOX_REPOSITORY_ROOT}:/workspace
+      - workspace-node-modules:/workspace/node_modules
+      - pnpm-store:/pnpm/store
+
+  auth:
+    build:
+      context: ${SANDBOX_REPOSITORY_ROOT}
+      dockerfile: apps/auth/Dockerfile
+      target: dev
+    command: ["sh", "-lc", "pnpm exec turbo run dev:sandbox --filter=auth"]
+    depends_on:
+      workspace-deps:
+        condition: service_completed_successfully
+    ports:
+      - "${SANDBOX_AUTH_PORT}:3002"
+    volumes:
+      - ${SANDBOX_REPOSITORY_ROOT}:/workspace
+      - workspace-node-modules:/workspace/node_modules
+      - pnpm-store:/pnpm/store
+
+  web:
+    build:
+      context: ${SANDBOX_REPOSITORY_ROOT}
+      dockerfile: apps/web/Dockerfile
+      target: dev
+    command: ["sh", "-lc", "pnpm exec turbo run dev:sandbox --filter=web"]
+    depends_on:
+      workspace-deps:
+        condition: service_completed_successfully
+    ports:
+      - "${SANDBOX_WEB_PORT}:3000"
+    volumes:
+      - ${SANDBOX_REPOSITORY_ROOT}:/workspace
+      - workspace-node-modules:/workspace/node_modules
+      - pnpm-store:/pnpm/store

@@ -71,6 +71,39 @@ debugging the app itself.
 If you later add Vite proxy rules between local apps, set `changeOrigin: true`
 to avoid Portless proxy loops.
 
+## Sandbox workflow
+
+The repo now includes a Docker Compose sandbox workflow for isolated full-stack
+instances. Each sandbox gets its own `web`, `api`, `auth`, and `postgres`
+services, plus generated env files under `.sandbox/<name>/`.
+
+Create and inspect a sandbox from the repo root:
+
+```bash
+pnpm sandbox create "Feature Review"
+pnpm sandbox list
+pnpm sandbox urls "Feature Review"
+```
+
+Start and stop the local sandbox profile:
+
+```bash
+pnpm sandbox start "Feature Review"
+pnpm sandbox stop "Feature Review"
+pnpm sandbox destroy "Feature Review"
+```
+
+Useful notes:
+
+- Local sandboxes keep Portless at the host level and register static aliases
+  like `https://feature-review.web.tskr.localhost:1355`.
+- Hosted sandboxes use the hosted Compose overlay plus the generated domain
+  values in `.sandbox/<name>/hosted/compose.env`.
+- The local sandbox workflow still expects Docker and a global `portless`
+  install.
+- Direct `pnpm dev*` workflows remain supported and unchanged for non-sandbox
+  work.
+
 ## Root workflow
 
 Run workspace checks from the repo root:

@@ -750,7 +750,7 @@ const createWorkspaceService = ({
         workspaceId,
       })
     } catch (error) {
-      mapBetterAuthError(error)
+      return mapBetterAuthError(error)
     }
   }
 
@@ -801,7 +801,7 @@ const createWorkspaceService = ({
         headers,
       })
     } catch (error) {
-      mapBetterAuthError(error)
+      return mapBetterAuthError(error)
     }
   }
 
@@ -848,7 +848,7 @@ const createWorkspaceService = ({
         headers,
       })
     } catch (error) {
-      mapBetterAuthError(error)
+      return mapBetterAuthError(error)
     }
   }
 
@@ -952,8 +952,8 @@ const createWorkspaceService = ({
       })
     }
 
-    try {
-      const updatedMember = await authApi.updateMemberRole({
+    const updatedMember = await authApi
+      .updateMemberRole({
         body: {
           memberId,
           organizationId: workspaceId,
@@ -961,14 +961,12 @@ const createWorkspaceService = ({
         },
         headers,
       })
+      .catch((error: unknown) => mapBetterAuthError(error))
 
-      return {
-        memberId: updatedMember.id,
-        role,
-        workspaceId,
-      }
-    } catch (error) {
-      mapBetterAuthError(error)
+    return {
+      memberId: updatedMember.id,
+      role,
+      workspaceId,
     }
   }
 

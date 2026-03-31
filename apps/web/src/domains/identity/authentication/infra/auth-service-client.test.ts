@@ -184,6 +184,16 @@ describe("auth service fetching", () => {
 })
 
 describe("auth base url resolution", () => {
+  it("prefers an internal server auth base url over the public runtime auth base url", () => {
+    expect(
+      resolveAuthBaseUrl({
+        hostname: "trace-smoke.web.tskr.localhost",
+        runtimeAuthBaseUrl: "https://trace-smoke.auth.tskr.localhost:1355",
+        serverAuthBaseUrl: "http://auth:3002",
+      })
+    ).toBe("http://auth:3002")
+  })
+
   it("still falls back to localhost when no runtime auth base url is available", () => {
     expect(
       resolveAuthBaseUrl({

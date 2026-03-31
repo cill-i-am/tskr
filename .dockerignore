@@ -1,0 +1,13 @@
+node_modules
+.pnpm-store
+.turbo
+.git
+.sandbox
+.tmp
+dist
+.output
+.nitro
+.tanstack
+.vinxi
+coverage
+*.log

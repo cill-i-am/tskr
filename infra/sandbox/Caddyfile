@@ -1,0 +1,11 @@
+{$SANDBOX_WEB_DOMAIN} {
+  reverse_proxy web:3000
+}
+
+{$SANDBOX_API_DOMAIN} {
+  reverse_proxy api:3001
+}
+
+{$SANDBOX_AUTH_DOMAIN} {
+  reverse_proxy auth:3002
+}

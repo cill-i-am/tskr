@@ -3,6 +3,7 @@ interface ResolveAuthBaseUrlOptions {
   hostname?: string | undefined
   request?: Request | undefined
   runtimeAuthBaseUrl?: string | undefined
+  serverAuthBaseUrl?: string | undefined
 }
 
 interface ResolveRuntimeAuthBaseUrlOptions {
@@ -133,6 +134,10 @@ const resolveAuthBaseUrl = (options: ResolveAuthBaseUrlOptions = {}) => {
     return options.authBaseUrl
   }
 
+  if (options.serverAuthBaseUrl) {
+    return options.serverAuthBaseUrl
+  }
+
   if (runtimeAuthBaseUrl) {
     return runtimeAuthBaseUrl
   }
@@ -158,6 +163,11 @@ const fetchAuthService = (
       resolveAuthBaseUrl({
         ...options,
         request: currentRequest,
+        serverAuthBaseUrl:
+          options.serverAuthBaseUrl ??
+          (typeof process === "undefined"
+            ? undefined
+            : process.env.SERVER_AUTH_BASE_URL),
       })
     ).toString(),
     {
