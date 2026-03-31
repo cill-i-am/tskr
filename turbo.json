@@ -2,6 +2,19 @@
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
   "globalDependencies": ["pnpm-workspace.yaml"],
+  "globalPassThroughEnv": [
+    "BETTER_AUTH_SECRET",
+    "BETTER_AUTH_TRUSTED_ORIGINS",
+    "BETTER_AUTH_URL",
+    "DATABASE_URL",
+    "EMAIL_FROM",
+    "EMAIL_PROVIDER",
+    "NODE_ENV",
+    "PORT",
+    "PORTLESS",
+    "VITE_AUTH_BASE_URL",
+    "WEB_BASE_URL"
+  ],
   "tasks": {
     "check": {
       "inputs": [
@@ -25,6 +38,9 @@
     "dev": {
       "cache": false
     },
+    "dev:sandbox": {
+      "cache": false
+    },
     "db:ensure": {
       "cache": false
     },
@@ -39,10 +55,25 @@
       "persistent": true,
       "with": ["@workspace/ui#dev"]
     },
+    "web#dev:sandbox": {
+      "cache": false,
+      "persistent": true,
+      "with": ["@workspace/ui#dev"]
+    },
+    "api#dev:sandbox": {
+      "cache": false,
+      "persistent": true,
+      "with": ["@workspace/db#dev"]
+    },
     "auth#dev": {
       "cache": false,
       "persistent": true,
       "with": ["@workspace/email#dev"]
+    },
+    "auth#dev:sandbox": {
+      "cache": false,
+      "persistent": true,
+      "with": ["@workspace/db#dev", "@workspace/email#dev"]
     }
   }
 }

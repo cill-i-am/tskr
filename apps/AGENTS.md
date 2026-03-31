@@ -14,6 +14,15 @@ applications under `apps/*`.
 
 - Keep app-specific infrastructure, deploy config, and runtime entrypoints with
   the app that owns them.
+- Prefer the Docker Compose sandbox workflow for app development when the task
+  touches runtime behavior, environment wiring, multiple app services, or any
+  cross-app integration path.
+- When working from a git worktree or through subagents, prefer `pnpm sandbox`
+  over direct `pnpm dev*` commands. Sandboxes are the preferred workflow there
+  because they are the only reliable way to guarantee a clean, isolated app
+  instance per workspace.
+- Direct `pnpm dev*` workflows remain valid for narrow single-app or package
+  loops where sandbox isolation is not needed.
 - Keep app-owned adapters around the shared sync and command architecture local
   to the app that exposes them instead of pushing runtime concerns into
   `packages/*`.

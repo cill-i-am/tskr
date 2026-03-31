@@ -1,0 +1,103 @@
+import { mkdtemp, readFile, rm } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+
+import { Effect } from "effect"
+
+import {
+  createSandboxState,
+  listSandboxStates,
+  loadSandboxState,
+} from "./store.js"
+
+describe("sandbox store", () => {
+  it("creates sandbox state with local and hosted env files", async () => {
+    const rootDirectory = await mkdtemp(join(tmpdir(), "tskr-sandbox-store-"))
+
+    try {
+      const state = await Effect.runPromise(
+        createSandboxState({
+          emailFrom: "TSKR <noreply@localhost>",
+          hostedDomainRoot: "sandboxes.example.com",
+          name: "Feature Review 12",
+          repositoryRoot: rootDirectory,
+        })
+      )
+
+      expect(state.identity.slug).toBe("feature-review-12")
+
+      const sandboxJson = await readFile(
+        join(rootDirectory, ".sandbox", "feature-review-12", "sandbox.json"),
+        "utf8"
+      )
+      const localComposeEnv = await readFile(
+        join(
+          rootDirectory,
+          ".sandbox",
+          "feature-review-12",
+          "local",
+          "compose.env"
+        ),
+        "utf8"
+      )
+      const hostedAuthEnv = await readFile(
+        join(
+          rootDirectory,
+          ".sandbox",
+          "feature-review-12",
+          "hosted",
+          "auth.env"
+        ),
+        "utf8"
+      )
+
+      expect(sandboxJson).toContain('"slug": "feature-review-12"')
+      expect(localComposeEnv).toContain("SANDBOX_MODE=local")
+      expect(hostedAuthEnv).toContain(
+        "BETTER_AUTH_URL=https://auth.feature-review-12.sandboxes.example.com"
+      )
+    } finally {
+      await rm(rootDirectory, {
+        force: true,
+        recursive: true,
+      })
+    }
+  })
+
+  it("loads and lists saved sandbox state", async () => {
+    const rootDirectory = await mkdtemp(join(tmpdir(), "tskr-sandbox-store-"))
+
+    try {
+      await Effect.runPromise(
+        createSandboxState({
+          emailFrom: "TSKR <noreply@localhost>",
+          hostedDomainRoot: "sandboxes.example.com",
+          name: "Feature Review 12",
+          repositoryRoot: rootDirectory,
+        })
+      )
+
+      const loaded = await Effect.runPromise(
+        loadSandboxState({
+          name: "Feature Review 12",
+          repositoryRoot: rootDirectory,
+        })
+      )
+      const listed = await Effect.runPromise(
+        listSandboxStates({
+          repositoryRoot: rootDirectory,
+        })
+      )
+
+      expect(loaded.identity.slug).toBe("feature-review-12")
+      expect(
+        listed.map((sandbox: Awaited<typeof loaded>) => sandbox.identity.slug)
+      ).toStrictEqual(["feature-review-12"])
+    } finally {
+      await rm(rootDirectory, {
+        force: true,
+        recursive: true,
+      })
+    }
+  })
+})
