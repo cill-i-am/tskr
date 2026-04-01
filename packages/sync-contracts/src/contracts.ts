@@ -9,7 +9,7 @@ const syncContractsWorkspaceRoleSchema = Schema.Literal(
 )
 
 const syncContractsSyncConfirmationSchema = Schema.Struct({
-  txid: Schema.String,
+  txid: Schema.Number,
 })
 
 const syncContractsWorkspaceInviteSchema = Schema.Struct({

@@ -47,7 +47,7 @@ import type {
 
 const role: SyncContractsWorkspaceRole = "dispatcher"
 const syncConfirmation: SyncContractsSyncConfirmation = {
-  txid: "tx-123",
+  txid: 123,
 }
 
 const workspaceInvite: SyncContractsWorkspaceInvite = {

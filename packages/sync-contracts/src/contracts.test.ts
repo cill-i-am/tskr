@@ -47,12 +47,9 @@ test("workspace role schema accepts the proving-slice roles", () => {
 })
 
 test("sync confirmation and mutation error schemas parse", () => {
-  assert.deepEqual(
-    decode(syncContractsSyncConfirmationSchema, { txid: "tx-123" }),
-    {
-      txid: "tx-123",
-    }
-  )
+  assert.deepEqual(decode(syncContractsSyncConfirmationSchema, { txid: 123 }), {
+    txid: 123,
+  })
   assert.deepEqual(
     decode(syncContractsInvalidRequestErrorSchema, {
       message: "Role is invalid.",
@@ -124,7 +121,7 @@ test("create workspace invite path, payload, and response schemas parse", () => 
       workspaceId: "workspace-123",
     },
     syncConfirmation: {
-      txid: "tx-123",
+      txid: 123,
     },
   })
 
@@ -146,7 +143,7 @@ test("create workspace invite path, payload, and response schemas parse", () => 
       workspaceId: "workspace-123",
     },
     syncConfirmation: {
-      txid: "tx-123",
+      txid: 123,
     },
   })
 })
@@ -180,7 +177,7 @@ test("workspace mutation path, payload, and response schemas parse", () => {
     {
       inviteId: "invite-1",
       syncConfirmation: {
-        txid: "tx-124",
+        txid: 124,
       },
       workspaceId: "workspace-123",
     }
@@ -190,7 +187,7 @@ test("workspace mutation path, payload, and response schemas parse", () => {
     {
       inviteId: "invite-1",
       syncConfirmation: {
-        txid: "tx-125",
+        txid: 125,
       },
       workspaceId: "workspace-123",
     }
@@ -200,7 +197,7 @@ test("workspace mutation path, payload, and response schemas parse", () => {
     {
       memberId: "member-1",
       syncConfirmation: {
-        txid: "tx-126",
+        txid: 126,
       },
       workspaceId: "workspace-123",
     }
@@ -211,7 +208,7 @@ test("workspace mutation path, payload, and response schemas parse", () => {
       memberId: "member-1",
       role: "dispatcher",
       syncConfirmation: {
-        txid: "tx-127",
+        txid: 127,
       },
       workspaceId: "workspace-123",
     }
@@ -239,21 +236,21 @@ test("workspace mutation path, payload, and response schemas parse", () => {
   assert.deepEqual(resendResponse, {
     inviteId: "invite-1",
     syncConfirmation: {
-      txid: "tx-124",
+      txid: 124,
     },
     workspaceId: "workspace-123",
   })
   assert.deepEqual(revokeResponse, {
     inviteId: "invite-1",
     syncConfirmation: {
-      txid: "tx-125",
+      txid: 125,
     },
     workspaceId: "workspace-123",
   })
   assert.deepEqual(removeResponse, {
     memberId: "member-1",
     syncConfirmation: {
-      txid: "tx-126",
+      txid: 126,
     },
     workspaceId: "workspace-123",
   })
@@ -261,7 +258,7 @@ test("workspace mutation path, payload, and response schemas parse", () => {
     memberId: "member-1",
     role: "dispatcher",
     syncConfirmation: {
-      txid: "tx-127",
+      txid: 127,
     },
     workspaceId: "workspace-123",
   })
