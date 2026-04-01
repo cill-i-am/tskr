@@ -180,7 +180,6 @@ const createWorkspaceContext = (workspaceId: string) =>
     resources: {
       workspace: `/api/sync/workspaces/${workspaceId}/shapes/workspace`,
       workspaceInvites: `/api/sync/workspaces/${workspaceId}/shapes/workspace-invites`,
-      workspaceMemberUsers: `/api/sync/workspaces/${workspaceId}/shapes/workspace-member-users`,
       workspaceMembers: `/api/sync/workspaces/${workspaceId}/shapes/workspace-members`,
     },
     userId: "user-123",
@@ -192,6 +191,16 @@ const createWorkspaceContext = (workspaceId: string) =>
       slug: "ops-control",
     },
   })
+
+const defaultMemberProfiles = [
+  {
+    email: "owner@example.com",
+    id: "member-owner",
+    image: null,
+    name: "Owner User",
+    userId: "user-123",
+  },
+]
 
 const getShape = (resourceSuffix: string) =>
   electricClientMock.shapeInstances.find((shape) =>
@@ -290,19 +299,18 @@ describe("workspace people sync provider", () => {
     })
 
     render(
-      <WorkspacePeopleSyncProvider workspaceId="workspace-123">
+      <WorkspacePeopleSyncProvider
+        memberProfiles={defaultMemberProfiles}
+        workspaceId="workspace-123"
+      >
         <WorkspacePeopleSyncProbe />
       </WorkspacePeopleSyncProvider>
     )
 
     await waitFor(() => {
-      expect(electricClientMock.shapeInstances).toHaveLength(3)
+      expect(electricClientMock.shapeInstances).toHaveLength(2)
     })
 
-    resolveShapeRows(
-      "/api/sync/workspaces/workspace-123/shapes/workspace-member-users",
-      []
-    )
     resolveShapeRows(
       "/api/sync/workspaces/workspace-123/shapes/workspace-members",
       []
@@ -330,26 +338,18 @@ describe("workspace people sync provider", () => {
     })
 
     render(
-      <WorkspacePeopleSyncProvider workspaceId="workspace-123">
+      <WorkspacePeopleSyncProvider
+        memberProfiles={defaultMemberProfiles}
+        workspaceId="workspace-123"
+      >
         <WorkspacePeopleSyncProbe />
       </WorkspacePeopleSyncProvider>
     )
 
     await waitFor(() => {
-      expect(electricClientMock.shapeInstances).toHaveLength(3)
+      expect(electricClientMock.shapeInstances).toHaveLength(2)
     })
 
-    resolveShapeRows(
-      "/api/sync/workspaces/workspace-123/shapes/workspace-member-users",
-      [
-        {
-          email: "live-owner@example.com",
-          id: "user-123",
-          image: null,
-          name: "Live Owner",
-        },
-      ]
-    )
     resolveShapeRows(
       "/api/sync/workspaces/workspace-123/shapes/workspace-members",
       [
@@ -379,16 +379,11 @@ describe("workspace people sync provider", () => {
       expect(screen.getByTestId("status").textContent).toBe("ready")
     })
 
+    expect(screen.getByTestId("members").textContent).toBe("Owner User")
+
     emitShapeRows(
-      "/api/sync/workspaces/workspace-123/shapes/workspace-member-users",
-      [
-        {
-          email: "live-owner@example.com",
-          id: "user-123",
-          image: null,
-          name: "Live Owner Updated",
-        },
-      ]
+      "/api/sync/workspaces/workspace-123/shapes/workspace-members",
+      []
     )
     emitShapeRows(
       "/api/sync/workspaces/workspace-123/shapes/workspace-invites",
@@ -396,9 +391,7 @@ describe("workspace people sync provider", () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByTestId("members").textContent).toBe(
-        "Live Owner Updated"
-      )
+      expect(screen.getByTestId("members").textContent).toBe("none")
     })
 
     expect(screen.getByTestId("invites").textContent).toBe("none")
@@ -411,26 +404,17 @@ describe("workspace people sync provider", () => {
     })
 
     render(
-      <WorkspacePeopleSyncProvider workspaceId="workspace-123">
+      <WorkspacePeopleSyncProvider
+        memberProfiles={defaultMemberProfiles}
+        workspaceId="workspace-123"
+      >
         <WorkspacePeopleSyncProbe />
       </WorkspacePeopleSyncProvider>
     )
 
     await waitFor(() => {
-      expect(electricClientMock.shapeInstances).toHaveLength(3)
+      expect(electricClientMock.shapeInstances).toHaveLength(2)
     })
-
-    resolveShapeRows(
-      "/api/sync/workspaces/workspace-123/shapes/workspace-member-users",
-      [
-        {
-          email: "live-owner@example.com",
-          id: "user-123",
-          image: null,
-          name: "Live Owner",
-        },
-      ]
-    )
 
     expect(screen.getByTestId("status").textContent).toBe("loading")
     expect(screen.getByTestId("members").textContent).toBe("none")
@@ -455,7 +439,7 @@ describe("workspace people sync provider", () => {
     await waitFor(() => {
       expect(screen.getByTestId("status").textContent).toBe("ready")
     })
-    expect(screen.getByTestId("members").textContent).toBe("Live Owner")
+    expect(screen.getByTestId("members").textContent).toBe("Owner User")
   })
 
   it("keeps a stale refresh from overwriting the next workspace after a switch", async () => {
@@ -463,7 +447,10 @@ describe("workspace people sync provider", () => {
     const contextFetchMock = createDeferredContextFetchMock()
 
     const { rerender } = render(
-      <WorkspacePeopleSyncProvider workspaceId="workspace-123">
+      <WorkspacePeopleSyncProvider
+        memberProfiles={defaultMemberProfiles}
+        workspaceId="workspace-123"
+      >
         <WorkspacePeopleSyncProbe />
       </WorkspacePeopleSyncProvider>
     )
@@ -476,13 +463,9 @@ describe("workspace people sync provider", () => {
     })
 
     await waitFor(() => {
-      expect(electricClientMock.shapeInstances).toHaveLength(3)
+      expect(electricClientMock.shapeInstances).toHaveLength(2)
     })
 
-    resolveShapeRows(
-      "/api/sync/workspaces/workspace-123/shapes/workspace-member-users",
-      []
-    )
     resolveShapeRows(
       "/api/sync/workspaces/workspace-123/shapes/workspace-members",
       []
@@ -503,7 +486,10 @@ describe("workspace people sync provider", () => {
     })
 
     rerender(
-      <WorkspacePeopleSyncProvider workspaceId="workspace-456">
+      <WorkspacePeopleSyncProvider
+        memberProfiles={defaultMemberProfiles}
+        workspaceId="workspace-456"
+      >
         <WorkspacePeopleSyncProbe />
       </WorkspacePeopleSyncProvider>
     )
@@ -516,13 +502,9 @@ describe("workspace people sync provider", () => {
     })
 
     await waitFor(() => {
-      expect(electricClientMock.shapeInstances).toHaveLength(6)
+      expect(electricClientMock.shapeInstances).toHaveLength(4)
     })
 
-    resolveShapeRows(
-      "/api/sync/workspaces/workspace-456/shapes/workspace-member-users",
-      []
-    )
     resolveShapeRows(
       "/api/sync/workspaces/workspace-456/shapes/workspace-members",
       []
@@ -554,7 +536,10 @@ describe("workspace people sync provider", () => {
     const fetchMock = vi.spyOn(globalThis, "fetch")
 
     render(
-      <WorkspacePeopleSyncProvider workspaceId={null}>
+      <WorkspacePeopleSyncProvider
+        memberProfiles={defaultMemberProfiles}
+        workspaceId={null}
+      >
         <WorkspacePeopleSyncProbe />
       </WorkspacePeopleSyncProvider>
     )

@@ -164,7 +164,6 @@ test("replaces stale snapshot rows with live sync rows on the people settings ro
           resources: {
             workspace: `/api/sync/workspaces/${owner.workspaceId}/shapes/workspace`,
             workspaceInvites: `/api/sync/workspaces/${owner.workspaceId}/shapes/workspace-invites`,
-            workspaceMemberUsers: `/api/sync/workspaces/${owner.workspaceId}/shapes/workspace-member-users`,
             workspaceMembers: `/api/sync/workspaces/${owner.workspaceId}/shapes/workspace-members`,
           },
           userId: owner.userId,
@@ -185,49 +184,6 @@ test("replaces stale snapshot rows with live sync rows on the people settings ro
       const { origin } = route.request().headers()
       const { pathname } = new URL(route.request().url())
 
-      if (pathname.endsWith("/workspace-member-users")) {
-        await route.fulfill({
-          body: JSON.stringify([
-            {
-              headers: {
-                operation: "insert",
-              },
-              key: owner.userId,
-              value: {
-                email: owner.email,
-                id: owner.userId,
-                image: null,
-                name: owner.name,
-              },
-            },
-            {
-              headers: {
-                operation: "insert",
-              },
-              key: "user-live",
-              value: {
-                email: "live-member@example.com",
-                id: "user-live",
-                image: null,
-                name: "Live Member",
-              },
-            },
-            {
-              headers: {
-                control: "up-to-date",
-              },
-            },
-          ]),
-          contentType: "application/json",
-          headers: createElectricShapeHeaders({
-            handle: "workspace-member-users-shape",
-            offset: "0_0",
-            origin,
-          }),
-        })
-        return
-      }
-
       if (pathname.endsWith("/workspace-members")) {
         await route.fulfill({
           body: JSON.stringify([
@@ -245,18 +201,6 @@ test("replaces stale snapshot rows with live sync rows on the people settings ro
             },
             {
               headers: {
-                operation: "insert",
-              },
-              key: "member-live",
-              value: {
-                id: "member-live",
-                organization_id: owner.workspaceId,
-                role: "dispatcher",
-                user_id: "user-live",
-              },
-            },
-            {
-              headers: {
                 control: "up-to-date",
               },
             },
@@ -264,7 +208,7 @@ test("replaces stale snapshot rows with live sync rows on the people settings ro
           contentType: "application/json",
           headers: createElectricShapeHeaders({
             handle: "workspace-members-shape",
-            offset: "0_1",
+            offset: "0_0",
             origin,
           }),
         })
@@ -297,7 +241,7 @@ test("replaces stale snapshot rows with live sync rows on the people settings ro
           contentType: "application/json",
           headers: createElectricShapeHeaders({
             handle: "workspace-invites-shape",
-            offset: "0_2",
+            offset: "0_1",
             origin,
           }),
         })
@@ -313,11 +257,6 @@ test("replaces stale snapshot rows with live sync rows on the people settings ro
   await peopleSettingsPage.goto()
   await peopleSettingsPage.expectLoaded()
 
-  await expect(
-    page.locator("tr").filter({
-      hasText: "Live Member",
-    })
-  ).toBeVisible()
   await peopleSettingsPage.members.expectMissing("Snapshot Member")
   await peopleSettingsPage.invites.expectInvite("live-invite@example.com")
   await peopleSettingsPage.invites.expectInviteRemoved(staleInviteEmail)

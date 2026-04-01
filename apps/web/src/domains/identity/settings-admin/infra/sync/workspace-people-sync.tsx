@@ -1,4 +1,7 @@
-import type { SettingsAdminWorkspaceRole } from "@/domains/identity/settings-admin/contracts/settings-admin-contract"
+import type {
+  SettingsAdminMember,
+  SettingsAdminWorkspaceRole,
+} from "@/domains/identity/settings-admin/contracts/settings-admin-contract"
 import {
   fetchApiService,
   resolveApiBaseUrl,
@@ -21,7 +24,6 @@ interface WorkspacePeopleSyncContextResponse {
   resources: {
     workspace: string
     workspaceInvites: string
-    workspaceMemberUsers: string
     workspaceMembers: string
   }
   userId: string
@@ -36,10 +38,6 @@ interface WorkspacePeopleSyncContextResponse {
 
 interface WorkspacePeopleSyncCollections {
   invites: {
-    id: string
-    resource: string
-  }
-  memberUsers: {
     id: string
     resource: string
   }
@@ -93,6 +91,7 @@ interface WorkspacePeopleSyncValue {
 
 interface WorkspacePeopleSyncProviderProps {
   children: React.ReactNode
+  memberProfiles?: WorkspacePeopleSyncMemberProfile[]
   workspaceId: string | null
 }
 
@@ -101,13 +100,6 @@ interface WorkspaceMemberRow {
   organization_id: string
   role: SettingsAdminWorkspaceRole
   user_id: string
-}
-
-interface WorkspaceMemberUserRow {
-  email: string
-  id: string
-  image: string | null
-  name: string
 }
 
 interface WorkspaceInviteRow {
@@ -124,11 +116,15 @@ interface WorkspacePeopleSyncController {
   readCurrentData: () => LoadedWorkspacePeopleSyncData
 }
 
+type WorkspacePeopleSyncMemberProfile = Pick<
+  SettingsAdminMember,
+  "email" | "id" | "image" | "name" | "userId"
+>
+
 const workspacePeopleSyncContextResponseSchema = Schema.Struct({
   resources: Schema.Struct({
     workspace: Schema.String,
     workspaceInvites: Schema.String,
-    workspaceMemberUsers: Schema.String,
     workspaceMembers: Schema.String,
   }),
   userId: Schema.String,
@@ -150,10 +146,6 @@ const createWorkspacePeopleCollections = (
   invites: {
     id: `workspace-invites:${syncContext.workspace.id}`,
     resource: syncContext.resources.workspaceInvites,
-  },
-  memberUsers: {
-    id: `workspace-member-users:${syncContext.workspace.id}`,
-    resource: syncContext.resources.workspaceMemberUsers,
   },
   members: {
     id: `workspace-members:${syncContext.workspace.id}`,
@@ -181,35 +173,29 @@ const describeWorkspacePeopleSyncError = (
 
 const buildWorkspaceMembers = ({
   memberRows,
-  memberUsers,
+  memberProfiles,
   userId,
 }: {
+  memberProfiles: WorkspacePeopleSyncMemberProfile[]
   memberRows: WorkspaceMemberRow[]
-  memberUsers: WorkspaceMemberUserRow[]
   userId: string
 }): WorkspacePeopleSyncMember[] => {
-  const memberUsersById = new Map(
-    memberUsers.map((memberUser) => [memberUser.id, memberUser])
+  const memberProfilesByUserId = new Map(
+    memberProfiles.map((memberProfile) => [memberProfile.userId, memberProfile])
   )
 
-  return memberRows.flatMap((memberRow) => {
-    const memberUser = memberUsersById.get(memberRow.user_id)
+  return memberRows.map((memberRow) => {
+    const memberProfile = memberProfilesByUserId.get(memberRow.user_id)
 
-    if (!memberUser) {
-      return []
+    return {
+      email: memberProfile?.email ?? memberRow.user_id,
+      id: memberRow.id,
+      image: memberProfile?.image ?? null,
+      isCurrentUser: memberRow.user_id === userId,
+      name: memberProfile?.name ?? "Unknown member",
+      role: memberRow.role,
+      userId: memberRow.user_id,
     }
-
-    return [
-      {
-        email: memberUser.email,
-        id: memberRow.id,
-        image: memberUser.image,
-        isCurrentUser: memberUser.id === userId,
-        name: memberUser.name,
-        role: memberRow.role,
-        userId: memberUser.id,
-      },
-    ]
   })
 }
 
@@ -269,10 +255,12 @@ const createWorkspaceShape = <A extends { id: string }>({
 }
 
 const createWorkspacePeopleSyncController = async ({
+  memberProfiles,
   onData,
   onError,
   syncContext,
 }: {
+  memberProfiles: WorkspacePeopleSyncMemberProfile[]
   onData: (nextData: LoadedWorkspacePeopleSyncData) => void
   onError: (nextError: unknown) => void
   syncContext: WorkspacePeopleSyncContextResponse
@@ -281,11 +269,6 @@ const createWorkspacePeopleSyncController = async ({
     onError,
     resource: syncContext.resources.workspaceInvites,
   })
-  const workspaceMemberUsersShape =
-    createWorkspaceShape<WorkspaceMemberUserRow>({
-      onError,
-      resource: syncContext.resources.workspaceMemberUsers,
-    })
   const workspaceMembersShape = createWorkspaceShape<WorkspaceMemberRow>({
     onError,
     resource: syncContext.resources.workspaceMembers,
@@ -294,8 +277,8 @@ const createWorkspacePeopleSyncController = async ({
   const readCurrentData = (): LoadedWorkspacePeopleSyncData => ({
     invites: buildWorkspaceInvites(workspaceInvitesShape.shape.currentRows),
     members: buildWorkspaceMembers({
+      memberProfiles,
       memberRows: workspaceMembersShape.shape.currentRows,
-      memberUsers: workspaceMemberUsersShape.shape.currentRows,
       userId: syncContext.userId,
     }),
     syncContext,
@@ -312,14 +295,12 @@ const createWorkspacePeopleSyncController = async ({
 
   const unsubscribers = [
     workspaceInvitesShape.shape.subscribe(publishCurrentData),
-    workspaceMemberUsersShape.shape.subscribe(publishCurrentData),
     workspaceMembersShape.shape.subscribe(publishCurrentData),
   ]
 
   try {
     await Promise.all([
       workspaceInvitesShape.shape.rows,
-      workspaceMemberUsersShape.shape.rows,
       workspaceMembersShape.shape.rows,
     ])
     hasLoadedInitialRows = true
@@ -328,7 +309,6 @@ const createWorkspacePeopleSyncController = async ({
       unsubscribe()
     }
     workspaceInvitesShape.dispose()
-    workspaceMemberUsersShape.dispose()
     workspaceMembersShape.dispose()
     throw nextError
   }
@@ -339,7 +319,6 @@ const createWorkspacePeopleSyncController = async ({
         unsubscribe()
       }
       workspaceInvitesShape.dispose()
-      workspaceMemberUsersShape.dispose()
       workspaceMembersShape.dispose()
     },
     readCurrentData,
@@ -348,6 +327,7 @@ const createWorkspacePeopleSyncController = async ({
 
 const WorkspacePeopleSyncProvider = ({
   children,
+  memberProfiles = [],
   workspaceId,
 }: WorkspacePeopleSyncProviderProps) => {
   const [syncContext, setSyncContext] =
@@ -396,6 +376,7 @@ const WorkspacePeopleSyncProvider = ({
         }
 
         const controller = await createWorkspacePeopleSyncController({
+          memberProfiles,
           onData: (nextData) => {
             if (sessionRef.current !== sessionId) {
               return
@@ -481,7 +462,7 @@ const WorkspacePeopleSyncProvider = ({
       controllerRef.current?.dispose()
       controllerRef.current = null
     }
-  }, [workspaceId])
+  }, [memberProfiles, workspaceId])
 
   const mutations = useMemo(() => createWorkspacePeopleSyncMutationClient(), [])
 
@@ -530,6 +511,7 @@ export type {
   WorkspacePeopleSyncContextResponse,
   WorkspacePeopleSyncInvite,
   WorkspacePeopleSyncMember,
+  WorkspacePeopleSyncMemberProfile,
   WorkspacePeopleSyncStatus,
   WorkspacePeopleSyncValue,
 }

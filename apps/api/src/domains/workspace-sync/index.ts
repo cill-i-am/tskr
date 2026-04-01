@@ -127,7 +127,21 @@ const buildContextResourcePaths = (workspaceId: string) => ({
 const getAuthForwardedHeaders = (headers: Headers) => {
   const forwardedHeaders = new Headers()
 
-  for (const headerName of ["accept", "cookie", "if-none-match"]) {
+  for (const headerName of ["cookie"]) {
+    const value = headers.get(headerName)
+
+    if (value) {
+      forwardedHeaders.set(headerName, value)
+    }
+  }
+
+  return forwardedHeaders
+}
+
+const getElectricForwardedHeaders = (headers: Headers) => {
+  const forwardedHeaders = new Headers()
+
+  for (const headerName of ["accept", "if-none-match"]) {
     const value = headers.get(headerName)
 
     if (value) {

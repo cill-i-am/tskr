@@ -119,6 +119,8 @@ describe("api app", () => {
           expect(new Headers(init?.headers).get("cookie")).toBe(
             "session=workspace-session"
           )
+          expect(new Headers(init?.headers).get("accept")).toBeNull()
+          expect(new Headers(init?.headers).get("if-none-match")).toBeNull()
 
           return createJsonResponse({
             accountProfile: {
@@ -153,6 +155,13 @@ describe("api app", () => {
         expect(shapeUrl.searchParams.get("secret")).toBe("electric-secret")
         expect(shapeUrl.searchParams.get("where")).not.toBe("1=1")
         expect(shapeUrl.searchParams.get("table")).not.toBe("auth.user")
+        expect(new Headers(init?.headers).get("accept")).toBe(
+          "application/json"
+        )
+        expect(new Headers(init?.headers).get("cookie")).toBeNull()
+        expect(new Headers(init?.headers).get("if-none-match")).toBe(
+          '"workspace-members-etag"'
+        )
 
         return new Response('[{"headers":{"operation":"up-to-date"}}]', {
           headers: {
@@ -171,6 +180,7 @@ describe("api app", () => {
         headers: {
           accept: "application/json",
           cookie: "session=workspace-session",
+          "if-none-match": '"workspace-members-etag"',
         },
       }
     )

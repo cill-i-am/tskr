@@ -417,7 +417,6 @@ const createSyncValue = (snapshot: SettingsAdminSnapshot) => {
       resources: {
         workspace: `/api/sync/workspaces/${workspaceId}/shapes/workspace`,
         workspaceInvites: `/api/sync/workspaces/${workspaceId}/shapes/workspace-invites`,
-        workspaceMemberUsers: `/api/sync/workspaces/${workspaceId}/shapes/workspace-member-users`,
         workspaceMembers: `/api/sync/workspaces/${workspaceId}/shapes/workspace-members`,
       },
       userId: currentUser.userId,

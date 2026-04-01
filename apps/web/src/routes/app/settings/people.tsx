@@ -30,7 +30,10 @@ const PeopleSettingsRoute = () => {
   }
 
   return (
-    <WorkspacePeopleSyncProvider workspaceId={snapshot.workspaceProfile.id}>
+    <WorkspacePeopleSyncProvider
+      memberProfiles={snapshot.members}
+      workspaceId={snapshot.workspaceProfile.id}
+    >
       <PeopleSettingsPage snapshot={snapshot} />
     </WorkspacePeopleSyncProvider>
   )

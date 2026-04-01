@@ -1,4 +1,4 @@
-/* oxlint-disable jest/max-expects, jest/no-conditional-in-test, require-await, unicorn/prefer-response-static-json */
+/* oxlint-disable jest/max-expects, jest/no-conditional-expect, jest/no-conditional-in-test, require-await, unicorn/prefer-response-static-json */
 import type { HTTPException } from "hono/http-exception"
 
 import { createWorkspaceSyncService } from "./index.js"
@@ -14,26 +14,31 @@ const createJsonResponse = (body: unknown, init?: ResponseInit) =>
 
 describe("workspace sync service", () => {
   it("derives sync context from the auth-owned workspace settings snapshot", async () => {
-    const fetchMock = vi.fn(async (input: Request | string | URL) => {
-      const url = input instanceof URL ? input : new URL(input.toString())
+    const fetchMock = vi.fn(
+      async (input: Request | string | URL, init?: RequestInit) => {
+        const url = input instanceof URL ? input : new URL(input.toString())
 
-      expect(url.toString()).toBe(
-        "http://auth.internal/api/workspaces/ws_123/settings"
-      )
+        expect(url.toString()).toBe(
+          "http://auth.internal/api/workspaces/ws_123/settings"
+        )
+        expect(new Headers(init?.headers).get("cookie")).toBe("session=abc")
+        expect(new Headers(init?.headers).get("accept")).toBeNull()
+        expect(new Headers(init?.headers).get("if-none-match")).toBeNull()
 
-      return createJsonResponse({
-        accountProfile: {
-          id: "user_1",
-        },
-        viewerRole: "owner",
-        workspaceProfile: {
-          id: "ws_123",
-          logo: null,
-          name: "Acme Field Services",
-          slug: "acme-field-services",
-        },
-      })
-    })
+        return createJsonResponse({
+          accountProfile: {
+            id: "user_1",
+          },
+          viewerRole: "owner",
+          workspaceProfile: {
+            id: "ws_123",
+            logo: null,
+            name: "Acme Field Services",
+            slug: "acme-field-services",
+          },
+        })
+      }
+    )
     const service = createWorkspaceSyncService({
       authBaseUrl: "http://auth.internal",
       electricBaseUrl: "http://electric.internal",
@@ -122,15 +127,14 @@ describe("workspace sync service", () => {
   })
 
   it("builds members shape requests with server-owned table and where clauses", async () => {
-    let authRequestCookie: string | null = null
-    let electricRequestCookie: string | null = null
-
     const fetchMock = vi.fn(
       async (input: Request | string | URL, init?: RequestInit) => {
         const url = input instanceof URL ? input : new URL(input.toString())
 
         if (url.pathname === "/api/workspaces/ws_123/settings") {
-          authRequestCookie = new Headers(init?.headers).get("cookie")
+          expect(new Headers(init?.headers).get("cookie")).toBe("session=abc")
+          expect(new Headers(init?.headers).get("accept")).toBeNull()
+          expect(new Headers(init?.headers).get("if-none-match")).toBeNull()
 
           return createJsonResponse({
             accountProfile: {
@@ -160,7 +164,10 @@ describe("workspace sync service", () => {
         expect(new Headers(init?.headers).get("accept")).toBe(
           "application/json"
         )
-        electricRequestCookie = new Headers(init?.headers).get("cookie")
+        expect(new Headers(init?.headers).get("cookie")).toBeNull()
+        expect(new Headers(init?.headers).get("if-none-match")).toBe(
+          '"workspace-members-etag"'
+        )
 
         return createJsonResponse({
           rows: [],
@@ -177,6 +184,7 @@ describe("workspace sync service", () => {
       headers: new Headers({
         accept: "application/json",
         cookie: "session=abc",
+        "if-none-match": '"workspace-members-etag"',
       }),
       query: new URLSearchParams("live=true&offset=-1"),
       resource: "workspace-members",
@@ -185,8 +193,6 @@ describe("workspace sync service", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(2)
     expect(response.status).toBe(200)
-    expect(authRequestCookie).toBe("session=abc")
-    expect(electricRequestCookie).toBeNull()
     await expect(response.json()).resolves.toStrictEqual({
       rows: [],
     })
@@ -219,7 +225,6 @@ describe("workspace sync service", () => {
 
     vi.unstubAllEnvs()
   })
-
   it("rejects unsupported shape resources before reaching Electric", async () => {
     const fetchMock = vi.fn()
     const service = createWorkspaceSyncService({
