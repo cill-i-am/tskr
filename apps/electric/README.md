@@ -36,7 +36,7 @@ Required and expected environment:
 
 Hosted Railway expectations:
 
-- The Electric service should use `/apps/electric/railway.toml` as its config
+- The Electric service should use `apps/electric/railway.toml` as its config
   file path in Railway.
 - The service should be built with the Dockerfile builder and
   `apps/electric/Dockerfile` as the Dockerfile path.

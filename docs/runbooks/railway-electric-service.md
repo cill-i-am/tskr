@@ -7,12 +7,12 @@ Railway.
 
 1. Create the service inside the existing product Railway project.
 1. Set the service name to `electric`.
-1. In the service settings, point Railway at `/apps/electric/railway.toml`.
+1. In the service settings, point Railway at `apps/electric/railway.toml`.
 1. Confirm the service is using the Dockerfile builder and the
    `apps/electric/Dockerfile` path from the config file.
 
 Railway does not auto-discover subpath manifests, so the config file path must
-be set explicitly.
+be set explicitly. Use the repo-relative path without a leading slash.
 
 ## Configure Runtime
 
@@ -75,7 +75,7 @@ If the Electric volume is replaced:
 
 ## What Good Looks Like
 
-- The service has a config file path of `/apps/electric/railway.toml`.
+- The service has a config file path of `apps/electric/railway.toml`.
 - The service uses the Dockerfile builder and the repo-owned Electric image
   wrapper.
 - The service passes health checks on `/v1/health`.

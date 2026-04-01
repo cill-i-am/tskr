@@ -218,8 +218,8 @@ Required in Railway for `electric`:
 
 Electric service expectations in Railway:
 
-- Configure the service to use `/apps/electric/railway.toml` as its config
-  file path.
+- Configure the service to use `apps/electric/railway.toml` as its config file
+  path in Railway.
 - Keep the service listening on port `3000`, which matches the pinned
   `ELECTRIC_PORT=3000` in `apps/electric/Dockerfile`, and set Railway's `PORT`
   variable to the same value so routing and health checks target the right
