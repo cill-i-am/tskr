@@ -41,6 +41,9 @@ importers:
       '@workspace/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@workspace/sync-contracts':
+        specifier: workspace:*
+        version: link:../../packages/sync-contracts
       hono:
         specifier: ^4.12.8
         version: 4.12.8

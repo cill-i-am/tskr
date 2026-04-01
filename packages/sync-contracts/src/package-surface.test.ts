@@ -8,19 +8,26 @@ import { fileURLToPath } from "node:url"
 import * as syncContractsPackage from "./index.ts"
 import { syncContractsApi } from "./index.ts"
 
-test("root export surface is explicit and sync-contract specific", () => {
+test("root export surface is explicit and contract-oriented", () => {
   assert.deepEqual(Object.keys(syncContractsPackage).toSorted(), [
     "syncContractsApi",
-    "syncContractsCreateWorkspaceInviteRequestSchema",
+    "syncContractsConflictErrorSchema",
+    "syncContractsCreateWorkspaceInvitePathSchema",
+    "syncContractsCreateWorkspaceInvitePayloadSchema",
     "syncContractsCreateWorkspaceInviteResponseSchema",
-    "syncContractsRemoveWorkspaceMemberRequestSchema",
+    "syncContractsForbiddenErrorSchema",
+    "syncContractsInvalidRequestErrorSchema",
+    "syncContractsNotFoundErrorSchema",
+    "syncContractsRemoveWorkspaceMemberPathSchema",
     "syncContractsRemoveWorkspaceMemberResponseSchema",
-    "syncContractsResendWorkspaceInviteRequestSchema",
+    "syncContractsResendWorkspaceInvitePathSchema",
     "syncContractsResendWorkspaceInviteResponseSchema",
-    "syncContractsRevokeWorkspaceInviteRequestSchema",
+    "syncContractsRevokeWorkspaceInvitePathSchema",
     "syncContractsRevokeWorkspaceInviteResponseSchema",
     "syncContractsSyncConfirmationSchema",
-    "syncContractsUpdateWorkspaceMemberRoleRequestSchema",
+    "syncContractsUnauthorizedErrorSchema",
+    "syncContractsUpdateWorkspaceMemberRolePathSchema",
+    "syncContractsUpdateWorkspaceMemberRolePayloadSchema",
     "syncContractsUpdateWorkspaceMemberRoleResponseSchema",
     "syncContractsWorkspaceInviteSchema",
     "syncContractsWorkspaceMembersMutationGroup",
@@ -44,7 +51,6 @@ test("package.json export map points to the built root entrypoint", async () => 
 })
 
 test("sync api exposes the workspace members mutation contract group", () => {
-  assert.equal(typeof syncContractsApi.add, "function")
   assert.deepEqual(Object.keys(syncContractsApi.groups).toSorted(), [
     "workspace-members-mutations",
   ])

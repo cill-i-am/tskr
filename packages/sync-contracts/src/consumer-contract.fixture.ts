@@ -1,31 +1,45 @@
 import {
   syncContractsApi,
-  syncContractsCreateWorkspaceInviteRequestSchema,
+  syncContractsConflictErrorSchema,
+  syncContractsCreateWorkspaceInvitePathSchema,
+  syncContractsCreateWorkspaceInvitePayloadSchema,
   syncContractsCreateWorkspaceInviteResponseSchema,
-  syncContractsRemoveWorkspaceMemberRequestSchema,
+  syncContractsForbiddenErrorSchema,
+  syncContractsInvalidRequestErrorSchema,
+  syncContractsNotFoundErrorSchema,
+  syncContractsRemoveWorkspaceMemberPathSchema,
   syncContractsRemoveWorkspaceMemberResponseSchema,
-  syncContractsResendWorkspaceInviteRequestSchema,
+  syncContractsResendWorkspaceInvitePathSchema,
   syncContractsResendWorkspaceInviteResponseSchema,
-  syncContractsRevokeWorkspaceInviteRequestSchema,
+  syncContractsRevokeWorkspaceInvitePathSchema,
   syncContractsRevokeWorkspaceInviteResponseSchema,
   syncContractsSyncConfirmationSchema,
-  syncContractsUpdateWorkspaceMemberRoleRequestSchema,
+  syncContractsUnauthorizedErrorSchema,
+  syncContractsUpdateWorkspaceMemberRolePathSchema,
+  syncContractsUpdateWorkspaceMemberRolePayloadSchema,
   syncContractsUpdateWorkspaceMemberRoleResponseSchema,
   syncContractsWorkspaceInviteSchema,
   syncContractsWorkspaceMembersMutationGroup,
   syncContractsWorkspaceRoleSchema,
 } from "@workspace/sync-contracts"
 import type {
-  SyncContractsCreateWorkspaceInviteRequest,
+  SyncContractsConflictError,
+  SyncContractsCreateWorkspaceInvitePath,
+  SyncContractsCreateWorkspaceInvitePayload,
   SyncContractsCreateWorkspaceInviteResponse,
-  SyncContractsRemoveWorkspaceMemberRequest,
+  SyncContractsForbiddenError,
+  SyncContractsInvalidRequestError,
+  SyncContractsNotFoundError,
+  SyncContractsRemoveWorkspaceMemberPath,
   SyncContractsRemoveWorkspaceMemberResponse,
-  SyncContractsResendWorkspaceInviteRequest,
+  SyncContractsResendWorkspaceInvitePath,
   SyncContractsResendWorkspaceInviteResponse,
-  SyncContractsRevokeWorkspaceInviteRequest,
+  SyncContractsRevokeWorkspaceInvitePath,
   SyncContractsRevokeWorkspaceInviteResponse,
   SyncContractsSyncConfirmation,
-  SyncContractsUpdateWorkspaceMemberRoleRequest,
+  SyncContractsUnauthorizedError,
+  SyncContractsUpdateWorkspaceMemberRolePath,
+  SyncContractsUpdateWorkspaceMemberRolePayload,
   SyncContractsUpdateWorkspaceMemberRoleResponse,
   SyncContractsWorkspaceInvite,
   SyncContractsWorkspaceRole,
@@ -46,10 +60,13 @@ const workspaceInvite: SyncContractsWorkspaceInvite = {
   workspaceId: "workspace-123",
 }
 
-const createRequest: SyncContractsCreateWorkspaceInviteRequest = {
+const createPath: SyncContractsCreateWorkspaceInvitePath = {
+  workspaceId: "workspace-123",
+}
+
+const createPayload: SyncContractsCreateWorkspaceInvitePayload = {
   email: "ada@example.com",
   role,
-  workspaceId: "workspace-123",
 }
 
 const createResponse: SyncContractsCreateWorkspaceInviteResponse = {
@@ -57,7 +74,7 @@ const createResponse: SyncContractsCreateWorkspaceInviteResponse = {
   syncConfirmation,
 }
 
-const resendRequest: SyncContractsResendWorkspaceInviteRequest = {
+const resendPath: SyncContractsResendWorkspaceInvitePath = {
   inviteId: workspaceInvite.id,
   workspaceId: workspaceInvite.workspaceId,
 }
@@ -68,7 +85,7 @@ const resendResponse: SyncContractsResendWorkspaceInviteResponse = {
   workspaceId: workspaceInvite.workspaceId,
 }
 
-const revokeRequest: SyncContractsRevokeWorkspaceInviteRequest = {
+const revokePath: SyncContractsRevokeWorkspaceInvitePath = {
   inviteId: workspaceInvite.id,
   workspaceId: workspaceInvite.workspaceId,
 }
@@ -79,10 +96,13 @@ const revokeResponse: SyncContractsRevokeWorkspaceInviteResponse = {
   workspaceId: workspaceInvite.workspaceId,
 }
 
-const updateRequest: SyncContractsUpdateWorkspaceMemberRoleRequest = {
+const updatePath: SyncContractsUpdateWorkspaceMemberRolePath = {
   memberId: "member-1",
-  role,
   workspaceId: "workspace-123",
+}
+
+const updatePayload: SyncContractsUpdateWorkspaceMemberRolePayload = {
+  role,
 }
 
 const updateResponse: SyncContractsUpdateWorkspaceMemberRoleResponse = {
@@ -92,7 +112,7 @@ const updateResponse: SyncContractsUpdateWorkspaceMemberRoleResponse = {
   workspaceId: "workspace-123",
 }
 
-const removeRequest: SyncContractsRemoveWorkspaceMemberRequest = {
+const removePath: SyncContractsRemoveWorkspaceMemberPath = {
   memberId: "member-1",
   workspaceId: "workspace-123",
 }
@@ -103,18 +123,50 @@ const removeResponse: SyncContractsRemoveWorkspaceMemberResponse = {
   workspaceId: "workspace-123",
 }
 
+const invalidRequestError: SyncContractsInvalidRequestError = {
+  message: "Role is invalid.",
+  reason: "invalid_request",
+}
+
+const unauthorizedError: SyncContractsUnauthorizedError = {
+  message: "Authentication is required.",
+  reason: "unauthorized",
+}
+
+const forbiddenError: SyncContractsForbiddenError = {
+  message: "You do not have access.",
+  reason: "forbidden",
+}
+
+const notFoundError: SyncContractsNotFoundError = {
+  message: "Invite not found.",
+  reason: "not_found",
+}
+
+const conflictError: SyncContractsConflictError = {
+  message: "Invite already exists.",
+  reason: "conflict",
+}
+
 const syncContractsConsumerContractProof = [
   syncContractsApi,
-  syncContractsCreateWorkspaceInviteRequestSchema,
+  syncContractsConflictErrorSchema,
+  syncContractsCreateWorkspaceInvitePathSchema,
+  syncContractsCreateWorkspaceInvitePayloadSchema,
   syncContractsCreateWorkspaceInviteResponseSchema,
-  syncContractsRemoveWorkspaceMemberRequestSchema,
+  syncContractsForbiddenErrorSchema,
+  syncContractsInvalidRequestErrorSchema,
+  syncContractsNotFoundErrorSchema,
+  syncContractsRemoveWorkspaceMemberPathSchema,
   syncContractsRemoveWorkspaceMemberResponseSchema,
-  syncContractsResendWorkspaceInviteRequestSchema,
+  syncContractsResendWorkspaceInvitePathSchema,
   syncContractsResendWorkspaceInviteResponseSchema,
-  syncContractsRevokeWorkspaceInviteRequestSchema,
+  syncContractsRevokeWorkspaceInvitePathSchema,
   syncContractsRevokeWorkspaceInviteResponseSchema,
   syncContractsSyncConfirmationSchema,
-  syncContractsUpdateWorkspaceMemberRoleRequestSchema,
+  syncContractsUnauthorizedErrorSchema,
+  syncContractsUpdateWorkspaceMemberRolePathSchema,
+  syncContractsUpdateWorkspaceMemberRolePayloadSchema,
   syncContractsUpdateWorkspaceMemberRoleResponseSchema,
   syncContractsWorkspaceInviteSchema,
   syncContractsWorkspaceMembersMutationGroup,
@@ -122,16 +174,23 @@ const syncContractsConsumerContractProof = [
   role,
   syncConfirmation,
   workspaceInvite,
-  createRequest,
+  createPath,
+  createPayload,
   createResponse,
-  resendRequest,
+  resendPath,
   resendResponse,
-  revokeRequest,
+  revokePath,
   revokeResponse,
-  updateRequest,
+  updatePath,
+  updatePayload,
   updateResponse,
-  removeRequest,
+  removePath,
   removeResponse,
+  invalidRequestError,
+  unauthorizedError,
+  forbiddenError,
+  notFoundError,
+  conflictError,
 ]
 
 export { syncContractsConsumerContractProof }

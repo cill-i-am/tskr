@@ -5,26 +5,33 @@ import assert from "node:assert/strict"
 import { Schema } from "effect"
 
 import {
-  syncContractsCreateWorkspaceInviteRequestSchema,
+  syncContractsConflictErrorSchema,
+  syncContractsCreateWorkspaceInvitePathSchema,
+  syncContractsCreateWorkspaceInvitePayloadSchema,
   syncContractsCreateWorkspaceInviteResponseSchema,
-  syncContractsRemoveWorkspaceMemberRequestSchema,
+  syncContractsForbiddenErrorSchema,
+  syncContractsInvalidRequestErrorSchema,
+  syncContractsNotFoundErrorSchema,
+  syncContractsRemoveWorkspaceMemberPathSchema,
   syncContractsRemoveWorkspaceMemberResponseSchema,
-  syncContractsResendWorkspaceInviteRequestSchema,
+  syncContractsResendWorkspaceInvitePathSchema,
   syncContractsResendWorkspaceInviteResponseSchema,
-  syncContractsRevokeWorkspaceInviteRequestSchema,
+  syncContractsRevokeWorkspaceInvitePathSchema,
   syncContractsRevokeWorkspaceInviteResponseSchema,
   syncContractsSyncConfirmationSchema,
-  syncContractsUpdateWorkspaceMemberRoleRequestSchema,
+  syncContractsUnauthorizedErrorSchema,
+  syncContractsUpdateWorkspaceMemberRolePathSchema,
+  syncContractsUpdateWorkspaceMemberRolePayloadSchema,
   syncContractsUpdateWorkspaceMemberRoleResponseSchema,
   syncContractsWorkspaceInviteSchema,
+  syncContractsWorkspaceMembersMutationGroup,
   syncContractsWorkspaceRoleSchema,
 } from "./index.ts"
 
-const decode = <S extends Schema.Schema.Any>(
-  schema: S,
-  input: unknown
-): Schema.Schema.Type<S> =>
-  Schema.decodeUnknownSync(schema as never)(input) as Schema.Schema.Type<S>
+const decode = (schema: Schema.Schema.Any, input: unknown) =>
+  Schema.decodeUnknownSync(schema as Schema.Schema<unknown, unknown, never>)(
+    input
+  )
 
 test("workspace role schema accepts the proving-slice roles", () => {
   assert.equal(decode(syncContractsWorkspaceRoleSchema, "owner"), "owner")
@@ -39,20 +46,72 @@ test("workspace role schema accepts the proving-slice roles", () => {
   )
 })
 
-test("sync confirmation schema parses the txid envelope", () => {
+test("sync confirmation and mutation error schemas parse", () => {
   assert.deepEqual(
     decode(syncContractsSyncConfirmationSchema, { txid: "tx-123" }),
     {
       txid: "tx-123",
     }
   )
+  assert.deepEqual(
+    decode(syncContractsInvalidRequestErrorSchema, {
+      message: "Role is invalid.",
+      reason: "invalid_request",
+    }),
+    {
+      message: "Role is invalid.",
+      reason: "invalid_request",
+    }
+  )
+  assert.deepEqual(
+    decode(syncContractsUnauthorizedErrorSchema, {
+      message: "Authentication is required.",
+      reason: "unauthorized",
+    }),
+    {
+      message: "Authentication is required.",
+      reason: "unauthorized",
+    }
+  )
+  assert.deepEqual(
+    decode(syncContractsForbiddenErrorSchema, {
+      message: "You do not have access.",
+      reason: "forbidden",
+    }),
+    {
+      message: "You do not have access.",
+      reason: "forbidden",
+    }
+  )
+  assert.deepEqual(
+    decode(syncContractsNotFoundErrorSchema, {
+      message: "Invite not found.",
+      reason: "not_found",
+    }),
+    {
+      message: "Invite not found.",
+      reason: "not_found",
+    }
+  )
+  assert.deepEqual(
+    decode(syncContractsConflictErrorSchema, {
+      message: "Invite already exists.",
+      reason: "conflict",
+    }),
+    {
+      message: "Invite already exists.",
+      reason: "conflict",
+    }
+  )
 })
 
-test("create workspace invite request and response schemas parse", () => {
-  const request = decode(syncContractsCreateWorkspaceInviteRequestSchema, {
+test("create workspace invite path, payload, and response schemas parse", () => {
+  const path = decode(syncContractsCreateWorkspaceInvitePathSchema, {
+    workspaceId: "workspace-123",
+  })
+  const payload = decode(syncContractsCreateWorkspaceInvitePayloadSchema, {
     email: "ada@example.com",
     role: "admin",
-    workspaceId: "workspace-123",
   })
   const response = decode(syncContractsCreateWorkspaceInviteResponseSchema, {
     invite: {
@@ -69,53 +128,50 @@ test("create workspace invite request and response schemas parse", () => {
     },
   })
 
-  assert.deepEqual(request, {
-    email: "ada@example.com",
-    role: "admin",
+  assert.deepEqual(path, {
     workspaceId: "workspace-123",
   })
-  assert.deepEqual(response.invite, {
-    acceptUrl: "https://app.tskr.test/invites/accept?code=invite-123",
-    code: "invite-123",
+  assert.deepEqual(payload, {
     email: "ada@example.com",
-    id: "invite-1",
     role: "admin",
-    status: "pending",
-    workspaceId: "workspace-123",
   })
-  assert.deepEqual(response.syncConfirmation, {
-    txid: "tx-123",
+  assert.deepEqual(response, {
+    invite: {
+      acceptUrl: "https://app.tskr.test/invites/accept?code=invite-123",
+      code: "invite-123",
+      email: "ada@example.com",
+      id: "invite-1",
+      role: "admin",
+      status: "pending",
+      workspaceId: "workspace-123",
+    },
+    syncConfirmation: {
+      txid: "tx-123",
+    },
   })
 })
 
-test("workspace mutation request and response schemas parse", () => {
-  const resendRequest = decode(
-    syncContractsResendWorkspaceInviteRequestSchema,
+test("workspace mutation path, payload, and response schemas parse", () => {
+  const resendPath = decode(syncContractsResendWorkspaceInvitePathSchema, {
+    inviteId: "invite-1",
+    workspaceId: "workspace-123",
+  })
+  const revokePath = decode(syncContractsRevokeWorkspaceInvitePathSchema, {
+    inviteId: "invite-1",
+    workspaceId: "workspace-123",
+  })
+  const removePath = decode(syncContractsRemoveWorkspaceMemberPathSchema, {
+    memberId: "member-1",
+    workspaceId: "workspace-123",
+  })
+  const updatePath = decode(syncContractsUpdateWorkspaceMemberRolePathSchema, {
+    memberId: "member-1",
+    workspaceId: "workspace-123",
+  })
+  const updatePayload = decode(
+    syncContractsUpdateWorkspaceMemberRolePayloadSchema,
     {
-      inviteId: "invite-1",
-      workspaceId: "workspace-123",
-    }
-  )
-  const revokeRequest = decode(
-    syncContractsRevokeWorkspaceInviteRequestSchema,
-    {
-      inviteId: "invite-1",
-      workspaceId: "workspace-123",
-    }
-  )
-  const removeRequest = decode(
-    syncContractsRemoveWorkspaceMemberRequestSchema,
-    {
-      memberId: "member-1",
-      workspaceId: "workspace-123",
-    }
-  )
-  const updateRequest = decode(
-    syncContractsUpdateWorkspaceMemberRoleRequestSchema,
-    {
-      memberId: "member-1",
       role: "dispatcher",
-      workspaceId: "workspace-123",
     }
   )
 
@@ -161,22 +217,24 @@ test("workspace mutation request and response schemas parse", () => {
     }
   )
 
-  assert.deepEqual(resendRequest, {
+  assert.deepEqual(resendPath, {
     inviteId: "invite-1",
     workspaceId: "workspace-123",
   })
-  assert.deepEqual(revokeRequest, {
+  assert.deepEqual(revokePath, {
     inviteId: "invite-1",
     workspaceId: "workspace-123",
   })
-  assert.deepEqual(removeRequest, {
+  assert.deepEqual(removePath, {
     memberId: "member-1",
     workspaceId: "workspace-123",
   })
-  assert.deepEqual(updateRequest, {
+  assert.deepEqual(updatePath, {
     memberId: "member-1",
+    workspaceId: "workspace-123",
+  })
+  assert.deepEqual(updatePayload, {
     role: "dispatcher",
-    workspaceId: "workspace-123",
   })
   assert.deepEqual(resendResponse, {
     inviteId: "invite-1",
@@ -230,4 +288,32 @@ test("workspace invite schema parses the proving-slice invite shape", () => {
       workspaceId: "workspace-123",
     }
   )
+})
+
+test("http api group exposes the expected methods, paths, and payload boundaries", () => {
+  const { endpoints } = syncContractsWorkspaceMembersMutationGroup
+
+  assert.deepEqual(Object.keys(endpoints).toSorted(), [
+    "createWorkspaceInvite",
+    "removeWorkspaceMember",
+    "resendWorkspaceInvite",
+    "revokeWorkspaceInvite",
+    "updateWorkspaceMemberRole",
+  ])
+
+  assert.equal(endpoints.createWorkspaceInvite.method, "POST")
+  assert.equal(
+    endpoints.createWorkspaceInvite.path,
+    "/workspaces/:workspaceId/invites"
+  )
+  assert.equal(
+    endpoints.resendWorkspaceInvite.path,
+    "/workspaces/:workspaceId/invites/:inviteId/resend"
+  )
+  assert.equal(endpoints.revokeWorkspaceInvite.method, "DELETE")
+  assert.equal(
+    endpoints.updateWorkspaceMemberRole.path,
+    "/workspaces/:workspaceId/members/:memberId/role"
+  )
+  assert.equal(endpoints.removeWorkspaceMember.method, "DELETE")
 })

@@ -22,29 +22,13 @@ const syncContractsWorkspaceInviteSchema = Schema.Struct({
   workspaceId: Schema.String,
 })
 
-const workspacePathSchema = Schema.Struct({
+const syncContractsCreateWorkspaceInvitePathSchema = Schema.Struct({
   workspaceId: Schema.String,
 })
 
-const workspaceInvitePathSchema = Schema.Struct({
-  inviteId: Schema.String,
-  workspaceId: Schema.String,
-})
-
-const workspaceMemberPathSchema = Schema.Struct({
-  memberId: Schema.String,
-  workspaceId: Schema.String,
-})
-
-const createWorkspaceInvitePayloadSchema = Schema.Struct({
+const syncContractsCreateWorkspaceInvitePayloadSchema = Schema.Struct({
   email: Schema.String,
   role: syncContractsWorkspaceRoleSchema,
-})
-
-const syncContractsCreateWorkspaceInviteRequestSchema = Schema.Struct({
-  email: Schema.String,
-  role: syncContractsWorkspaceRoleSchema,
-  workspaceId: Schema.String,
 })
 
 const syncContractsCreateWorkspaceInviteResponseSchema = Schema.Struct({
@@ -52,8 +36,10 @@ const syncContractsCreateWorkspaceInviteResponseSchema = Schema.Struct({
   syncConfirmation: syncContractsSyncConfirmationSchema,
 })
 
-const syncContractsResendWorkspaceInviteRequestSchema =
-  workspaceInvitePathSchema
+const syncContractsResendWorkspaceInvitePathSchema = Schema.Struct({
+  inviteId: Schema.String,
+  workspaceId: Schema.String,
+})
 
 const syncContractsResendWorkspaceInviteResponseSchema = Schema.Struct({
   inviteId: Schema.String,
@@ -61,8 +47,8 @@ const syncContractsResendWorkspaceInviteResponseSchema = Schema.Struct({
   workspaceId: Schema.String,
 })
 
-const syncContractsRevokeWorkspaceInviteRequestSchema =
-  workspaceInvitePathSchema
+const syncContractsRevokeWorkspaceInvitePathSchema =
+  syncContractsResendWorkspaceInvitePathSchema
 
 const syncContractsRevokeWorkspaceInviteResponseSchema = Schema.Struct({
   inviteId: Schema.String,
@@ -70,14 +56,13 @@ const syncContractsRevokeWorkspaceInviteResponseSchema = Schema.Struct({
   workspaceId: Schema.String,
 })
 
-const updateWorkspaceMemberRolePayloadSchema = Schema.Struct({
-  role: syncContractsWorkspaceRoleSchema,
+const syncContractsUpdateWorkspaceMemberRolePathSchema = Schema.Struct({
+  memberId: Schema.String,
+  workspaceId: Schema.String,
 })
 
-const syncContractsUpdateWorkspaceMemberRoleRequestSchema = Schema.Struct({
-  memberId: Schema.String,
+const syncContractsUpdateWorkspaceMemberRolePayloadSchema = Schema.Struct({
   role: syncContractsWorkspaceRoleSchema,
-  workspaceId: Schema.String,
 })
 
 const syncContractsUpdateWorkspaceMemberRoleResponseSchema = Schema.Struct({
@@ -87,8 +72,8 @@ const syncContractsUpdateWorkspaceMemberRoleResponseSchema = Schema.Struct({
   workspaceId: Schema.String,
 })
 
-const syncContractsRemoveWorkspaceMemberRequestSchema =
-  workspaceMemberPathSchema
+const syncContractsRemoveWorkspaceMemberPathSchema =
+  syncContractsUpdateWorkspaceMemberRolePathSchema
 
 const syncContractsRemoveWorkspaceMemberResponseSchema = Schema.Struct({
   memberId: Schema.String,
@@ -96,16 +81,46 @@ const syncContractsRemoveWorkspaceMemberResponseSchema = Schema.Struct({
   workspaceId: Schema.String,
 })
 
+const syncContractsInvalidRequestErrorSchema = Schema.Struct({
+  message: Schema.String,
+  reason: Schema.Literal("invalid_request"),
+})
+
+const syncContractsUnauthorizedErrorSchema = Schema.Struct({
+  message: Schema.String,
+  reason: Schema.Literal("unauthorized"),
+})
+
+const syncContractsForbiddenErrorSchema = Schema.Struct({
+  message: Schema.String,
+  reason: Schema.Literal("forbidden"),
+})
+
+const syncContractsNotFoundErrorSchema = Schema.Struct({
+  message: Schema.String,
+  reason: Schema.Literal("not_found"),
+})
+
+const syncContractsConflictErrorSchema = Schema.Struct({
+  message: Schema.String,
+  reason: Schema.Literal("conflict"),
+})
+
 const syncContractsWorkspaceMembersMutationGroup = HttpApiGroup.make(
   "workspace-members-mutations"
 )
+  .addError(syncContractsInvalidRequestErrorSchema, { status: 400 })
+  .addError(syncContractsUnauthorizedErrorSchema, { status: 401 })
+  .addError(syncContractsForbiddenErrorSchema, { status: 403 })
+  .addError(syncContractsNotFoundErrorSchema, { status: 404 })
+  .addError(syncContractsConflictErrorSchema, { status: 409 })
   .add(
     HttpApiEndpoint.post(
       "createWorkspaceInvite",
       "/workspaces/:workspaceId/invites"
     )
-      .setPath(workspacePathSchema)
-      .setPayload(createWorkspaceInvitePayloadSchema)
+      .setPath(syncContractsCreateWorkspaceInvitePathSchema)
+      .setPayload(syncContractsCreateWorkspaceInvitePayloadSchema)
       .addSuccess(syncContractsCreateWorkspaceInviteResponseSchema)
   )
   .add(
@@ -113,7 +128,7 @@ const syncContractsWorkspaceMembersMutationGroup = HttpApiGroup.make(
       "resendWorkspaceInvite",
       "/workspaces/:workspaceId/invites/:inviteId/resend"
     )
-      .setPath(workspaceInvitePathSchema)
+      .setPath(syncContractsResendWorkspaceInvitePathSchema)
       .addSuccess(syncContractsResendWorkspaceInviteResponseSchema)
   )
   .add(
@@ -121,7 +136,7 @@ const syncContractsWorkspaceMembersMutationGroup = HttpApiGroup.make(
       "revokeWorkspaceInvite",
       "/workspaces/:workspaceId/invites/:inviteId"
     )
-      .setPath(workspaceInvitePathSchema)
+      .setPath(syncContractsRevokeWorkspaceInvitePathSchema)
       .addSuccess(syncContractsRevokeWorkspaceInviteResponseSchema)
   )
   .add(
@@ -129,8 +144,8 @@ const syncContractsWorkspaceMembersMutationGroup = HttpApiGroup.make(
       "updateWorkspaceMemberRole",
       "/workspaces/:workspaceId/members/:memberId/role"
     )
-      .setPath(workspaceMemberPathSchema)
-      .setPayload(updateWorkspaceMemberRolePayloadSchema)
+      .setPath(syncContractsUpdateWorkspaceMemberRolePathSchema)
+      .setPayload(syncContractsUpdateWorkspaceMemberRolePayloadSchema)
       .addSuccess(syncContractsUpdateWorkspaceMemberRoleResponseSchema)
   )
   .add(
@@ -138,7 +153,7 @@ const syncContractsWorkspaceMembersMutationGroup = HttpApiGroup.make(
       "removeWorkspaceMember",
       "/workspaces/:workspaceId/members/:memberId"
     )
-      .setPath(workspaceMemberPathSchema)
+      .setPath(syncContractsRemoveWorkspaceMemberPathSchema)
       .addSuccess(syncContractsRemoveWorkspaceMemberResponseSchema)
   )
 
@@ -158,74 +173,116 @@ type SyncContractsWorkspaceInvite = Schema.Schema.Type<
   typeof syncContractsWorkspaceInviteSchema
 >
 
-type SyncContractsCreateWorkspaceInviteRequest = Schema.Schema.Type<
-  typeof syncContractsCreateWorkspaceInviteRequestSchema
+type SyncContractsCreateWorkspaceInvitePath = Schema.Schema.Type<
+  typeof syncContractsCreateWorkspaceInvitePathSchema
+>
+
+type SyncContractsCreateWorkspaceInvitePayload = Schema.Schema.Type<
+  typeof syncContractsCreateWorkspaceInvitePayloadSchema
 >
 
 type SyncContractsCreateWorkspaceInviteResponse = Schema.Schema.Type<
   typeof syncContractsCreateWorkspaceInviteResponseSchema
 >
 
-type SyncContractsResendWorkspaceInviteRequest = Schema.Schema.Type<
-  typeof syncContractsResendWorkspaceInviteRequestSchema
+type SyncContractsResendWorkspaceInvitePath = Schema.Schema.Type<
+  typeof syncContractsResendWorkspaceInvitePathSchema
 >
 
 type SyncContractsResendWorkspaceInviteResponse = Schema.Schema.Type<
   typeof syncContractsResendWorkspaceInviteResponseSchema
 >
 
-type SyncContractsRevokeWorkspaceInviteRequest = Schema.Schema.Type<
-  typeof syncContractsRevokeWorkspaceInviteRequestSchema
+type SyncContractsRevokeWorkspaceInvitePath = Schema.Schema.Type<
+  typeof syncContractsRevokeWorkspaceInvitePathSchema
 >
 
 type SyncContractsRevokeWorkspaceInviteResponse = Schema.Schema.Type<
   typeof syncContractsRevokeWorkspaceInviteResponseSchema
 >
 
-type SyncContractsUpdateWorkspaceMemberRoleRequest = Schema.Schema.Type<
-  typeof syncContractsUpdateWorkspaceMemberRoleRequestSchema
+type SyncContractsUpdateWorkspaceMemberRolePath = Schema.Schema.Type<
+  typeof syncContractsUpdateWorkspaceMemberRolePathSchema
+>
+
+type SyncContractsUpdateWorkspaceMemberRolePayload = Schema.Schema.Type<
+  typeof syncContractsUpdateWorkspaceMemberRolePayloadSchema
 >
 
 type SyncContractsUpdateWorkspaceMemberRoleResponse = Schema.Schema.Type<
   typeof syncContractsUpdateWorkspaceMemberRoleResponseSchema
 >
 
-type SyncContractsRemoveWorkspaceMemberRequest = Schema.Schema.Type<
-  typeof syncContractsRemoveWorkspaceMemberRequestSchema
+type SyncContractsRemoveWorkspaceMemberPath = Schema.Schema.Type<
+  typeof syncContractsRemoveWorkspaceMemberPathSchema
 >
 
 type SyncContractsRemoveWorkspaceMemberResponse = Schema.Schema.Type<
   typeof syncContractsRemoveWorkspaceMemberResponseSchema
 >
 
+type SyncContractsInvalidRequestError = Schema.Schema.Type<
+  typeof syncContractsInvalidRequestErrorSchema
+>
+
+type SyncContractsUnauthorizedError = Schema.Schema.Type<
+  typeof syncContractsUnauthorizedErrorSchema
+>
+
+type SyncContractsForbiddenError = Schema.Schema.Type<
+  typeof syncContractsForbiddenErrorSchema
+>
+
+type SyncContractsNotFoundError = Schema.Schema.Type<
+  typeof syncContractsNotFoundErrorSchema
+>
+
+type SyncContractsConflictError = Schema.Schema.Type<
+  typeof syncContractsConflictErrorSchema
+>
+
 export {
   syncContractsApi,
-  syncContractsCreateWorkspaceInviteRequestSchema,
+  syncContractsConflictErrorSchema,
+  syncContractsCreateWorkspaceInvitePathSchema,
+  syncContractsCreateWorkspaceInvitePayloadSchema,
   syncContractsCreateWorkspaceInviteResponseSchema,
-  syncContractsRemoveWorkspaceMemberRequestSchema,
+  syncContractsForbiddenErrorSchema,
+  syncContractsInvalidRequestErrorSchema,
+  syncContractsNotFoundErrorSchema,
+  syncContractsRemoveWorkspaceMemberPathSchema,
   syncContractsRemoveWorkspaceMemberResponseSchema,
-  syncContractsResendWorkspaceInviteRequestSchema,
+  syncContractsResendWorkspaceInvitePathSchema,
   syncContractsResendWorkspaceInviteResponseSchema,
-  syncContractsRevokeWorkspaceInviteRequestSchema,
+  syncContractsRevokeWorkspaceInvitePathSchema,
   syncContractsRevokeWorkspaceInviteResponseSchema,
   syncContractsSyncConfirmationSchema,
-  syncContractsUpdateWorkspaceMemberRoleRequestSchema,
+  syncContractsUnauthorizedErrorSchema,
+  syncContractsUpdateWorkspaceMemberRolePathSchema,
+  syncContractsUpdateWorkspaceMemberRolePayloadSchema,
   syncContractsUpdateWorkspaceMemberRoleResponseSchema,
   syncContractsWorkspaceInviteSchema,
   syncContractsWorkspaceMembersMutationGroup,
   syncContractsWorkspaceRoleSchema,
 }
 export type {
-  SyncContractsCreateWorkspaceInviteRequest,
+  SyncContractsConflictError,
+  SyncContractsCreateWorkspaceInvitePath,
+  SyncContractsCreateWorkspaceInvitePayload,
   SyncContractsCreateWorkspaceInviteResponse,
-  SyncContractsRemoveWorkspaceMemberRequest,
+  SyncContractsForbiddenError,
+  SyncContractsInvalidRequestError,
+  SyncContractsNotFoundError,
+  SyncContractsRemoveWorkspaceMemberPath,
   SyncContractsRemoveWorkspaceMemberResponse,
-  SyncContractsResendWorkspaceInviteRequest,
+  SyncContractsResendWorkspaceInvitePath,
   SyncContractsResendWorkspaceInviteResponse,
-  SyncContractsRevokeWorkspaceInviteRequest,
+  SyncContractsRevokeWorkspaceInvitePath,
   SyncContractsRevokeWorkspaceInviteResponse,
   SyncContractsSyncConfirmation,
-  SyncContractsUpdateWorkspaceMemberRoleRequest,
+  SyncContractsUnauthorizedError,
+  SyncContractsUpdateWorkspaceMemberRolePath,
+  SyncContractsUpdateWorkspaceMemberRolePayload,
   SyncContractsUpdateWorkspaceMemberRoleResponse,
   SyncContractsWorkspaceInvite,
   SyncContractsWorkspaceRole,
