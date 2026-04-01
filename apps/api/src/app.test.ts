@@ -1,4 +1,4 @@
-/* oxlint-disable jest/max-expects, jest/no-conditional-expect, jest/no-conditional-in-test, jest/no-hooks, require-await, unicorn/prefer-response-static-json */
+/* oxlint-disable jest/max-expects, jest/no-conditional-expect, jest/no-conditional-in-test, jest/no-hooks, require-await, unicorn/prefer-response-static-json, vitest/prefer-called-once */
 import { hc } from "hono/client"
 
 import { app } from "./app.js"
@@ -101,7 +101,7 @@ describe("api app", () => {
         slug: "ops-control",
       },
     })
-    expect(fetchMock).toHaveBeenCalledOnce()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
   it("proxies an allowlisted workspace-members shape with server-owned Electric params", async () => {

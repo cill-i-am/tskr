@@ -1,4 +1,4 @@
-/* oxlint-disable import/no-relative-parent-imports, require-await */
+/* oxlint-disable import/no-relative-parent-imports, require-await, vitest/prefer-called-once */
 import { createApp } from "../../app.js"
 
 describe("workspace sync routes", () => {
@@ -60,7 +60,7 @@ describe("workspace sync routes", () => {
         slug: "ops-control",
       },
     })
-    expect(getSyncContext).toHaveBeenCalledOnce()
+    expect(getSyncContext).toHaveBeenCalledTimes(1)
     expect(proxyShape).not.toHaveBeenCalled()
   })
 
@@ -103,7 +103,7 @@ describe("workspace sync routes", () => {
       '[{"headers":{"operation":"up-to-date"}}]'
     )
     expect(response.headers.get("etag")).toBe('"workspace-members-etag"')
-    expect(proxyShape).toHaveBeenCalledOnce()
+    expect(proxyShape).toHaveBeenCalledTimes(1)
     expect(getSyncContext).not.toHaveBeenCalled()
   })
 })

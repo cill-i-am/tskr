@@ -1,4 +1,4 @@
-/* oxlint-disable jest/max-expects, jest/no-conditional-expect, jest/no-conditional-in-test, require-await, unicorn/prefer-response-static-json */
+/* oxlint-disable jest/max-expects, jest/no-conditional-expect, jest/no-conditional-in-test, require-await, unicorn/prefer-response-static-json, vitest/prefer-called-once */
 import type { HTTPException } from "hono/http-exception"
 
 import { createWorkspaceSyncService } from "./index.js"
@@ -52,7 +52,7 @@ describe("workspace sync service", () => {
       workspaceId: "ws_123",
     })
 
-    expect(fetchMock).toHaveBeenCalledOnce()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(context).toStrictEqual({
       resources: {
         workspace: "/api/sync/workspaces/ws_123/shapes/workspace",
@@ -225,6 +225,7 @@ describe("workspace sync service", () => {
 
     vi.unstubAllEnvs()
   })
+
   it("rejects unsupported shape resources before reaching Electric", async () => {
     const fetchMock = vi.fn()
     const service = createWorkspaceSyncService({
