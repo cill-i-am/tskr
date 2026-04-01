@@ -326,7 +326,7 @@ describe("auth config", () => {
     expectLegacyEmailHooksToStayIdle()
   })
 
-  it("logs password reset delivery errors without surfacing them", async () => {
+  it("surfaces password reset delivery errors and omits reset urls from logs", async () => {
     resetAuthMocks()
 
     const consoleErrorMock = vi.spyOn(console, "error").mockReturnValue()
@@ -334,29 +334,28 @@ describe("auth config", () => {
 
     try {
       const config = await loadAuthConfiguration()
-      await config.emailAndPassword.sendResetPassword({
-        url: "http://localhost:3000/reset-password?token=reset-token",
-        user: {
-          email: "grace@example.com",
-        },
-      })
-
-      await Promise.resolve()
-      await Promise.resolve()
+      await expect(
+        config.emailAndPassword.sendResetPassword({
+          url: "http://localhost:3000/reset-password?token=reset-token",
+          user: {
+            email: "grace@example.com",
+          },
+        })
+      ).rejects.toThrow("reset failed")
 
       expect(consoleErrorMock).toHaveBeenCalledWith(
         "[auth:email] failed to send password reset email",
         expect.objectContaining({
           recipient: "grace@example.com",
-          resetUrl: "http://localhost:3000/reset-password?token=reset-token",
         })
       )
+      expect(consoleErrorMock.mock.calls[0]?.[1]).not.toHaveProperty("resetUrl")
     } finally {
       consoleErrorMock.mockRestore()
     }
   })
 
-  it("logs delivery errors from fire-and-forget email hooks", async () => {
+  it("surfaces delivery errors from signup verification email hooks", async () => {
     resetAuthMocks()
 
     const consoleErrorMock = vi.spyOn(console, "error").mockReturnValue()
@@ -372,13 +371,13 @@ describe("auth config", () => {
         "Expected email OTP plugin options"
       )
 
-      await emailOtpOptions.sendVerificationOTP({
-        email: "grace@example.com",
-        otp: "482913",
-        type: "sign-in",
-      })
-      await Promise.resolve()
-      await Promise.resolve()
+      await expect(
+        emailOtpOptions.sendVerificationOTP({
+          email: "grace@example.com",
+          otp: "482913",
+          type: "sign-in",
+        })
+      ).rejects.toThrow("signup otp failed")
 
       expect(consoleErrorMock).toHaveBeenCalledTimes(1)
       expect(consoleErrorMock).toHaveBeenCalledWith(

@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto"
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 
@@ -12,6 +13,7 @@ import {
 } from "./config.js"
 
 interface CreateSandboxStateOptions {
+  authSecret?: string
   emailFrom: string
   hostedDomainRoot: string
   name: string
@@ -34,6 +36,7 @@ interface SandboxStatePaths {
 }
 
 interface SandboxState {
+  authSecret: string
   createdAt: string
   hostedDomainRoot: string
   identity: ReturnType<typeof deriveSandboxIdentity>
@@ -46,6 +49,8 @@ interface SandboxState {
 }
 
 const SANDBOX_ROOT_DIRECTORY = ".sandbox"
+
+const createSandboxAuthSecret = () => randomBytes(32).toString("base64url")
 
 const getSandboxPaths = (
   repositoryRoot: string,
@@ -107,6 +112,7 @@ const writeSandboxModeFiles = ({
 }
 
 const createSandboxState = ({
+  authSecret,
   emailFrom,
   hostedDomainRoot,
   name,
@@ -115,7 +121,9 @@ const createSandboxState = ({
   const identity = deriveSandboxIdentity(name)
   const ports = deriveSandboxPorts(identity.hash)
   const paths = getSandboxPaths(repositoryRoot, identity.slug)
+  const resolvedAuthSecret = authSecret ?? createSandboxAuthSecret()
   const state: SandboxState = {
+    authSecret: resolvedAuthSecret,
     createdAt: new Date().toISOString(),
     hostedDomainRoot,
     identity,
@@ -144,6 +152,7 @@ const createSandboxState = ({
     yield* writeSandboxModeFiles({
       directory: paths.local,
       envFiles: buildSandboxEnvFiles({
+        authSecret: resolvedAuthSecret,
         emailFrom,
         hostedDomainRoot,
         identity,
@@ -157,6 +166,7 @@ const createSandboxState = ({
     yield* writeSandboxModeFiles({
       directory: paths.hosted,
       envFiles: buildSandboxEnvFiles({
+        authSecret: resolvedAuthSecret,
         emailFrom,
         hostedDomainRoot,
         identity,

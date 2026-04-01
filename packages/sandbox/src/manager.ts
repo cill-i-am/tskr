@@ -243,6 +243,7 @@ const SandboxManagerLive = Layer.succeed(SandboxManager, {
         repositoryRoot: getRepositoryRoot(),
       })
       const state = yield* createSandboxState({
+        authSecret: existingState.authSecret,
         emailFrom: DEFAULT_EMAIL_FROM,
         hostedDomainRoot: existingState.hostedDomainRoot,
         name: existingState.identity.name,

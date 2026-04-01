@@ -232,16 +232,6 @@ const createWorkspaceRoutes = ({
       return context.json(bootstrap)
     })
     .post("/api/workspaces", async (context) => {
-      const bootstrap = await service.getWorkspaceBootstrap(
-        context.req.raw.headers
-      )
-
-      if (!bootstrap) {
-        throw new HTTPException(401, {
-          message: "Authentication is required.",
-        })
-      }
-
       const name = await requireWorkspaceName(context.req.raw)
 
       return context.json(

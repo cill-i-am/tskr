@@ -40,6 +40,7 @@ interface BuildHostedSandboxUrlsOptions {
 }
 
 interface BuildSandboxEnvFilesOptions {
+  authSecret: string
   emailFrom: string
   hostedDomainRoot: string
   identity: SandboxIdentity
@@ -77,9 +78,6 @@ const buildDatabaseUrl = ({
   user: string
 }) =>
   `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${DEFAULT_POSTGRES_HOST}:${DEFAULT_POSTGRES_INTERNAL_PORT}/${DEFAULT_POSTGRES_DATABASE}`
-
-const buildSandboxSecret = (hash: string) =>
-  `sandbox-${hash}-sandbox-${hash}-sandbox-${hash}`
 
 const stringifyEnvFile = (entries: Record<string, string | number>) =>
   `${Object.entries(entries)
@@ -145,6 +143,7 @@ const buildHostedSandboxUrls = ({
 })
 
 const buildSandboxEnvFiles = ({
+  authSecret,
   emailFrom,
   hostedDomainRoot,
   identity,
@@ -190,7 +189,7 @@ const buildSandboxEnvFiles = ({
         : {}),
     }),
     auth: stringifyEnvFile({
-      BETTER_AUTH_SECRET: buildSandboxSecret(identity.hash),
+      BETTER_AUTH_SECRET: authSecret,
       BETTER_AUTH_TRUSTED_ORIGINS: urls.web,
       BETTER_AUTH_URL: urls.auth,
       DATABASE_URL: databaseUrl,

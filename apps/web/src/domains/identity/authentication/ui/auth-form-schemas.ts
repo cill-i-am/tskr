@@ -6,8 +6,8 @@ const signupFormSchema = z
   .object({
     confirmPassword: z.string().min(1, "Confirm your password."),
     email: emailSchema,
-    name: z.string().min(1, "Enter your full name."),
-    password: z.string().min(1, "Enter your password."),
+    name: z.string().trim().min(1, "Enter your full name."),
+    password: z.string().min(8, "Use at least 8 characters."),
   })
   .superRefine((value, context) => {
     if (

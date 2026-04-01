@@ -83,6 +83,25 @@ describe(parseAuthenticationEnv, () => {
     )
   })
 
+  it("requires an explicit secret for non-local auth urls outside production too", async () => {
+    await withEnvironment(
+      {
+        BETTER_AUTH_SECRET: undefined,
+        BETTER_AUTH_URL: "https://auth.preview.example.com",
+        EMAIL_FROM: "TSKR <noreply@tskr.app>",
+        EMAIL_PROVIDER: "console",
+        NODE_ENV: "development",
+        PORTLESS: "0",
+        WEB_BASE_URL: "https://web.preview.example.com",
+      },
+      () => {
+        expect(() => parseAuthenticationEnv()).toThrow(
+          "BETTER_AUTH_SECRET must be set"
+        )
+      }
+    )
+  })
+
   it("uses direct localhost defaults when portless is disabled", async () => {
     await withEnvironment(
       {

@@ -100,6 +100,17 @@ const requireValue = (value: string | undefined, name: string) => {
   return value
 }
 
+const isLocalOnlyAuthUrl = (value: string) => {
+  const { hostname } = new URL(value)
+
+  return (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "tskr.localhost" ||
+    hostname.endsWith(".tskr.localhost")
+  )
+}
+
 const parseEmailProvider = (
   value: string | undefined,
   nodeEnvironment: string | undefined
@@ -138,14 +149,21 @@ const parseAuthenticationEnv = (): AuthenticationEnv => {
     process.env.EMAIL_PROVIDER,
     process.env.NODE_ENV
   )
+  const betterAuthUrl = process.env.BETTER_AUTH_URL ?? resolveDefaultAuthUrl()
+  const betterAuthSecret = process.env.BETTER_AUTH_SECRET
+  const canUseDefaultDevSecret =
+    process.env.NODE_ENV !== "production" && isLocalOnlyAuthUrl(betterAuthUrl)
+  let resolvedBetterAuthSecret = betterAuthSecret
+
+  if (!resolvedBetterAuthSecret) {
+    resolvedBetterAuthSecret = canUseDefaultDevSecret
+      ? DEFAULT_DEV_SECRET
+      : requireValue(betterAuthSecret, "BETTER_AUTH_SECRET")
+  }
 
   return {
-    betterAuthSecret:
-      process.env.BETTER_AUTH_SECRET ??
-      (process.env.NODE_ENV === "production"
-        ? requireValue(process.env.BETTER_AUTH_SECRET, "BETTER_AUTH_SECRET")
-        : DEFAULT_DEV_SECRET),
-    betterAuthUrl: process.env.BETTER_AUTH_URL ?? resolveDefaultAuthUrl(),
+    betterAuthSecret: resolvedBetterAuthSecret,
+    betterAuthUrl,
     e2eEmailCaptureDir: process.env.E2E_EMAIL_CAPTURE_DIR?.trim() || undefined,
     emailFrom: requireValue(process.env.EMAIL_FROM, "EMAIL_FROM"),
     emailProvider,

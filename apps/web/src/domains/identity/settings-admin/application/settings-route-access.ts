@@ -5,9 +5,11 @@ import type {
 } from "@/domains/identity/settings-admin/contracts/settings-admin-contract"
 import { getAccountProfile } from "@/domains/identity/settings-admin/infra/get-account-profile"
 import { getSettingsSnapshot } from "@/domains/identity/settings-admin/infra/get-settings-snapshot"
-import { resolveWorkspaceEntry } from "@/domains/workspaces/bootstrap/application/resolve-workspace-entry"
-import type { WorkspaceRole } from "@/domains/workspaces/bootstrap/contracts/workspace-bootstrap"
-import { getWorkspaceBootstrap } from "@/domains/workspaces/bootstrap/infra/workspace-bootstrap-client"
+import { createKeyedSingleFlight } from "@/domains/shared/application/single-flight"
+import type {
+  WorkspaceBootstrap,
+  WorkspaceRole,
+} from "@/domains/workspaces/bootstrap/contracts/workspace-bootstrap"
 import { redirect } from "@tanstack/react-router"
 
 interface SettingsRouteLoaderData {
@@ -16,6 +18,14 @@ interface SettingsRouteLoaderData {
 
 interface AccountSettingsRouteLoaderData {
   accountProfile: SettingsAdminAccountProfile
+}
+
+interface AppRouteParentMatch {
+  loaderData?: WorkspaceBootstrap
+}
+
+interface SettingsRouteParentMatch {
+  loaderData?: SettingsRouteLoaderData
 }
 
 const forbiddenSettingsSnapshotMessage =
@@ -51,29 +61,36 @@ const loadSettingsSnapshot = async (workspaceId: string) => {
   }
 }
 
+const loadSettingsSnapshotOnce = createKeyedSingleFlight(loadSettingsSnapshot)
+
 const canRecoverFromSettingsSnapshotError = (error: unknown) =>
   error instanceof Error &&
   error.message !== invalidSettingsSnapshotMessage &&
   error.message !== malformedSettingsSnapshotMessage
 
-const requireSettingsAccess = async () => {
-  const workspaceEntry = resolveWorkspaceEntry(await getWorkspaceBootstrap())
+const getAppBootstrapFromParent = async ({
+  parentMatchPromise,
+}: {
+  parentMatchPromise: Promise<AppRouteParentMatch>
+}) => {
+  const parentMatch = await parentMatchPromise
+  const { loaderData: bootstrap } = parentMatch
 
-  if (workspaceEntry.state === "needs_auth") {
-    throw redirect({
-      replace: true,
-      to: "/login",
-    })
+  if (!bootstrap) {
+    throw new Error("Expected app bootstrap loader data to be available.")
   }
 
-  if (workspaceEntry.state === "needs_onboarding") {
-    throw redirect({
-      replace: true,
-      to: "/onboarding",
-    })
-  }
+  return bootstrap
+}
 
-  const { activeWorkspace } = workspaceEntry.bootstrap
+const requireSettingsAccess = async ({
+  parentMatchPromise,
+}: {
+  parentMatchPromise: Promise<AppRouteParentMatch>
+}) => {
+  const { activeWorkspace } = await getAppBootstrapFromParent({
+    parentMatchPromise,
+  })
 
   if (!activeWorkspace) {
     throw redirect({
@@ -87,17 +104,29 @@ const requireSettingsAccess = async () => {
   }
 }
 
-const requireWorkspaceAdminSettingsAccess = async () => {
-  const access = await requireSettingsAccess()
+const getSettingsRouteLoaderDataFromParent = async ({
+  parentMatchPromise,
+}: {
+  parentMatchPromise: Promise<SettingsRouteParentMatch>
+}) => {
+  const parentMatch = await parentMatchPromise
+  const { loaderData } = parentMatch
 
-  if (!canRequestSettingsSnapshot(access.activeWorkspace.role)) {
-    throw redirect({
-      replace: true,
-      to: "/app/settings/account",
-    })
+  if (!loaderData) {
+    throw new Error("Expected settings route loader data to be available.")
   }
 
-  const snapshot = await loadSettingsSnapshot(access.activeWorkspace.id)
+  return loaderData
+}
+
+const requireWorkspaceAdminSettingsAccess = async ({
+  parentMatchPromise,
+}: {
+  parentMatchPromise: Promise<SettingsRouteParentMatch>
+}) => {
+  const { snapshot } = await getSettingsRouteLoaderDataFromParent({
+    parentMatchPromise,
+  })
 
   if (!snapshot || !hasWorkspaceAdminAccess(snapshot.permissions)) {
     throw redirect({
@@ -111,10 +140,37 @@ const requireWorkspaceAdminSettingsAccess = async () => {
   }
 }
 
-const requireWorkspaceProfileSettingsAccess = async () => {
-  const { snapshot } = await requireWorkspaceAdminSettingsAccess()
+const requireWorkspaceProfileSettingsAccess = async ({
+  parentMatchPromise,
+}: {
+  parentMatchPromise: Promise<SettingsRouteParentMatch>
+}) => {
+  const { snapshot } = await requireWorkspaceAdminSettingsAccess({
+    parentMatchPromise,
+  })
 
   if (!snapshot.permissions.canEditWorkspaceProfile) {
+    throw redirect({
+      replace: true,
+      to: "/app/settings/account",
+    })
+  }
+
+  return {
+    snapshot,
+  }
+}
+
+const requirePeopleSettingsAccess = async ({
+  parentMatchPromise,
+}: {
+  parentMatchPromise: Promise<SettingsRouteParentMatch>
+}) => {
+  const { snapshot } = await requireWorkspaceAdminSettingsAccess({
+    parentMatchPromise,
+  })
+
+  if (!hasPeopleSettingsAccess(snapshot.permissions)) {
     throw redirect({
       replace: true,
       to: "/app/settings/account",
@@ -133,12 +189,16 @@ const requireAccountSettingsAccess =
 
 const loadSettingsRouteData = async ({
   location,
+  parentMatchPromise,
 }: {
   location: {
     pathname: string
   }
+  parentMatchPromise: Promise<AppRouteParentMatch>
 }): Promise<SettingsRouteLoaderData> => {
-  const access = await requireSettingsAccess()
+  const access = await requireSettingsAccess({
+    parentMatchPromise,
+  })
 
   const canLoadSnapshot = canRequestSettingsSnapshot(
     access.activeWorkspace.role
@@ -153,7 +213,7 @@ const loadSettingsRouteData = async ({
 
     try {
       return {
-        snapshot: await loadSettingsSnapshot(access.activeWorkspace.id),
+        snapshot: await loadSettingsSnapshotOnce(access.activeWorkspace.id),
       }
     } catch (error) {
       if (!canRecoverFromSettingsSnapshotError(error)) {
@@ -167,7 +227,7 @@ const loadSettingsRouteData = async ({
   }
 
   const snapshot = canLoadSnapshot
-    ? await loadSettingsSnapshot(access.activeWorkspace.id)
+    ? await loadSettingsSnapshotOnce(access.activeWorkspace.id)
     : null
 
   if (
@@ -189,8 +249,8 @@ export {
   hasPeopleSettingsAccess,
   hasWorkspaceAdminAccess,
   loadSettingsRouteData,
-  requireSettingsAccess,
   requireAccountSettingsAccess,
+  requirePeopleSettingsAccess,
   requireWorkspaceAdminSettingsAccess,
   requireWorkspaceProfileSettingsAccess,
 }

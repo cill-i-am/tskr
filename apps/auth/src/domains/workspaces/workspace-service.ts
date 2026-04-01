@@ -292,22 +292,22 @@ const createWorkspaceService = ({
       statusCode?: number
     }
 
-    let status: 400 | 401 | 403 | 404 | 409 = 400
+    const statusCandidate =
+      typeof candidate.statusCode === "number"
+        ? candidate.statusCode
+        : candidate.status
 
-    if (
-      candidate.statusCode === 401 ||
-      candidate.statusCode === 403 ||
-      candidate.statusCode === 404 ||
-      candidate.statusCode === 409
-    ) {
-      status = candidate.statusCode
-    } else if (
-      candidate.status === 401 ||
-      candidate.status === 403 ||
-      candidate.status === 404 ||
-      candidate.status === 409
-    ) {
-      ;({ status } = candidate)
+    const status =
+      typeof statusCandidate === "number" &&
+      statusCandidate >= 400 &&
+      statusCandidate <= 599
+        ? statusCandidate
+        : 500
+
+    if (status >= 500) {
+      throw new HTTPException(status, {
+        message: "Workspace request failed.",
+      })
     }
 
     throw new HTTPException(status, {
@@ -365,7 +365,9 @@ const createWorkspaceService = ({
     const workspaceSession = await getWorkspaceSession(headers)
 
     if (!workspaceSession) {
-      throw new Error("Expected an authenticated workspace session")
+      throw new HTTPException(401, {
+        message: "Authentication is required.",
+      })
     }
 
     const normalizedName = normalizeWorkspaceName(workspaceName)
@@ -856,12 +858,20 @@ const createWorkspaceService = ({
     headers: Headers,
     input: AcceptWorkspaceInviteRequest
   ) => {
-    let inviteCode: string | null = null
+    const workspaceSession = await requireWorkspaceSession(headers)
 
     if (typeof input.code === "string" && input.code.trim()) {
-      inviteCode = input.code.trim()
+      input.code = input.code.trim()
     } else if (typeof input.token === "string" && input.token.trim()) {
-      inviteCode = verifyWorkspaceInviteToken(input.token.trim())
+      input.token = input.token.trim()
+    }
+
+    let inviteCode: string | null = null
+
+    if (typeof input.code === "string" && input.code) {
+      inviteCode = input.code
+    } else if (typeof input.token === "string" && input.token) {
+      inviteCode = verifyWorkspaceInviteToken(input.token)
     }
 
     if (!inviteCode) {
@@ -881,8 +891,6 @@ const createWorkspaceService = ({
         message: "Invite not found.",
       })
     }
-
-    const workspaceSession = await requireWorkspaceSession(headers)
 
     if (
       invitation.email.toLowerCase() !== workspaceSession.email.toLowerCase()

@@ -10,5 +10,6 @@ const WorkspaceSettingsRoute = () => {
 
 export const Route = createFileRoute("/app/settings/workspace")({
   component: WorkspaceSettingsRoute,
-  loader: requireWorkspaceProfileSettingsAccess,
+  loader: ({ parentMatchPromise }) =>
+    requireWorkspaceProfileSettingsAccess({ parentMatchPromise }),
 })

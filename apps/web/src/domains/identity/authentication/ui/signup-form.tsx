@@ -109,7 +109,7 @@ const SignupForm = () => {
           {(field) => (
             <FormTextField
               autoComplete="new-password"
-              description="Use at least 8 characters."
+              description="Passwords must be at least 8 characters long."
               disabled={isDisabled}
               field={field}
               label="Password"

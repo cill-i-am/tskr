@@ -186,7 +186,7 @@ describe("authentication routes", () => {
     expect(response.status).toBe(400)
   })
 
-  it("serializes duplicate signup attempts and rejects the second request", async () => {
+  it("serializes duplicate signup attempts and returns a generic failure for the second request", async () => {
     resetRouteMocks()
 
     const existingEmails = new Set<string>()
@@ -230,9 +230,9 @@ describe("authentication routes", () => {
 
     expect(authHandlerMock).toHaveBeenCalledTimes(1)
     expect(firstResponse.status).toBe(200)
-    expect(secondResponse.status).toBe(422)
+    expect(secondResponse.status).toBe(400)
     await expect(secondResponse.json()).resolves.toMatchObject({
-      code: "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL",
+      message: "Unable to create your account.",
     })
   })
 })

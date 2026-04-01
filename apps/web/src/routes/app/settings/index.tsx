@@ -14,5 +14,6 @@ const SettingsOverviewRoute = () => {
 
 export const Route = createFileRoute("/app/settings/")({
   component: SettingsOverviewRoute,
-  loader: requireWorkspaceAdminSettingsAccess,
+  loader: ({ parentMatchPromise }) =>
+    requireWorkspaceAdminSettingsAccess({ parentMatchPromise }),
 })
