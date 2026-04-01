@@ -17,21 +17,18 @@ const HOP_BY_HOP_RESPONSE_HEADERS = new Set([
 const SYNC_RESOURCE_PATHS = {
   workspace: "workspace",
   workspaceInvites: "workspace-invites",
-  workspaceMemberUsers: "workspace-member-users",
   workspaceMembers: "workspace-members",
 } as const
 
 type WorkspaceSyncResource =
   | (typeof SYNC_RESOURCE_PATHS)["workspace"]
   | (typeof SYNC_RESOURCE_PATHS)["workspaceInvites"]
-  | (typeof SYNC_RESOURCE_PATHS)["workspaceMemberUsers"]
   | (typeof SYNC_RESOURCE_PATHS)["workspaceMembers"]
 
 interface WorkspaceSyncContext {
   resources: {
     workspace: string
     workspaceInvites: string
-    workspaceMemberUsers: string
     workspaceMembers: string
   }
   userId: string
@@ -103,10 +100,17 @@ const resolveAuthBaseUrl = (override?: string) =>
     override ?? process.env.SERVER_AUTH_BASE_URL ?? "http://localhost:3002"
   )
 
-const resolveElectricBaseUrl = (override?: string) =>
-  trimTrailingSlash(
-    override ?? process.env.ELECTRIC_URL ?? "http://localhost:3000"
-  )
+const resolveElectricBaseUrl = (override?: string) => {
+  const resolved = override ?? process.env.ELECTRIC_URL
+
+  if (typeof resolved !== "string" || resolved.trim().length === 0) {
+    throw new HTTPException(503, {
+      message: "Workspace sync is not configured for this environment.",
+    })
+  }
+
+  return trimTrailingSlash(resolved)
+}
 
 const resolveElectricSecret = (override?: string) =>
   override ?? process.env.ELECTRIC_SECRET
@@ -117,14 +121,27 @@ const getFetchImplementation = (override?: typeof globalThis.fetch) =>
 const buildContextResourcePaths = (workspaceId: string) => ({
   workspace: `/api/sync/workspaces/${workspaceId}/shapes/workspace`,
   workspaceInvites: `/api/sync/workspaces/${workspaceId}/shapes/workspace-invites`,
-  workspaceMemberUsers: `/api/sync/workspaces/${workspaceId}/shapes/workspace-member-users`,
   workspaceMembers: `/api/sync/workspaces/${workspaceId}/shapes/workspace-members`,
 })
 
-const getForwardedHeaders = (headers: Headers) => {
+const getAuthForwardedHeaders = (headers: Headers) => {
   const forwardedHeaders = new Headers()
 
   for (const headerName of ["accept", "cookie", "if-none-match"]) {
+    const value = headers.get(headerName)
+
+    if (value) {
+      forwardedHeaders.set(headerName, value)
+    }
+  }
+
+  return forwardedHeaders
+}
+
+const getElectricForwardedHeaders = (headers: Headers) => {
+  const forwardedHeaders = new Headers()
+
+  for (const headerName of ["accept", "if-none-match"]) {
     const value = headers.get(headerName)
 
     if (value) {
@@ -139,7 +156,7 @@ const readErrorMessage = async (response: Response) => {
   const contentType = response.headers.get("content-type") ?? ""
 
   if (contentType.includes("application/json")) {
-    const payload = (await response.json()) as {
+    const payload = (await response.clone().json()) as {
       message?: unknown
     }
 
@@ -223,32 +240,6 @@ const buildShapeSearchParams = ({
   return searchParams
 }
 
-const buildWorkspaceMemberUsersWhere = (
-  snapshot: WorkspaceSettingsSnapshot
-) => {
-  const userIds = [
-    ...new Set(
-      (snapshot.members ?? []).flatMap((member) =>
-        typeof member.userId === "string" && member.userId
-          ? [member.userId]
-          : []
-      )
-    ),
-  ]
-
-  if (userIds.length === 0) {
-    return {
-      where: "1 = 0",
-      whereParams: [] as string[],
-    }
-  }
-
-  return {
-    where: `id IN (${userIds.map((_, index) => `$${index + 1}`).join(",")})`,
-    whereParams: userIds,
-  }
-}
-
 const createWorkspaceSyncService = (
   options: CreateWorkspaceSyncServiceOptions = {}
 ): WorkspaceSyncService => {
@@ -263,7 +254,7 @@ const createWorkspaceSyncService = (
       ).toString(),
       {
         credentials: "include",
-        headers: getForwardedHeaders(headers),
+        headers: getAuthForwardedHeaders(headers),
       }
     )
 
@@ -302,7 +293,8 @@ const createWorkspaceSyncService = (
           message: `Unsupported sync resource: ${resource}.`,
         })
       }
-      const snapshot = await getWorkspaceSettingsSnapshot(headers, workspaceId)
+      const electricBaseUrl = resolveElectricBaseUrl(options.electricBaseUrl)
+      await getWorkspaceSettingsSnapshot(headers, workspaceId)
       const resolvedShapeInput = (() => {
         switch (resource as WorkspaceSyncResource) {
           case SYNC_RESOURCE_PATHS.workspace: {
@@ -320,18 +312,6 @@ const createWorkspaceSyncService = (
               table: "auth.invitation",
               where: "organization_id = $1 AND status = $2",
               whereParams: [workspaceId, "pending"],
-            }
-          }
-          case SYNC_RESOURCE_PATHS.workspaceMemberUsers: {
-            const { where, whereParams } =
-              buildWorkspaceMemberUsersWhere(snapshot)
-
-            return {
-              columns:
-                "id,email,email_verified,name,image,created_at,updated_at",
-              table: "auth.user",
-              where,
-              whereParams,
             }
           }
           case SYNC_RESOURCE_PATHS.workspaceMembers: {
@@ -353,7 +333,7 @@ const createWorkspaceSyncService = (
       const upstreamResponse = await getFetchImplementation(options.fetch)(
         `${new URL(
           "/v1/shape",
-          resolveElectricBaseUrl(options.electricBaseUrl)
+          electricBaseUrl
         ).toString()}?${buildShapeSearchParams({
           columns: resolvedShapeInput.columns,
           electricSecret: resolveElectricSecret(options.electricSecret),
@@ -363,7 +343,7 @@ const createWorkspaceSyncService = (
           whereParams: resolvedShapeInput.whereParams,
         }).toString()}`,
         {
-          headers: getForwardedHeaders(headers),
+          headers: getElectricForwardedHeaders(headers),
         }
       )
 

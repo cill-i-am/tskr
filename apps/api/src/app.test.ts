@@ -89,8 +89,6 @@ describe("api app", () => {
         workspace: "/api/sync/workspaces/workspace-123/shapes/workspace",
         workspaceInvites:
           "/api/sync/workspaces/workspace-123/shapes/workspace-invites",
-        workspaceMemberUsers:
-          "/api/sync/workspaces/workspace-123/shapes/workspace-member-users",
         workspaceMembers:
           "/api/sync/workspaces/workspace-123/shapes/workspace-members",
       },
