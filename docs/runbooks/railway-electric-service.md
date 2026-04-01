@@ -38,6 +38,8 @@ Electric private domain over HTTP, for example
    with an attached volume redeploys.
 
 The volume is required because Electric keeps shape storage on disk.
+The Dockerfile should keep the same `ELECTRIC_STORAGE_DIR` path, but Railway's
+attached volume is what actually provides persistence in production.
 
 ## Health And Rollout Checks
 
