@@ -6,13 +6,15 @@ service. It uses the official
 instead of vendoring Electric source into this repo.
 
 This scaffold is intentionally standalone. It gives the repo a canonical
-service layout, runtime contract, and local launch path before sandbox
-integration lands in TSK-12.
+service layout, runtime contract, and local launch path before hosted Railway
+integration and sandbox wiring land together.
 
 ## Files
 
 - `Dockerfile` is a thin wrapper around the official Electric image. It sets the
   default HTTP port and persistent storage path used by this repo.
+- `railway.toml` is the Railway config-as-code file for the hosted Electric
+  service.
 - `compose.yaml` runs Electric in front of a local Postgres with logical
   replication enabled so the service can be started and checked in isolation.
 - `.env.example` documents the expected environment surface and the dev-only
@@ -31,6 +33,24 @@ Required and expected environment:
 - `ELECTRIC_PORT` controls the HTTP listener and defaults to `3000`.
 - `ELECTRIC_STORAGE_DIR` points at persistent on-disk shape storage and must
   survive service restarts.
+
+Hosted Railway expectations:
+
+- The Electric service should use `/apps/electric/railway.toml` as its config
+  file path in Railway.
+- The service should be built with the Dockerfile builder and
+  `apps/electric/Dockerfile` as the Dockerfile path.
+- The service health check should target `/v1/health`.
+- `ELECTRIC_INSECURE` should stay unset in Railway.
+- The API should talk to Electric over Railway private networking, not through
+  a public domain.
+- `ELECTRIC_URL` in `apps/api` should point at the Electric private domain and
+  the service `PORT`, for example
+  `http://${{electric.RAILWAY_PRIVATE_DOMAIN}}:${{electric.PORT}}`.
+- Set Railway's `PORT=3000` because Electric listens on its own fixed
+  `ELECTRIC_PORT` rather than Railway's injected dynamic port.
+- If you ever change `ELECTRIC_PORT`, keep `PORT`, `ELECTRIC_PORT`, and the API
+  `ELECTRIC_URL` port in sync with it.
 
 Operational endpoints and conventions:
 
@@ -79,6 +99,10 @@ For production or any internet-reachable deployment:
 If you point Electric at a different database or move `ELECTRIC_STORAGE_DIR`,
 clean up the old on-disk shape data and the old replication slot/publication
 state together so Electric does not restart against mismatched state.
+
+When the hosted service is deployed on Railway, attach a persistent volume and
+mount it at `/var/lib/electric/persistent`. That volume is the hosted
+replacement for the local named volume used in `compose.yaml`.
 
 ## Sources
 
