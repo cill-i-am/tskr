@@ -1,6 +1,7 @@
 import { z } from "zod"
 
 import {
+  awaitWorkspaceElectricTxId,
   createWorkspaceElectricCollection,
   resolveWorkspaceElectricShapeOptions,
 } from "./workspace-electric-collection"
@@ -109,5 +110,27 @@ describe("workspace electric collection", () => {
     await collection.cleanup()
 
     delete document.documentElement.dataset.apiBaseUrl
+  })
+
+  it("awaits the numeric sync txid without coercing it", async () => {
+    const awaitTxId = vi.fn().mockResolvedValue(true)
+    const result = {
+      syncConfirmation: {
+        txid: 123,
+      },
+    }
+
+    await expect(
+      awaitWorkspaceElectricTxId(
+        {
+          utils: {
+            awaitTxId,
+          },
+        } as never,
+        result
+      )
+    ).resolves.toBe(result)
+
+    expect(awaitTxId).toHaveBeenCalledWith(123)
   })
 })

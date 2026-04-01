@@ -74,7 +74,7 @@ const cleanupWorkspaceElectricCollections = async (
 const awaitWorkspaceElectricTxId = async <
   TResult extends {
     syncConfirmation: {
-      txid: string
+      txid: number
     }
   },
 >(
@@ -84,15 +84,7 @@ const awaitWorkspaceElectricTxId = async <
   >,
   result: TResult
 ) => {
-  const txId = Number(result.syncConfirmation.txid)
-
-  if (!Number.isSafeInteger(txId)) {
-    throw new TypeError(
-      `Workspace sync confirmation txid must be a safe integer, received ${result.syncConfirmation.txid}.`
-    )
-  }
-
-  await collection.utils.awaitTxId(txId)
+  await collection.utils.awaitTxId(result.syncConfirmation.txid)
 
   return result
 }

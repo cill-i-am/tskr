@@ -21,7 +21,7 @@ describe("workspace people sync mutation client", () => {
           workspaceId: "workspace-123",
         },
         syncConfirmation: {
-          txid: "123",
+          txid: 123,
         },
       })
     )
@@ -40,7 +40,7 @@ describe("workspace people sync mutation client", () => {
         method: "POST",
       })
     )
-    expect(response.syncConfirmation.txid).toBe("123")
+    expect(response.syncConfirmation.txid).toBe(123)
     expect(response.invite.id).toBe("invite-1")
     delete document.documentElement.dataset.apiBaseUrl
     vi.restoreAllMocks()
@@ -56,7 +56,7 @@ describe("workspace people sync mutation client", () => {
       Response.json({
         inviteId: "invite-1",
         syncConfirmation: {
-          txid: "124",
+          txid: 124,
         },
         workspaceId: "workspace-123",
       })
@@ -75,7 +75,7 @@ describe("workspace people sync mutation client", () => {
         method: "POST",
       })
     )
-    expect(response.syncConfirmation.txid).toBe("124")
+    expect(response.syncConfirmation.txid).toBe(124)
     expect(response.inviteId).toBe("invite-1")
     delete document.documentElement.dataset.apiBaseUrl
     vi.restoreAllMocks()
@@ -91,7 +91,7 @@ describe("workspace people sync mutation client", () => {
       Response.json({
         inviteId: "invite-1",
         syncConfirmation: {
-          txid: "125",
+          txid: 125,
         },
         workspaceId: "workspace-123",
       })
@@ -110,7 +110,7 @@ describe("workspace people sync mutation client", () => {
         method: "DELETE",
       })
     )
-    expect(response.syncConfirmation.txid).toBe("125")
+    expect(response.syncConfirmation.txid).toBe(125)
     expect(response.inviteId).toBe("invite-1")
     delete document.documentElement.dataset.apiBaseUrl
     vi.restoreAllMocks()
@@ -127,7 +127,7 @@ describe("workspace people sync mutation client", () => {
         memberId: "member-1",
         role: "dispatcher",
         syncConfirmation: {
-          txid: "126",
+          txid: 126,
         },
         workspaceId: "workspace-123",
       })
@@ -150,7 +150,7 @@ describe("workspace people sync mutation client", () => {
         method: "PATCH",
       })
     )
-    expect(response.syncConfirmation.txid).toBe("126")
+    expect(response.syncConfirmation.txid).toBe(126)
     expect(response.memberId).toBe("member-1")
     expect(response.role).toBe("dispatcher")
     delete document.documentElement.dataset.apiBaseUrl
@@ -167,7 +167,7 @@ describe("workspace people sync mutation client", () => {
       Response.json({
         memberId: "member-1",
         syncConfirmation: {
-          txid: "127",
+          txid: 127,
         },
         workspaceId: "workspace-123",
       })
@@ -186,7 +186,7 @@ describe("workspace people sync mutation client", () => {
         method: "DELETE",
       })
     )
-    expect(response.syncConfirmation.txid).toBe("127")
+    expect(response.syncConfirmation.txid).toBe(127)
     expect(response.memberId).toBe("member-1")
     delete document.documentElement.dataset.apiBaseUrl
     vi.restoreAllMocks()

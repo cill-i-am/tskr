@@ -156,7 +156,14 @@ describe("workspace people sync provider", () => {
       screen.getByTestId("members-collection-utils").textContent,
       screen.getByTestId("member-users-collection").textContent,
     ]).toStrictEqual(["function", "function", "none"])
-    expect(fetchMock).toHaveBeenCalledWith()
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "http://api.internal:3001/api/sync/workspaces/workspace-123/context",
+      {
+        credentials: "include",
+        headers: undefined,
+      }
+    )
     delete document.documentElement.dataset.apiBaseUrl
     vi.restoreAllMocks()
     vi.unstubAllEnvs()
