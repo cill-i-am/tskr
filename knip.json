@@ -1,5 +1,5 @@
 {
-  "$schema": "https://unpkg.com/knip@6.1.1/schema.json",
+  "$schema": "https://unpkg.com/knip@6.2.0/schema.json",
   "exclude": ["binaries", "devDependencies"],
   "include": ["dependencies", "unlisted"],
   "drizzle": false,
@@ -50,6 +50,14 @@
     },
     "packages/sandbox": {
       "entry": ["src/**/*.test.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/sync-contracts": {
+      "entry": [
+        "src/consumer-contract.fixture.ts",
+        "src/index.ts",
+        "src/**/*.test.ts"
+      ],
       "project": ["src/**/*.ts"]
     },
     "packages/ui": {
