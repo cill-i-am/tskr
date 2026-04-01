@@ -25,6 +25,7 @@ describe("sandbox store", () => {
       )
 
       expect(state.identity.slug).toBe("feature-review-12")
+      expect(state.authSecret).toMatch(/^[A-Za-z0-9_-]{43,}$/u)
 
       const sandboxJson = await readFile(
         join(rootDirectory, ".sandbox", "feature-review-12", "sandbox.json"),
@@ -51,11 +52,15 @@ describe("sandbox store", () => {
         "utf8"
       )
 
-      expect(sandboxJson).toContain('"slug": "feature-review-12"')
-      expect(localComposeEnv).toContain("SANDBOX_MODE=local")
-      expect(hostedAuthEnv).toContain(
-        "BETTER_AUTH_URL=https://auth.feature-review-12.sandboxes.example.com"
-      )
+      expect([
+        sandboxJson.includes('"slug": "feature-review-12"'),
+        sandboxJson.includes('"authSecret": "'),
+        localComposeEnv.includes("SANDBOX_MODE=local"),
+        hostedAuthEnv.includes(`BETTER_AUTH_SECRET=${state.authSecret}`),
+        hostedAuthEnv.includes(
+          "BETTER_AUTH_URL=https://auth.feature-review-12.sandboxes.example.com"
+        ),
+      ]).toStrictEqual([true, true, true, true, true])
     } finally {
       await rm(rootDirectory, {
         force: true,
@@ -90,9 +95,11 @@ describe("sandbox store", () => {
       )
 
       expect(loaded.identity.slug).toBe("feature-review-12")
+      expect(loaded.authSecret).toMatch(/^[A-Za-z0-9_-]{43,}$/u)
       expect(
         listed.map((sandbox: Awaited<typeof loaded>) => sandbox.identity.slug)
       ).toStrictEqual(["feature-review-12"])
+      expect(listed[0]?.authSecret).toBe(loaded.authSecret)
     } finally {
       await rm(rootDirectory, {
         force: true,

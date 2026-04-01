@@ -4,9 +4,8 @@ import { cors } from "hono/cors"
 import { auth, authenticationEnv } from "./infra/auth.js"
 import { pool } from "./infra/database.js"
 
-const DUPLICATE_SIGNUP_ERROR = {
-  code: "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL",
-  message: "User already exists. Use another email.",
+const GENERIC_SIGNUP_ERROR = {
+  message: "Unable to create your account.",
 }
 
 const normalizeEmail = (email: string): string => email.trim().toLowerCase()
@@ -107,7 +106,7 @@ const authenticationRoutes = new Hono()
         await acquireDuplicateSignupLock(email, client)
 
         if (await hasExistingUserWithEmail(email, client)) {
-          return context.json(DUPLICATE_SIGNUP_ERROR, 422)
+          return context.json(GENERIC_SIGNUP_ERROR, 400)
         }
 
         return await auth.handler(authRequest)

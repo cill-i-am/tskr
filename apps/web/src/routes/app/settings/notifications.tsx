@@ -11,5 +11,6 @@ const NotificationsSettingsRoute = () => (
 
 export const Route = createFileRoute("/app/settings/notifications")({
   component: NotificationsSettingsRoute,
-  loader: requireWorkspaceAdminSettingsAccess,
+  loader: ({ parentMatchPromise }) =>
+    requireWorkspaceAdminSettingsAccess({ parentMatchPromise }),
 })

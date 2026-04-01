@@ -544,7 +544,7 @@ describe("auth app", () => {
     expectLatestSignupVerificationOtp("ada@example.com")
   })
 
-  it("rejects duplicate signup attempts when a signup email already exists", async () => {
+  it("returns a generic signup failure when a signup email already exists", async () => {
     resetEmailMocks()
 
     await truncateAuthTables()
@@ -579,10 +579,9 @@ describe("auth app", () => {
         method: "POST",
       }
     )
-    expect(duplicateSignUpResponse.response.status).toBe(422)
+    expect(duplicateSignUpResponse.response.status).toBe(400)
     expect(duplicateSignUpResponse.json).toMatchObject({
-      code: "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL",
-      message: expect.any(String),
+      message: "Unable to create your account.",
     })
     expect(sendExistingUserSignupNoticeMock).not.toHaveBeenCalled()
     expect(sendSignupVerificationOtpEmailMock).not.toHaveBeenCalled()

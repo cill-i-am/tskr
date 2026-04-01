@@ -374,14 +374,8 @@ describe("authentication pages", () => {
     }
   })
 
-  it("submits signup with a whitespace-only full name", async () => {
+  it("blocks signup when the full name is only whitespace", async () => {
     resetMocks()
-    signUpEmailMock.mockResolvedValue({
-      error: {
-        code: "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL",
-        message: "User already exists. Use another email.",
-      },
-    })
     const { SignupPage } = await loadPages()
 
     const user = userEvent.setup()
@@ -390,29 +384,48 @@ describe("authentication pages", () => {
     try {
       await user.type(screen.getByLabelText("Full name"), "   ")
       await user.type(screen.getByLabelText("Email"), "ada@example.com")
-      await user.type(screen.getByLabelText("Password"), "short")
-      await user.type(screen.getByLabelText("Confirm password"), "short")
+      await user.type(screen.getByLabelText("Password"), "password-1234")
+      await user.type(
+        screen.getByLabelText("Confirm password"),
+        "password-1234"
+      )
       await user.click(screen.getByRole("button", { name: "Create account" }))
 
-      await waitFor(() => {
-        expect(signUpEmailMock).toHaveBeenCalledWith({
-          email: "ada@example.com",
-          name: "   ",
-          password: "short",
-        })
-      })
+      expect(signUpEmailMock).not.toHaveBeenCalled()
+      expect(screen.getByText("Enter your full name.")).toBeTruthy()
     } finally {
       view.unmount()
       cleanup()
     }
   })
 
-  it("shows the duplicate signup error without leaving the signup page", async () => {
+  it("blocks signup when the password is shorter than 8 characters", async () => {
+    resetMocks()
+    const { SignupPage } = await loadPages()
+
+    const user = userEvent.setup()
+    const view = render(<SignupPage />)
+
+    try {
+      await user.type(screen.getByLabelText("Full name"), "Ada Lovelace")
+      await user.type(screen.getByLabelText("Email"), "ada@example.com")
+      await user.type(screen.getByLabelText("Password"), "short")
+      await user.type(screen.getByLabelText("Confirm password"), "short")
+      await user.click(screen.getByRole("button", { name: "Create account" }))
+
+      expect(signUpEmailMock).not.toHaveBeenCalled()
+      expect(screen.getByText("Use at least 8 characters.")).toBeTruthy()
+    } finally {
+      view.unmount()
+      cleanup()
+    }
+  })
+
+  it("shows a generic signup failure without leaking account existence", async () => {
     resetMocks()
     signUpEmailMock.mockResolvedValue({
       error: {
-        code: "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL",
-        message: "User already exists. Use another email.",
+        message: "Unable to create your account.",
       },
     })
     const { SignupPage } = await loadPages()
@@ -438,9 +451,7 @@ describe("authentication pages", () => {
         })
       })
 
-      expect(
-        screen.getByText("User already exists. Use another email.")
-      ).toBeTruthy()
+      expect(screen.getByText("Unable to create your account.")).toBeTruthy()
       expect(navigateMock).not.toHaveBeenCalled()
     } finally {
       view.unmount()

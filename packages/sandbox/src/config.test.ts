@@ -77,6 +77,7 @@ describe("sandbox env files", () => {
     const ports = deriveSandboxPorts("a9b3c4d5ef00")
     const identity = deriveSandboxIdentity("Feature Review 12")
     const envFiles = buildSandboxEnvFiles({
+      authSecret: "sandbox-secret-local",
       emailFrom: "TSKR <noreply@localhost>",
       hostedDomainRoot: "sandboxes.example.com",
       identity,
@@ -104,6 +105,7 @@ describe("sandbox env files", () => {
     expect(envFiles.web).toContain("SERVER_AUTH_BASE_URL=http://auth:3002")
     expect(
       [
+        "BETTER_AUTH_SECRET=sandbox-secret-local",
         "BETTER_AUTH_TRUSTED_ORIGINS=https://feature-review-12.web.tskr.localhost",
         "WEB_BASE_URL=https://feature-review-12.web.tskr.localhost",
       ].every((entry) => envFiles.auth.includes(entry))
@@ -118,6 +120,7 @@ describe("sandbox env files", () => {
     const ports = deriveSandboxPorts("a9b3c4d5ef00")
     const identity = deriveSandboxIdentity("Feature Review 12")
     const envFiles = buildSandboxEnvFiles({
+      authSecret: "sandbox-secret-hosted",
       emailFrom: "TSKR <noreply@localhost>",
       hostedDomainRoot: "sandboxes.example.com",
       identity,
@@ -131,7 +134,8 @@ describe("sandbox env files", () => {
     expect([
       envFiles.api.includes("NODE_ENV=production"),
       envFiles.auth.includes("NODE_ENV=production"),
+      envFiles.auth.includes("BETTER_AUTH_SECRET=sandbox-secret-hosted"),
       envFiles.web.includes("NODE_ENV=production"),
-    ]).toStrictEqual([true, true, true])
+    ]).toStrictEqual([true, true, true, true])
   })
 })

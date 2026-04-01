@@ -1,3 +1,4 @@
+import { createSingleFlight } from "@/domains/shared/application/single-flight"
 import { AuthenticatedAppShell } from "@/domains/workspaces/app-shell/ui/authenticated-app-shell"
 import { resolveWorkspaceEntry } from "@/domains/workspaces/bootstrap/application/resolve-workspace-entry"
 import { getWorkspaceBootstrap } from "@/domains/workspaces/bootstrap/infra/workspace-bootstrap-client"
@@ -8,6 +9,10 @@ import {
   redirect,
   useLoaderData,
 } from "@tanstack/react-router"
+
+const loadWorkspaceEntry = createSingleFlight(async () =>
+  resolveWorkspaceEntry(await getWorkspaceBootstrap())
+)
 
 const AppLayoutRoute = () => {
   const bootstrap = useLoaderData({ from: "/app" })
@@ -24,7 +29,7 @@ const AppLayoutRoute = () => {
 export const Route = createFileRoute("/app")({
   component: AppLayoutRoute,
   loader: async () => {
-    const workspaceEntry = resolveWorkspaceEntry(await getWorkspaceBootstrap())
+    const workspaceEntry = await loadWorkspaceEntry()
 
     if (workspaceEntry.state === "needs_auth") {
       throw redirect({

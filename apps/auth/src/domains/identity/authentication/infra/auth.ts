@@ -43,23 +43,21 @@ const logEmailDeliveryFailure = (
   console.error(message, details)
 }
 
-const runEmailSideEffect = (
+const sendEmailOrThrow = async (
   send: () => Promise<unknown>,
   message: string,
   details: Record<string, unknown>
 ) => {
-  queueMicrotask(async () => {
-    try {
-      await send()
-    } catch (error) {
-      logEmailDeliveryFailure(message, {
-        ...details,
-        error,
-      })
-    }
-  })
+  try {
+    await send()
+  } catch (error) {
+    logEmailDeliveryFailure(message, {
+      ...details,
+      error,
+    })
 
-  return Promise.resolve()
+    throw error
+  }
 }
 
 const getWorkspaceInvitationCode = async (invitationId: string) => {
@@ -99,8 +97,8 @@ const auth = betterAuth({
     autoSignIn: false,
     enabled: true,
     requireEmailVerification: true,
-    sendResetPassword: ({ url, user }) =>
-      runEmailSideEffect(
+    sendResetPassword: async ({ url, user }) => {
+      await sendEmailOrThrow(
         () =>
           authenticationEmailService.sendPasswordResetEmail({
             resetUrl: url,
@@ -109,9 +107,9 @@ const auth = betterAuth({
         "[auth:email] failed to send password reset email",
         {
           recipient: user.email,
-          resetUrl: url,
         }
-      ),
+      )
+    },
   },
   emailVerification: {
     autoSignInAfterVerification: true,
@@ -124,8 +122,8 @@ const auth = betterAuth({
       expiresIn: 300,
       otpLength: 6,
       overrideDefaultEmailVerification: true,
-      sendVerificationOTP: ({ email, otp, type }) =>
-        runEmailSideEffect(
+      sendVerificationOTP: async ({ email, otp, type }) => {
+        await sendEmailOrThrow(
           () =>
             authenticationEmailService.sendSignupVerificationOtpEmail({
               code: otp,
@@ -136,7 +134,8 @@ const auth = betterAuth({
             otpType: type,
             recipient: email,
           }
-        ),
+        )
+      },
       storeOTP: "hashed",
     }),
     organization({
@@ -169,7 +168,7 @@ const auth = betterAuth({
         inviter,
         organization: workspaceOrg,
       }) =>
-        runEmailSideEffect(
+        sendEmailOrThrow(
           async () => {
             const code = await getWorkspaceInvitationCode(invitation.id)
 

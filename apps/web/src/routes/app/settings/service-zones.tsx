@@ -11,5 +11,6 @@ const ServiceZonesSettingsRoute = () => (
 
 export const Route = createFileRoute("/app/settings/service-zones")({
   component: ServiceZonesSettingsRoute,
-  loader: requireWorkspaceAdminSettingsAccess,
+  loader: ({ parentMatchPromise }) =>
+    requireWorkspaceAdminSettingsAccess({ parentMatchPromise }),
 })

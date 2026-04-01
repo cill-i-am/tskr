@@ -11,5 +11,6 @@ const LabelsSettingsRoute = () => (
 
 export const Route = createFileRoute("/app/settings/labels")({
   component: LabelsSettingsRoute,
-  loader: requireWorkspaceAdminSettingsAccess,
+  loader: ({ parentMatchPromise }) =>
+    requireWorkspaceAdminSettingsAccess({ parentMatchPromise }),
 })
