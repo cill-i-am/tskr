@@ -2,6 +2,7 @@ import type {
   SettingsAdminMember,
   SettingsAdminWorkspaceRole,
 } from "@/domains/identity/settings-admin/contracts/settings-admin-contract"
+import { getSettingsSnapshot } from "@/domains/identity/settings-admin/infra/get-settings-snapshot"
 import {
   fetchApiService,
   resolveApiBaseUrl,
@@ -75,6 +76,7 @@ type WorkspacePeopleSyncStatus = "idle" | "loading" | "ready" | "error"
 interface LoadedWorkspacePeopleSyncData {
   invites: WorkspacePeopleSyncInvite[]
   members: WorkspacePeopleSyncMember[]
+  missingMemberProfileUserIds: string[]
   syncContext: WorkspacePeopleSyncContextResponse
 }
 
@@ -211,6 +213,73 @@ const buildWorkspaceInvites = (
     workspaceId: inviteRow.organization_id,
   }))
 
+const buildWorkspaceMemberProfiles = (
+  members: SettingsAdminMember[]
+): WorkspacePeopleSyncMemberProfile[] =>
+  members.map((member) => ({
+    email: member.email,
+    id: member.id,
+    image: member.image,
+    name: member.name,
+    userId: member.userId,
+  }))
+
+const collectMissingMemberProfileUserIds = ({
+  memberProfiles,
+  memberRows,
+}: {
+  memberProfiles: WorkspacePeopleSyncMemberProfile[]
+  memberRows: WorkspaceMemberRow[]
+}) => {
+  const memberProfileUserIds = new Set(
+    memberProfiles.map((memberProfile) => memberProfile.userId)
+  )
+
+  return [...new Set(memberRows.map((memberRow) => memberRow.user_id))].filter(
+    (userId) => !memberProfileUserIds.has(userId)
+  )
+}
+
+const areMemberProfilesEqual = (
+  left: WorkspacePeopleSyncMemberProfile,
+  right: WorkspacePeopleSyncMemberProfile
+) =>
+  left.email === right.email &&
+  left.id === right.id &&
+  left.image === right.image &&
+  left.name === right.name &&
+  left.userId === right.userId
+
+const mergeMemberProfiles = (
+  currentProfiles: WorkspacePeopleSyncMemberProfile[],
+  nextProfiles: WorkspacePeopleSyncMemberProfile[]
+) => {
+  let changed = false
+  const mergedProfilesByUserId = new Map(
+    currentProfiles.map((memberProfile) => [
+      memberProfile.userId,
+      memberProfile,
+    ])
+  )
+
+  for (const nextProfile of nextProfiles) {
+    const currentProfile = mergedProfilesByUserId.get(nextProfile.userId)
+
+    if (currentProfile && areMemberProfilesEqual(currentProfile, nextProfile)) {
+      continue
+    }
+
+    changed = true
+    mergedProfilesByUserId.set(nextProfile.userId, nextProfile)
+  }
+
+  if (!changed) {
+    return currentProfiles
+  }
+
+  return [...mergedProfilesByUserId.values()]
+}
+
 const fetchWorkspacePeopleSyncContext = async (
   workspaceId: string
 ): Promise<WorkspacePeopleSyncContextResponse> => {
@@ -255,12 +324,12 @@ const createWorkspaceShape = <A extends { id: string }>({
 }
 
 const createWorkspacePeopleSyncController = async ({
-  memberProfiles,
+  getMemberProfiles,
   onData,
   onError,
   syncContext,
 }: {
-  memberProfiles: WorkspacePeopleSyncMemberProfile[]
+  getMemberProfiles: () => WorkspacePeopleSyncMemberProfile[]
   onData: (nextData: LoadedWorkspacePeopleSyncData) => void
   onError: (nextError: unknown) => void
   syncContext: WorkspacePeopleSyncContextResponse
@@ -274,15 +343,24 @@ const createWorkspacePeopleSyncController = async ({
     resource: syncContext.resources.workspaceMembers,
   })
 
-  const readCurrentData = (): LoadedWorkspacePeopleSyncData => ({
-    invites: buildWorkspaceInvites(workspaceInvitesShape.shape.currentRows),
-    members: buildWorkspaceMembers({
-      memberProfiles,
-      memberRows: workspaceMembersShape.shape.currentRows,
-      userId: syncContext.userId,
-    }),
-    syncContext,
-  })
+  const readCurrentData = (): LoadedWorkspacePeopleSyncData => {
+    const memberProfiles = getMemberProfiles()
+    const memberRows = workspaceMembersShape.shape.currentRows
+
+    return {
+      invites: buildWorkspaceInvites(workspaceInvitesShape.shape.currentRows),
+      members: buildWorkspaceMembers({
+        memberProfiles,
+        memberRows,
+        userId: syncContext.userId,
+      }),
+      missingMemberProfileUserIds: collectMissingMemberProfileUserIds({
+        memberProfiles,
+        memberRows,
+      }),
+      syncContext,
+    }
+  }
 
   let hasLoadedInitialRows = false
   const publishCurrentData = () => {
@@ -337,6 +415,9 @@ const WorkspacePeopleSyncProvider = ({
   const [members, setMembers] = useState<WorkspacePeopleSyncMember[]>([])
   const [invites, setInvites] = useState<WorkspacePeopleSyncInvite[]>([])
   const controllerRef = useRef<WorkspacePeopleSyncController | null>(null)
+  const memberProfilesRef = useRef(memberProfiles)
+  const providedMemberProfilesRef = useRef(memberProfiles)
+  const missingMemberProfilesRequestRef = useRef<null | Promise<void>>(null)
   const sessionRef = useRef<symbol | null>(null)
 
   const applyLoadedData = useEffectEvent(
@@ -346,6 +427,69 @@ const WorkspacePeopleSyncProvider = ({
       setInvites(nextData.invites)
       setStatus("ready")
       setError(null)
+    }
+  )
+
+  const republishCurrentData = useEffectEvent(() => {
+    const controller = controllerRef.current
+
+    if (!controller) {
+      return
+    }
+
+    applyLoadedData(controller.readCurrentData())
+  })
+
+  const hydrateMissingMemberProfiles = useEffectEvent(
+    async ({
+      missingMemberProfileUserIds,
+      sessionId,
+      targetWorkspaceId,
+    }: {
+      missingMemberProfileUserIds: string[]
+      sessionId: symbol
+      targetWorkspaceId: string
+    }) => {
+      if (
+        missingMemberProfileUserIds.length === 0 ||
+        missingMemberProfilesRequestRef.current
+      ) {
+        return
+      }
+
+      missingMemberProfilesRequestRef.current = (async () => {
+        try {
+          const snapshot = await getSettingsSnapshot({
+            workspaceId: targetWorkspaceId,
+          })
+
+          if (sessionRef.current !== sessionId) {
+            return
+          }
+
+          const mergedProfiles = mergeMemberProfiles(
+            memberProfilesRef.current,
+            buildWorkspaceMemberProfiles(snapshot.members)
+          )
+
+          if (mergedProfiles === memberProfilesRef.current) {
+            return
+          }
+
+          memberProfilesRef.current = mergedProfiles
+          republishCurrentData()
+        } catch {
+          // Keep the current fallback rows until a later refresh can hydrate them.
+        }
+      })()
+
+      try {
+        await missingMemberProfilesRequestRef.current
+      } finally {
+        if (sessionRef.current === sessionId) {
+          missingMemberProfilesRequestRef.current = null
+        }
+      }
     }
   )
 
@@ -376,13 +520,18 @@ const WorkspacePeopleSyncProvider = ({
         }
 
         const controller = await createWorkspacePeopleSyncController({
-          memberProfiles,
+          getMemberProfiles: () => memberProfilesRef.current,
           onData: (nextData) => {
             if (sessionRef.current !== sessionId) {
               return
             }
 
             applyLoadedData(nextData)
+            hydrateMissingMemberProfiles({
+              missingMemberProfileUserIds: nextData.missingMemberProfileUserIds,
+              sessionId,
+              targetWorkspaceId: nextWorkspaceId,
+            })
           },
           onError: (nextError) => {
             if (sessionRef.current !== sessionId) {
@@ -408,6 +557,11 @@ const WorkspacePeopleSyncProvider = ({
         controllerRef.current = controller
         const nextData = controller.readCurrentData()
         applyLoadedData(nextData)
+        hydrateMissingMemberProfiles({
+          missingMemberProfileUserIds: nextData.missingMemberProfileUserIds,
+          sessionId,
+          targetWorkspaceId: nextWorkspaceId,
+        })
 
         return nextData
       } catch (nextError) {
@@ -443,10 +597,33 @@ const WorkspacePeopleSyncProvider = ({
   })
 
   useEffect(() => {
+    memberProfilesRef.current = providedMemberProfilesRef.current
+    missingMemberProfilesRequestRef.current = null
+  }, [workspaceId])
+
+  useEffect(() => {
+    providedMemberProfilesRef.current = memberProfiles
+
+    const mergedProfiles = mergeMemberProfiles(
+      memberProfilesRef.current,
+      memberProfiles
+    )
+
+    if (mergedProfiles === memberProfilesRef.current) {
+      return
+    }
+
+    memberProfilesRef.current = mergedProfiles
+    republishCurrentData()
+  }, [memberProfiles])
+
+  useEffect(() => {
     if (!workspaceId) {
       sessionRef.current = null
       controllerRef.current?.dispose()
       controllerRef.current = null
+      missingMemberProfilesRequestRef.current = null
+      memberProfilesRef.current = []
       setSyncContext(null)
       setStatus("idle")
       setError(null)
@@ -461,8 +638,9 @@ const WorkspacePeopleSyncProvider = ({
       sessionRef.current = null
       controllerRef.current?.dispose()
       controllerRef.current = null
+      missingMemberProfilesRequestRef.current = null
     }
-  }, [memberProfiles, workspaceId])
+  }, [workspaceId])
 
   const mutations = useMemo(() => createWorkspacePeopleSyncMutationClient(), [])
 

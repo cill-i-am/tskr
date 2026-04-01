@@ -28,6 +28,85 @@ const createElectricShapeHeaders = ({
   "electric-up-to-date": "true",
 })
 
+const createSettingsSnapshotPayload = ({
+  invites,
+  members,
+  owner,
+}: {
+  invites: {
+    acceptUrl: string
+    code: string
+    email: string
+    id: string
+    role: "admin" | "dispatcher" | "field_worker" | "owner"
+    status: string
+    workspaceId: string
+  }[]
+  members: {
+    email: string
+    id: string
+    image: null | string
+    isCurrentUser: boolean
+    name: string
+    role: "admin" | "dispatcher" | "field_worker" | "owner"
+    userId: string
+  }[]
+  owner: {
+    email: string
+    userId: string
+    workspaceId: string
+    workspaceName: string
+    workspaceSlug: string
+  }
+}) => ({
+  accountProfile: {
+    email: owner.email,
+    id: owner.userId,
+    image: null,
+    name: "Snapshot Owner",
+  },
+  members: members.map((member) => ({
+    email: member.email,
+    id: member.id,
+    image: member.image,
+    isCurrentUser: member.isCurrentUser,
+    name: member.name,
+    permissions: {
+      assignableRoles: [],
+      canChangeRole: false,
+      canRemove: false,
+    },
+    role: member.role,
+    userId: member.userId,
+  })),
+  pendingInvites: invites.map((invite) => ({
+    acceptUrl: invite.acceptUrl,
+    code: invite.code,
+    email: invite.email,
+    id: invite.id,
+    permissions: {
+      canResend: true,
+      canRevoke: true,
+    },
+    role: invite.role,
+    status: invite.status,
+    workspaceId: invite.workspaceId,
+  })),
+  permissions: {
+    canEditWorkspaceProfile: true,
+    canInviteRoles: ["owner", "admin", "dispatcher", "field_worker"],
+    canManageInvites: true,
+    canManageMembers: true,
+  },
+  viewerRole: "owner",
+  workspaceProfile: {
+    id: owner.workspaceId,
+    logo: null,
+    name: owner.workspaceName,
+    slug: owner.workspaceSlug,
+  },
+})
+
 test("lets an owner invite, resend, and revoke a workspace invite", async ({
   emailCaptureDir,
   page,
@@ -136,24 +215,96 @@ test("replaces stale snapshot rows with live sync rows on the people settings ro
     name: "Snapshot Owner",
     workspaceName: "Sync Ops",
   })
-  const staleMember = await seed.createUser({
+  const staleMember = {
     email: `snapshot-member-${crypto.randomUUID()}@example.com`,
+    id: "member-stale",
+    image: null,
+    isCurrentUser: false,
     name: "Snapshot Member",
-    verified: true,
-  })
+    role: "dispatcher" as const,
+    userId: `user-stale-${crypto.randomUUID()}`,
+  }
+  const liveMember = {
+    email: `live-member-${crypto.randomUUID()}@example.com`,
+    id: "member-live",
+    image: null,
+    isCurrentUser: false,
+    name: "Live Member",
+    role: "dispatcher" as const,
+    userId: `user-live-${crypto.randomUUID()}`,
+  }
   const staleInviteEmail = `stale-invite-${crypto.randomUUID()}@example.com`
+  let settingsRequestCount = 0
 
-  await seed.addWorkspaceMember({
-    organizationId: owner.workspaceId,
-    role: "dispatcher",
-    userId: staleMember.userId,
-  })
-  await seed.createPendingInvite({
-    email: staleInviteEmail,
-    inviterUserId: owner.userId,
-    role: "dispatcher",
-    workspaceId: owner.workspaceId,
-  })
+  await page.route(
+    `**/api/workspaces/${owner.workspaceId}/settings`,
+    async (route) => {
+      settingsRequestCount += 1
+
+      if (settingsRequestCount === 1) {
+        await route.fulfill({
+          contentType: "application/json",
+          json: createSettingsSnapshotPayload({
+            invites: [
+              {
+                acceptUrl: `https://example.com/invites/stale-${owner.workspaceId}`,
+                code: "STALE123",
+                email: staleInviteEmail,
+                id: "invite-stale",
+                role: "dispatcher",
+                status: "pending",
+                workspaceId: owner.workspaceId,
+              },
+            ],
+            members: [
+              {
+                email: owner.email,
+                id: "member-owner",
+                image: null,
+                isCurrentUser: true,
+                name: owner.name,
+                role: "owner",
+                userId: owner.userId,
+              },
+              staleMember,
+            ],
+            owner,
+          }),
+        })
+        return
+      }
+
+      await route.fulfill({
+        contentType: "application/json",
+        json: createSettingsSnapshotPayload({
+          invites: [
+            {
+              acceptUrl: `https://example.com/invites/live-${owner.workspaceId}`,
+              code: "LIVE1234",
+              email: "live-invite@example.com",
+              id: "invite-live",
+              role: "dispatcher",
+              status: "pending",
+              workspaceId: owner.workspaceId,
+            },
+          ],
+          members: [
+            {
+              email: owner.email,
+              id: "member-owner",
+              image: null,
+              isCurrentUser: true,
+              name: owner.name,
+              role: "owner",
+              userId: owner.userId,
+            },
+            liveMember,
+          ],
+          owner,
+        }),
+      })
+    }
+  )
 
   await page.route(
     `**/api/sync/workspaces/${owner.workspaceId}/context`,
@@ -197,6 +348,18 @@ test("replaces stale snapshot rows with live sync rows on the people settings ro
                 organization_id: owner.workspaceId,
                 role: "owner",
                 user_id: owner.userId,
+              },
+            },
+            {
+              headers: {
+                operation: "insert",
+              },
+              key: "member-live",
+              value: {
+                id: liveMember.id,
+                organization_id: owner.workspaceId,
+                role: liveMember.role,
+                user_id: liveMember.userId,
               },
             },
             {
@@ -258,6 +421,9 @@ test("replaces stale snapshot rows with live sync rows on the people settings ro
   await peopleSettingsPage.expectLoaded()
 
   await peopleSettingsPage.members.expectMissing("Snapshot Member")
+  await expect(
+    page.locator("tr").filter({ hasText: "Live Member" })
+  ).toHaveCount(1)
   await peopleSettingsPage.invites.expectInvite("live-invite@example.com")
   await peopleSettingsPage.invites.expectInviteRemoved(staleInviteEmail)
 })

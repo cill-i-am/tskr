@@ -162,7 +162,11 @@ const WorkspacePeopleSyncProbe = () => {
       </div>
       <div>
         <dt>members</dt>
-        <dd data-testid="members">{sync.members?.[0]?.name ?? "none"}</dd>
+        <dd data-testid="members">
+          {sync.members.length > 0
+            ? sync.members.map((member) => member.name).join(", ")
+            : "none"}
+        </dd>
       </div>
       <div>
         <dt>invites</dt>
@@ -202,10 +206,76 @@ const defaultMemberProfiles = [
   },
 ]
 
+const createSettingsSnapshot = ({
+  members = defaultMemberProfiles,
+  workspaceId = "workspace-123",
+}: {
+  members?: {
+    email: string
+    id: string
+    image: string | null
+    isCurrentUser?: boolean
+    name: string
+    role?: "admin" | "dispatcher" | "field_worker" | "owner"
+    userId: string
+  }[]
+  workspaceId?: string
+}) =>
+  Response.json({
+    accountProfile: {
+      email: "owner@example.com",
+      id: "account-123",
+      image: null,
+      name: "Owner User",
+    },
+    members: members.map((member) => ({
+      email: member.email,
+      id: member.id,
+      image: member.image,
+      isCurrentUser: member.isCurrentUser ?? member.userId === "user-123",
+      name: member.name,
+      permissions: {
+        assignableRoles: [],
+        canChangeRole: false,
+        canRemove: false,
+      },
+      role: member.role ?? "dispatcher",
+      userId: member.userId,
+    })),
+    pendingInvites: [],
+    permissions: {
+      canEditWorkspaceProfile: true,
+      canInviteRoles: ["owner", "admin", "dispatcher", "field_worker"],
+      canManageInvites: true,
+      canManageMembers: true,
+    },
+    viewerRole: "owner",
+    workspaceProfile: {
+      id: workspaceId,
+      logo: null,
+      name: "Ops Control",
+      slug: "ops-control",
+    },
+  })
+
 const getShape = (resourceSuffix: string) =>
   electricClientMock.shapeInstances.find((shape) =>
     shape.stream.options.url.endsWith(resourceSuffix)
   )
+
+const installPathFetchMock = (
+  responseFactories: Record<string, () => Response>
+) =>
+  vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+    const url = new URL(input.toString())
+    const responseFactory = responseFactories[url.pathname]
+
+    if (!responseFactory) {
+      throw new Error(`Unexpected fetch: ${url.toString()}`)
+    }
+
+    return Promise.resolve(responseFactory())
+  })
 
 const resolveShapeRows = <T extends { id: string }>(
   resourceSuffix: string,
@@ -395,6 +465,76 @@ describe("workspace people sync provider", () => {
     })
 
     expect(screen.getByTestId("invites").textContent).toBe("none")
+  })
+
+  it("hydrates sync-only member profiles from the auth snapshot when live member rows arrive", async () => {
+    document.documentElement.dataset.apiBaseUrl = "http://api.internal:3001"
+    installPathFetchMock({
+      "/api/sync/workspaces/workspace-123/context": () =>
+        createWorkspaceContext("workspace-123"),
+      "/api/workspaces/workspace-123/settings": () =>
+        createSettingsSnapshot({
+          members: [
+            {
+              email: "owner@example.com",
+              id: "member-owner",
+              image: null,
+              isCurrentUser: true,
+              name: "Owner User",
+              role: "owner",
+              userId: "user-123",
+            },
+            {
+              email: "live-member@example.com",
+              id: "member-live",
+              image: null,
+              name: "Live Member",
+              userId: "user-456",
+            },
+          ],
+        }),
+    })
+
+    render(
+      <WorkspacePeopleSyncProvider
+        memberProfiles={defaultMemberProfiles}
+        workspaceId="workspace-123"
+      >
+        <WorkspacePeopleSyncProbe />
+      </WorkspacePeopleSyncProvider>
+    )
+
+    await waitFor(() => {
+      expect(electricClientMock.shapeInstances).toHaveLength(2)
+    })
+
+    resolveShapeRows(
+      "/api/sync/workspaces/workspace-123/shapes/workspace-members",
+      [
+        {
+          id: "member-owner",
+          organization_id: "workspace-123",
+          role: "owner",
+          user_id: "user-123",
+        },
+        {
+          id: "member-live",
+          organization_id: "workspace-123",
+          role: "dispatcher",
+          user_id: "user-456",
+        },
+      ]
+    )
+    resolveShapeRows(
+      "/api/sync/workspaces/workspace-123/shapes/workspace-invites",
+      []
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId("members").textContent).toBe(
+        "Owner User, Live Member"
+      )
+    })
   })
 
   it("stays loading until every initial Electric shape has resolved", async () => {
