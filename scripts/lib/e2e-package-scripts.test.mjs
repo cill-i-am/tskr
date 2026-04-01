@@ -38,6 +38,28 @@ test("root e2e scripts delegate directly to the shared runner", () => {
   )
 })
 
+test("root integration script bootstraps local postgres before migration", () => {
+  const rootPackage = readPackageJson("package.json")
+  const integrationScript = rootPackage.scripts["test:integration"]
+  const launcherMarker =
+    " && node scripts/local-postgres-launcher.mjs -- sh -lc '"
+  const [beforeLauncher, launcherCommand] =
+    integrationScript.split(launcherMarker)
+
+  assert.ok(
+    typeof launcherCommand === "string",
+    "Expected root integration script to delegate through local-postgres-launcher."
+  )
+  assert.doesNotMatch(
+    beforeLauncher,
+    /pnpm --filter @workspace\/db db:migrate/u
+  )
+  assert.match(
+    launcherCommand,
+    /^pnpm --filter @workspace\/db db:migrate && pnpm --dir apps\/auth exec vitest run/u
+  )
+})
+
 test("e2e dev scripts pin distinct app ports for web and auth", () => {
   const webPackage = readPackageJson("apps/web/package.json")
   const authPackage = readPackageJson("apps/auth/package.json")

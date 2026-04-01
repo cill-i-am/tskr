@@ -37,11 +37,13 @@ describe("sandbox ports", () => {
     expect(ports.postgres).toBeLessThan(45_000)
     expect({
       auth: ports.auth - ports.api,
+      electric: ports.electric - ports.api,
       ingress: ports.ingress - ports.api,
       postgres: ports.postgres - ports.api,
       web: ports.web - ports.api,
     }).toStrictEqual({
       auth: 1,
+      electric: 5,
       ingress: 4,
       postgres: 3,
       web: 2,
@@ -91,6 +93,8 @@ describe("sandbox env files", () => {
     expect(
       [
         `POSTGRES_CONTAINER_NAME=${identity.projectName}-postgres`,
+        `SANDBOX_ELECTRIC_PORT=${ports.electric}`,
+        "SANDBOX_ENV_ELECTRIC_FILE=/repo/.sandbox/feature-review-12/local/electric.env",
         "SANDBOX_NAME=feature-review-12",
         "SANDBOX_ENV_WEB_FILE=/repo/.sandbox/feature-review-12/local/web.env",
         "SANDBOX_WEB_DOMAIN=web.feature-review-12.sandboxes.example.com",
@@ -99,21 +103,38 @@ describe("sandbox env files", () => {
         `SANDBOX_INGRESS_PORT=${ports.ingress}`,
       ].every((entry) => envFiles.compose.includes(entry))
     ).toBeTruthy()
-    expect(envFiles.web).toContain(
-      "VITE_AUTH_BASE_URL=https://feature-review-12.auth.tskr.localhost"
-    )
-    expect(envFiles.web).toContain("SERVER_AUTH_BASE_URL=http://auth:3002")
     expect(
+      [
+        "ELECTRIC_URL=http://electric:3000",
+        "SERVER_AUTH_BASE_URL=http://auth:3002",
+      ].every((entry) => envFiles.api.includes(entry))
+    ).toBeTruthy()
+    expect(
+      [
+        envFiles.electric !== undefined,
+        [
+          "DATABASE_URL=postgresql://postgres:postgres@postgres:5432/app",
+          "ELECTRIC_INSECURE=true",
+          "ELECTRIC_PORT=3000",
+          "ELECTRIC_STORAGE_DIR=/var/lib/electric/persistent",
+        ].every((entry) => envFiles.electric?.includes(entry) === true),
+      ].every(Boolean)
+    ).toBeTruthy()
+    expect(
+      [
+        "VITE_AUTH_BASE_URL=https://feature-review-12.auth.tskr.localhost",
+        "SERVER_AUTH_BASE_URL=http://auth:3002",
+      ].every((entry) => envFiles.web.includes(entry))
+    ).toBeTruthy()
+    expect([
       [
         "BETTER_AUTH_SECRET=sandbox-secret-local",
         "BETTER_AUTH_TRUSTED_ORIGINS=https://feature-review-12.web.tskr.localhost",
         "WEB_BASE_URL=https://feature-review-12.web.tskr.localhost",
-      ].every((entry) => envFiles.auth.includes(entry))
-    ).toBeTruthy()
-    expect([
+      ].every((entry) => envFiles.auth.includes(entry)),
       envFiles.postgres.includes(`POSTGRES_HOST_PORT=${ports.postgres}`),
       envFiles.postgres.includes("POSTGRES_CONTAINER_NAME="),
-    ]).toStrictEqual([true, false])
+    ]).toStrictEqual([true, true, false])
   })
 
   it("writes production env values for hosted sandboxes", () => {
@@ -132,10 +153,15 @@ describe("sandbox env files", () => {
     })
 
     expect([
+      envFiles.api.includes(
+        "SERVER_AUTH_BASE_URL=https://auth.feature-review-12.sandboxes.example.com"
+      ),
       envFiles.api.includes("NODE_ENV=production"),
       envFiles.auth.includes("NODE_ENV=production"),
       envFiles.auth.includes("BETTER_AUTH_SECRET=sandbox-secret-hosted"),
+      envFiles.compose.includes("SANDBOX_ELECTRIC_PORT="),
+      envFiles.electric,
       envFiles.web.includes("NODE_ENV=production"),
-    ]).toStrictEqual([true, true, true, true])
+    ]).toStrictEqual([true, true, true, true, false, undefined, true])
   })
 })

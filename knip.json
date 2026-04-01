@@ -1,0 +1,69 @@
+{
+  "$schema": "https://unpkg.com/knip@6.2.0/schema.json",
+  "exclude": ["binaries", "devDependencies"],
+  "include": ["dependencies", "unlisted"],
+  "drizzle": false,
+  "playwright": false,
+  "playwright-test": false,
+  "tsdown": false,
+  "vite": false,
+  "vitest": false,
+  "workspaces": {
+    ".": {
+      "entry": ["playwright.config.ts", "scripts/**/*.mjs"],
+      "project": ["scripts/**/*.mjs"]
+    },
+    "apps/api": {
+      "entry": ["src/**/*.test.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "apps/auth": {
+      "entry": ["src/**/*.test.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "apps/web": {
+      "ignoreDependencies": ["@fontsource-variable/geist", "tailwindcss"],
+      "entry": [
+        "e2e/specs/**/*.ts",
+        "e2e/support/**/*.ts",
+        "src/router.tsx",
+        "src/routes/**/*.{ts,tsx}"
+      ],
+      "project": ["e2e/**/*.ts", "src/**/*.{ts,tsx}"]
+    },
+    "packages/db": {
+      "entry": [
+        "src/client.ts",
+        "src/index.ts",
+        "src/schema/*.ts",
+        "src/**/*.test.mjs"
+      ],
+      "project": ["src/**/*.{mjs,ts}"]
+    },
+    "packages/email": {
+      "entry": [
+        "src/consumer-contract.fixture.ts",
+        "src/index.ts",
+        "src/**/*.test.ts"
+      ],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/sandbox": {
+      "entry": ["src/**/*.test.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/sync-contracts": {
+      "entry": [
+        "src/consumer-contract.fixture.ts",
+        "src/index.ts",
+        "src/**/*.test.ts"
+      ],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/ui": {
+      "ignoreDependencies": ["tw-animate-css"],
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.{ts,tsx}"]
+    }
+  }
+}

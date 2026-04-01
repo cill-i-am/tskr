@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto"
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises"
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 
 import { Effect } from "effect"
@@ -71,8 +71,8 @@ const writeSandboxModeFiles = ({
 }: {
   directory: string
   envFiles: ReturnType<typeof buildSandboxEnvFiles>
-}) =>
-  Effect.all([
+}) => {
+  const writes = [
     Effect.tryPromise(() =>
       writeFile(join(directory, "api.env"), envFiles.api, "utf8")
     ),
@@ -88,7 +88,28 @@ const writeSandboxModeFiles = ({
     Effect.tryPromise(() =>
       writeFile(join(directory, "web.env"), envFiles.web, "utf8")
     ),
-  ]).pipe(Effect.asVoid)
+  ]
+
+  const electricEnv = envFiles.electric
+
+  if (electricEnv) {
+    writes.push(
+      Effect.tryPromise(() =>
+        writeFile(join(directory, "electric.env"), electricEnv, "utf8")
+      )
+    )
+  } else {
+    writes.push(
+      Effect.tryPromise(() =>
+        rm(join(directory, "electric.env"), {
+          force: true,
+        })
+      )
+    )
+  }
+
+  return Effect.all(writes).pipe(Effect.asVoid)
+}
 
 const createSandboxState = ({
   authSecret,

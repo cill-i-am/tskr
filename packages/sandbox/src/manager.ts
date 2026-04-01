@@ -20,7 +20,15 @@ import {
 import type { SandboxState } from "./store.js"
 
 type SandboxMode = "hosted" | "local"
-type SandboxService = "api" | "auth" | "ingress" | "postgres" | "web"
+const SANDBOX_SERVICES = [
+  "api",
+  "auth",
+  "electric",
+  "ingress",
+  "postgres",
+  "web",
+] as const
+type SandboxService = (typeof SANDBOX_SERVICES)[number]
 
 interface CreateSandboxInput {
   hostedDomainRoot?: string
@@ -123,7 +131,7 @@ const removeLocalPortlessAliases = (state: SandboxState) =>
         getLocalPortlessAliasName(service, state)
       ),
       command: "portless",
-      stdio: "inherit",
+      stdio: "pipe",
     }).pipe(Effect.ignore)
   )
 
@@ -249,7 +257,8 @@ const SandboxManagerLive = Layer.succeed(SandboxManager, {
       yield* runComposeCommand({
         mode,
         state,
-        subcommand: mode === "hosted" ? ["up", "-d", "--build"] : ["up", "-d"],
+        subcommand:
+          mode === "hosted" ? ["up", "-d", "--build"] : ["up", "-d", "--build"],
       })
 
       return state
@@ -278,7 +287,12 @@ const SandboxManagerLive = Layer.succeed(SandboxManager, {
     }).pipe(Effect.map((state) => state.urls[mode])),
 })
 
-export { DEFAULT_HOSTED_DOMAIN_ROOT, SandboxManager, SandboxManagerLive }
+export {
+  DEFAULT_HOSTED_DOMAIN_ROOT,
+  SANDBOX_SERVICES,
+  SandboxManager,
+  SandboxManagerLive,
+}
 export type {
   CreateSandboxInput,
   DestroySandboxInput,

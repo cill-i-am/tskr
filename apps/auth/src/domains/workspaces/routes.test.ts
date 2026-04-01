@@ -29,6 +29,6 @@ describe("workspace routes", () => {
 
     expect(response.status).toBe(200)
     expect(getWorkspaceBootstrap).not.toHaveBeenCalled()
-    expect(createWorkspace).toHaveBeenCalledOnce()
+    expect(createWorkspace).toHaveBeenCalledTimes(1)
   })
 })

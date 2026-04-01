@@ -1,0 +1,7 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "apps/electric/Dockerfile"
+watchPatterns = ["/apps/electric/**"]
+
+[deploy]
+healthcheckPath = "/v1/health"

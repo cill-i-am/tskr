@@ -24,7 +24,10 @@ class PeopleSettingsPage {
       timeout: 10_000,
     })
     await expect(
-      this.page.getByRole("button", { name: "Send invite" })
+      this.page.getByRole("button", {
+        exact: true,
+        name: "Send invite",
+      })
     ).toBeEnabled({
       timeout: 10_000,
     })
@@ -41,7 +44,12 @@ class PeopleSettingsPage {
     await this.page.getByLabel("Invite role").selectOption({
       label: roleLabel,
     })
-    await this.page.getByRole("button", { name: "Send invite" }).click()
+    await this.page
+      .getByRole("button", {
+        exact: true,
+        name: "Send invite",
+      })
+      .click()
     await expect(this.page.getByLabel("Invite email")).toHaveValue("", {
       timeout: 10_000,
     })

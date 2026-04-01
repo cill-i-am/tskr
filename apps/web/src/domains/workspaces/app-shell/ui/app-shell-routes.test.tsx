@@ -667,8 +667,8 @@ describe("workspace app shell routes", () => {
     })
 
     expect(getAccountProfileMock).toHaveBeenCalledWith()
-    expect(getWorkspaceBootstrapMock).toHaveBeenCalledOnce()
-    expect(getSettingsSnapshotMock).toHaveBeenCalledOnce()
+    expect(getWorkspaceBootstrapMock).toHaveBeenCalledTimes(1)
+    expect(getSettingsSnapshotMock).toHaveBeenCalledTimes(1)
     expect(getSettingsSnapshotMock).toHaveBeenCalledWith({
       workspaceId: "workspace_123",
     })
@@ -717,8 +717,8 @@ describe("workspace app shell routes", () => {
       expect(router.state.location.pathname).toBe("/app/settings")
     })
 
-    expect(getWorkspaceBootstrapMock).toHaveBeenCalledOnce()
-    expect(getSettingsSnapshotMock).toHaveBeenCalledOnce()
+    expect(getWorkspaceBootstrapMock).toHaveBeenCalledTimes(1)
+    expect(getSettingsSnapshotMock).toHaveBeenCalledTimes(1)
     expect(getSettingsSnapshotMock).toHaveBeenCalledWith({
       workspaceId: "workspace_123",
     })
@@ -819,8 +819,8 @@ describe("workspace app shell routes", () => {
         expect(router.state.location.pathname).toBe(path)
       })
 
-      expect(getWorkspaceBootstrapMock).toHaveBeenCalledOnce()
-      expect(getSettingsSnapshotMock).toHaveBeenCalledOnce()
+      expect(getWorkspaceBootstrapMock).toHaveBeenCalledTimes(1)
+      expect(getSettingsSnapshotMock).toHaveBeenCalledTimes(1)
       expect(getSettingsSnapshotMock).toHaveBeenCalledWith({
         workspaceId: "workspace_123",
       })
@@ -844,8 +844,8 @@ describe("workspace app shell routes", () => {
       expect(router.state.location.pathname).toBe("/app/settings/people")
     })
 
-    expect(getWorkspaceBootstrapMock).toHaveBeenCalledOnce()
-    expect(getSettingsSnapshotMock).toHaveBeenCalledOnce()
+    expect(getWorkspaceBootstrapMock).toHaveBeenCalledTimes(1)
+    expect(getSettingsSnapshotMock).toHaveBeenCalledTimes(1)
     expect(getSettingsSnapshotMock).toHaveBeenCalledWith({
       workspaceId: "workspace_123",
     })
@@ -911,8 +911,8 @@ describe("workspace app shell routes", () => {
     })
 
     expect(getAccountProfileMock).toHaveBeenCalledWith()
-    expect(getWorkspaceBootstrapMock).toHaveBeenCalledOnce()
-    expect(getSettingsSnapshotMock).toHaveBeenCalledOnce()
+    expect(getWorkspaceBootstrapMock).toHaveBeenCalledTimes(1)
+    expect(getSettingsSnapshotMock).toHaveBeenCalledTimes(1)
     expect(getSettingsSnapshotMock).toHaveBeenCalledWith({
       workspaceId: "workspace_123",
     })
@@ -976,8 +976,8 @@ describe("workspace app shell routes", () => {
         expect(router.state.location.pathname).toBe("/app/settings/workspace")
       })
 
-      expect(getWorkspaceBootstrapMock).toHaveBeenCalledOnce()
-      expect(getSettingsSnapshotMock).toHaveBeenCalledOnce()
+      expect(getWorkspaceBootstrapMock).toHaveBeenCalledTimes(1)
+      expect(getSettingsSnapshotMock).toHaveBeenCalledTimes(1)
       expect(getSettingsSnapshotMock).toHaveBeenCalledWith({
         workspaceId: "workspace_123",
       })
