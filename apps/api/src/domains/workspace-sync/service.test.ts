@@ -47,7 +47,7 @@ describe("workspace sync service", () => {
       workspaceId: "ws_123",
     })
 
-    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock).toHaveBeenCalledOnce()
     expect(context).toStrictEqual({
       resources: {
         workspace: "/api/sync/workspaces/ws_123/shapes/workspace",

@@ -101,7 +101,7 @@ describe("api app", () => {
         slug: "ops-control",
       },
     })
-    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock).toHaveBeenCalledOnce()
   })
 
   it("proxies an allowlisted workspace-members shape with server-owned Electric params", async () => {

@@ -60,7 +60,7 @@ describe("workspace sync routes", () => {
         slug: "ops-control",
       },
     })
-    expect(getSyncContext).toHaveBeenCalledTimes(1)
+    expect(getSyncContext).toHaveBeenCalledOnce()
     expect(proxyShape).not.toHaveBeenCalled()
   })
 
@@ -103,7 +103,7 @@ describe("workspace sync routes", () => {
       '[{"headers":{"operation":"up-to-date"}}]'
     )
     expect(response.headers.get("etag")).toBe('"workspace-members-etag"')
-    expect(proxyShape).toHaveBeenCalledTimes(1)
+    expect(proxyShape).toHaveBeenCalledOnce()
     expect(getSyncContext).not.toHaveBeenCalled()
   })
 })

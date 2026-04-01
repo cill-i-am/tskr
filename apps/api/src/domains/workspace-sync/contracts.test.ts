@@ -9,7 +9,9 @@ import {
 describe("workspace sync shared contracts", () => {
   it("consumes the shared sync-contracts package from api", () => {
     const apiGroupNames = Object.keys(syncContractsApi.groups)
-    const endpointNames = Object.keys(syncContractsWorkspaceMembersMutationGroup.endpoints)
+    const endpointNames = Object.keys(
+      syncContractsWorkspaceMembersMutationGroup.endpoints
+    )
 
     apiGroupNames.sort()
     endpointNames.sort()
