@@ -12,7 +12,8 @@ integration and sandbox wiring land together.
 ## Files
 
 - `Dockerfile` is a thin wrapper around the official Electric image. It sets the
-  default HTTP port and persistent storage path used by this repo.
+  default HTTP port and storage path used by this repo. In Railway, persistence
+  still comes from the attached volume mounted at that path.
 - `railway.toml` is the Railway config-as-code file for the hosted Electric
   service.
 - `compose.yaml` runs Electric in front of a local Postgres with logical
@@ -102,7 +103,9 @@ state together so Electric does not restart against mismatched state.
 
 When the hosted service is deployed on Railway, attach a persistent volume and
 mount it at `/var/lib/electric/persistent`. That volume is the hosted
-replacement for the local named volume used in `compose.yaml`.
+replacement for the local named volume used in `compose.yaml`. The Dockerfile
+only sets the path convention; Railway manages persistence through the attached
+volume.
 
 ## Sources
 
