@@ -152,20 +152,6 @@ const getElectricForwardedHeaders = (headers: Headers) => {
   return forwardedHeaders
 }
 
-const getElectricForwardedHeaders = (headers: Headers) => {
-  const forwardedHeaders = new Headers()
-
-  for (const headerName of ["accept", "if-none-match"]) {
-    const value = headers.get(headerName)
-
-    if (value) {
-      forwardedHeaders.set(headerName, value)
-    }
-  }
-
-  return forwardedHeaders
-}
-
 const readErrorMessage = async (response: Response) => {
   const contentType = response.headers.get("content-type") ?? ""
 
