@@ -1,5 +1,6 @@
 import {
   resolveApiBaseUrl,
+  resolveApiServiceUrl,
   resolveRuntimeApiBaseUrl,
 } from "./api-service-client"
 
@@ -44,5 +45,15 @@ describe("api service client", () => {
         runtimeApiBaseUrl: undefined,
       })
     ).toBe("http://localhost:3001")
+  })
+
+  it("resolves service paths against the computed api base url", () => {
+    expect(
+      resolveApiServiceUrl("/api/sync/workspaces/workspace-123/context", {
+        apiBaseUrl: "https://api.internal.example/",
+      })
+    ).toBe(
+      "https://api.internal.example/api/sync/workspaces/workspace-123/context"
+    )
   })
 })

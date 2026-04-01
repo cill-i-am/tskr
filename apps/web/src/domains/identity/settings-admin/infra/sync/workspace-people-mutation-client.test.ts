@@ -47,6 +47,152 @@ describe("workspace people sync mutation client", () => {
     vi.unstubAllEnvs()
   })
 
+  it("posts a resend invite command and parses the shared txid envelope", async () => {
+    vi.restoreAllMocks()
+    vi.unstubAllEnvs()
+    document.documentElement.dataset.apiBaseUrl = "http://api.internal:3001"
+
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json({
+        inviteId: "invite-1",
+        syncConfirmation: {
+          txid: "124",
+        },
+        workspaceId: "workspace-123",
+      })
+    )
+
+    const client = createWorkspacePeopleSyncMutationClient()
+    const response = await client.resendWorkspaceInvite({
+      inviteId: "invite-1",
+      workspaceId: "workspace-123",
+    })
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://api.internal:3001/api/workspaces/workspace-123/invites/invite-1/resend",
+      expect.objectContaining({
+        credentials: "include",
+        method: "POST",
+      })
+    )
+    expect(response.syncConfirmation.txid).toBe("124")
+    expect(response.inviteId).toBe("invite-1")
+    delete document.documentElement.dataset.apiBaseUrl
+    vi.restoreAllMocks()
+    vi.unstubAllEnvs()
+  })
+
+  it("posts a revoke invite command and parses the shared txid envelope", async () => {
+    vi.restoreAllMocks()
+    vi.unstubAllEnvs()
+    document.documentElement.dataset.apiBaseUrl = "http://api.internal:3001"
+
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json({
+        inviteId: "invite-1",
+        syncConfirmation: {
+          txid: "125",
+        },
+        workspaceId: "workspace-123",
+      })
+    )
+
+    const client = createWorkspacePeopleSyncMutationClient()
+    const response = await client.revokeWorkspaceInvite({
+      inviteId: "invite-1",
+      workspaceId: "workspace-123",
+    })
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://api.internal:3001/api/workspaces/workspace-123/invites/invite-1",
+      expect.objectContaining({
+        credentials: "include",
+        method: "DELETE",
+      })
+    )
+    expect(response.syncConfirmation.txid).toBe("125")
+    expect(response.inviteId).toBe("invite-1")
+    delete document.documentElement.dataset.apiBaseUrl
+    vi.restoreAllMocks()
+    vi.unstubAllEnvs()
+  })
+
+  it("patches a workspace member role and parses the shared txid envelope", async () => {
+    vi.restoreAllMocks()
+    vi.unstubAllEnvs()
+    document.documentElement.dataset.apiBaseUrl = "http://api.internal:3001"
+
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json({
+        memberId: "member-1",
+        role: "dispatcher",
+        syncConfirmation: {
+          txid: "126",
+        },
+        workspaceId: "workspace-123",
+      })
+    )
+
+    const client = createWorkspacePeopleSyncMutationClient()
+    const response = await client.updateWorkspaceMemberRole({
+      memberId: "member-1",
+      role: "dispatcher",
+      workspaceId: "workspace-123",
+    })
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://api.internal:3001/api/workspaces/workspace-123/members/member-1/role",
+      expect.objectContaining({
+        body: JSON.stringify({
+          role: "dispatcher",
+        }),
+        credentials: "include",
+        method: "PATCH",
+      })
+    )
+    expect(response.syncConfirmation.txid).toBe("126")
+    expect(response.memberId).toBe("member-1")
+    expect(response.role).toBe("dispatcher")
+    delete document.documentElement.dataset.apiBaseUrl
+    vi.restoreAllMocks()
+    vi.unstubAllEnvs()
+  })
+
+  it("deletes a workspace member and parses the shared txid envelope", async () => {
+    vi.restoreAllMocks()
+    vi.unstubAllEnvs()
+    document.documentElement.dataset.apiBaseUrl = "http://api.internal:3001"
+
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json({
+        memberId: "member-1",
+        syncConfirmation: {
+          txid: "127",
+        },
+        workspaceId: "workspace-123",
+      })
+    )
+
+    const client = createWorkspacePeopleSyncMutationClient()
+    const response = await client.removeWorkspaceMember({
+      memberId: "member-1",
+      workspaceId: "workspace-123",
+    })
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://api.internal:3001/api/workspaces/workspace-123/members/member-1",
+      expect.objectContaining({
+        credentials: "include",
+        method: "DELETE",
+      })
+    )
+    expect(response.syncConfirmation.txid).toBe("127")
+    expect(response.memberId).toBe("member-1")
+    delete document.documentElement.dataset.apiBaseUrl
+    vi.restoreAllMocks()
+    vi.unstubAllEnvs()
+  })
+
   it("exports the shared commands base path for future route mounting", () => {
     expect(workspacePeopleSyncCommandsBasePath).toBe("/api")
   })

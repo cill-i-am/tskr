@@ -1,6 +1,14 @@
 import { fetchApiService } from "@/domains/shared/infra/api-service-client"
+import {
+  awaitWorkspaceElectricTxId,
+  cleanupWorkspaceElectricCollections,
+  createWorkspaceElectricCollection,
+  preloadWorkspaceElectricCollections,
+} from "@/domains/shared/infra/sync/workspace-electric-collection"
+import type { WorkspaceElectricCollection } from "@/domains/shared/infra/sync/workspace-electric-collection"
 import { Schema } from "effect"
 import { createContext, useContext, useEffect, useMemo, useState } from "react"
+import { z } from "zod"
 
 import { createWorkspacePeopleSyncMutationClient } from "./workspace-people-mutation-client"
 
@@ -8,7 +16,6 @@ interface WorkspacePeopleSyncContextResponse {
   resources: {
     workspace: string
     workspaceInvites: string
-    workspaceMemberUsers: string
     workspaceMembers: string
   }
   userId: string
@@ -21,23 +28,65 @@ interface WorkspacePeopleSyncContextResponse {
   }
 }
 
+const workspacePeopleSyncContextResponseSchema = Schema.Struct({
+  resources: Schema.Struct({
+    workspace: Schema.String,
+    workspaceInvites: Schema.String,
+    workspaceMembers: Schema.String,
+  }),
+  userId: Schema.String,
+  viewerRole: Schema.String,
+  workspace: Schema.Struct({
+    id: Schema.String,
+    logo: Schema.NullOr(Schema.String),
+    name: Schema.String,
+    slug: Schema.String,
+  }),
+})
+
+const workspacePeopleWorkspaceRowSchema = z.object({
+  createdAt: z.string().optional(),
+  id: z.string(),
+  logo: z.string().nullable(),
+  metadata: z.unknown().optional(),
+  name: z.string(),
+  slug: z.string(),
+})
+
+const workspacePeopleInviteRowSchema = z.object({
+  code: z.string(),
+  createdAt: z.string().optional(),
+  email: z.string(),
+  expiresAt: z.string().optional(),
+  id: z.string(),
+  inviterId: z.string().optional(),
+  organizationId: z.string(),
+  role: z.string(),
+  status: z.string(),
+})
+
+const workspacePeopleMemberRowSchema = z.object({
+  createdAt: z.string().optional(),
+  id: z.string(),
+  organizationId: z.string(),
+  role: z.string(),
+  userId: z.string(),
+})
+
+type WorkspacePeopleInviteCollection = WorkspaceElectricCollection<
+  typeof workspacePeopleInviteRowSchema
+>
+type WorkspacePeopleMemberCollection = WorkspaceElectricCollection<
+  typeof workspacePeopleMemberRowSchema
+>
+type WorkspacePeopleWorkspaceCollection = WorkspaceElectricCollection<
+  typeof workspacePeopleWorkspaceRowSchema
+>
+
 interface WorkspacePeopleSyncCollections {
-  invites: {
-    id: string
-    resource: string
-  }
-  memberUsers: {
-    id: string
-    resource: string
-  }
-  members: {
-    id: string
-    resource: string
-  }
-  workspace: {
-    id: string
-    resource: string
-  }
+  invites: WorkspacePeopleInviteCollection
+  members: WorkspacePeopleMemberCollection
+  workspace: WorkspacePeopleWorkspaceCollection
 }
 
 type WorkspacePeopleSyncStatus = "idle" | "loading" | "ready" | "error"
@@ -55,45 +104,30 @@ interface WorkspacePeopleSyncProviderProps {
   workspaceId: string | null
 }
 
-const workspacePeopleSyncContextResponseSchema = Schema.Struct({
-  resources: Schema.Struct({
-    workspace: Schema.String,
-    workspaceInvites: Schema.String,
-    workspaceMemberUsers: Schema.String,
-    workspaceMembers: Schema.String,
-  }),
-  userId: Schema.String,
-  viewerRole: Schema.String,
-  workspace: Schema.Struct({
-    id: Schema.String,
-    logo: Schema.NullOr(Schema.String),
-    name: Schema.String,
-    slug: Schema.String,
-  }),
-})
-
 const WorkspacePeopleSyncContext =
   createContext<WorkspacePeopleSyncValue | null>(null)
 
 const createWorkspacePeopleCollections = (
   syncContext: WorkspacePeopleSyncContextResponse
 ): WorkspacePeopleSyncCollections => ({
-  invites: {
-    id: `workspace-invites:${syncContext.workspace.id}`,
+  invites: createWorkspaceElectricCollection({
+    collectionId: `workspace-invites:${syncContext.workspace.id}`,
+    getKey: (invite) => invite.id,
     resource: syncContext.resources.workspaceInvites,
-  },
-  memberUsers: {
-    id: `workspace-member-users:${syncContext.workspace.id}`,
-    resource: syncContext.resources.workspaceMemberUsers,
-  },
-  members: {
-    id: `workspace-members:${syncContext.workspace.id}`,
+    schema: workspacePeopleInviteRowSchema,
+  }),
+  members: createWorkspaceElectricCollection({
+    collectionId: `workspace-members:${syncContext.workspace.id}`,
+    getKey: (member) => member.id,
     resource: syncContext.resources.workspaceMembers,
-  },
-  workspace: {
-    id: `workspace:${syncContext.workspace.id}`,
+    schema: workspacePeopleMemberRowSchema,
+  }),
+  workspace: createWorkspaceElectricCollection({
+    collectionId: `workspace:${syncContext.workspace.id}`,
+    getKey: (workspace) => workspace.id,
     resource: syncContext.resources.workspace,
-  },
+    schema: workspacePeopleWorkspaceRowSchema,
+  }),
 })
 
 const WorkspacePeopleSyncProvider = ({
@@ -102,11 +136,14 @@ const WorkspacePeopleSyncProvider = ({
 }: WorkspacePeopleSyncProviderProps) => {
   const [syncContext, setSyncContext] =
     useState<WorkspacePeopleSyncContextResponse | null>(null)
+  const [collections, setCollections] =
+    useState<WorkspacePeopleSyncCollections | null>(null)
   const [status, setStatus] = useState<WorkspacePeopleSyncStatus>("idle")
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!workspaceId) {
+      setCollections(null)
       setSyncContext(null)
       setStatus("idle")
       setError(null)
@@ -114,10 +151,24 @@ const WorkspacePeopleSyncProvider = ({
     }
 
     let isCancelled = false
+    let activeCollections: WorkspacePeopleSyncCollections | null = null
 
+    setCollections(null)
     setSyncContext(null)
     setStatus("loading")
     setError(null)
+
+    const cleanupActiveCollections = async () => {
+      if (!activeCollections) {
+        return
+      }
+
+      const collectionsToCleanup = activeCollections
+      activeCollections = null
+      await cleanupWorkspaceElectricCollections(
+        Object.values(collectionsToCleanup)
+      )
+    }
 
     const loadSyncContext = async () => {
       try {
@@ -135,12 +186,26 @@ const WorkspacePeopleSyncProvider = ({
           workspacePeopleSyncContextResponseSchema
         )(await response.json())
 
+        activeCollections = createWorkspacePeopleCollections(payload)
+        await preloadWorkspaceElectricCollections(
+          Object.values(activeCollections)
+        )
+
+        if (isCancelled) {
+          await cleanupActiveCollections()
+          return
+        }
+
         if (!isCancelled) {
+          setCollections(activeCollections)
           setSyncContext(payload)
           setStatus("ready")
         }
       } catch (nextError) {
+        await cleanupActiveCollections()
+
         if (!isCancelled) {
+          setCollections(null)
           setSyncContext(null)
           setStatus("error")
           setError(
@@ -156,15 +221,66 @@ const WorkspacePeopleSyncProvider = ({
 
     return () => {
       isCancelled = true
+      ;(async () => {
+        try {
+          await cleanupActiveCollections()
+        } catch (cleanupError) {
+          console.error(
+            "Failed to clean up workspace people sync collections.",
+            cleanupError
+          )
+        }
+      })()
     }
   }, [workspaceId])
 
-  const mutations = useMemo(() => createWorkspacePeopleSyncMutationClient(), [])
-
-  const collections = useMemo(
-    () => (syncContext ? createWorkspacePeopleCollections(syncContext) : null),
-    [syncContext]
+  const rawMutations = useMemo(
+    () => createWorkspacePeopleSyncMutationClient(),
+    []
   )
+  const mutations = useMemo(() => {
+    if (!collections) {
+      return rawMutations
+    }
+
+    return {
+      createWorkspaceInvite: async (
+        ...args: Parameters<typeof rawMutations.createWorkspaceInvite>
+      ) =>
+        awaitWorkspaceElectricTxId(
+          collections.invites,
+          await rawMutations.createWorkspaceInvite(...args)
+        ),
+      removeWorkspaceMember: async (
+        ...args: Parameters<typeof rawMutations.removeWorkspaceMember>
+      ) =>
+        awaitWorkspaceElectricTxId(
+          collections.members,
+          await rawMutations.removeWorkspaceMember(...args)
+        ),
+      resendWorkspaceInvite: async (
+        ...args: Parameters<typeof rawMutations.resendWorkspaceInvite>
+      ) =>
+        awaitWorkspaceElectricTxId(
+          collections.invites,
+          await rawMutations.resendWorkspaceInvite(...args)
+        ),
+      revokeWorkspaceInvite: async (
+        ...args: Parameters<typeof rawMutations.revokeWorkspaceInvite>
+      ) =>
+        awaitWorkspaceElectricTxId(
+          collections.invites,
+          await rawMutations.revokeWorkspaceInvite(...args)
+        ),
+      updateWorkspaceMemberRole: async (
+        ...args: Parameters<typeof rawMutations.updateWorkspaceMemberRole>
+      ) =>
+        awaitWorkspaceElectricTxId(
+          collections.members,
+          await rawMutations.updateWorkspaceMemberRole(...args)
+        ),
+    }
+  }, [collections, rawMutations])
 
   const value = useMemo(
     () => ({

@@ -126,6 +126,15 @@ const resolveApiBaseUrl = ({
   return "https://api.tskr.localhost"
 }
 
+const resolveApiServiceUrl = (
+  path: string,
+  {
+    apiBaseUrl,
+  }: {
+    apiBaseUrl?: string | undefined
+  } = {}
+) => new URL(path, resolveApiBaseUrl({ apiBaseUrl })).toString()
+
 const fetchApiService = (
   path: string,
   {
@@ -138,12 +147,12 @@ const fetchApiService = (
     init?: RequestInit | undefined
   } = {}
 ) =>
-  fetch(new URL(path, resolveApiBaseUrl({ apiBaseUrl })).toString(), {
+  fetch(resolveApiServiceUrl(path, { apiBaseUrl }), {
     ...init,
     credentials: "include",
     headers,
   })
 
-export { fetchApiService, resolveApiBaseUrl }
+export { fetchApiService, resolveApiBaseUrl, resolveApiServiceUrl }
 export type { ResolveApiBaseUrlOptions, ResolveRuntimeApiBaseUrlOptions }
 export { resolveRuntimeApiBaseUrl }

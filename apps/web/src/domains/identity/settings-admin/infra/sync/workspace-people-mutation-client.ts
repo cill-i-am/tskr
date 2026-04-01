@@ -1,17 +1,29 @@
 import { fetchApiService } from "@/domains/shared/infra/api-service-client"
 import { Schema } from "effect"
 
-import { syncContractsCreateWorkspaceInviteResponseSchema } from "@workspace/sync-contracts"
+import {
+  syncContractsCreateWorkspaceInviteResponseSchema,
+  syncContractsRemoveWorkspaceMemberResponseSchema,
+  syncContractsResendWorkspaceInviteResponseSchema,
+  syncContractsRevokeWorkspaceInviteResponseSchema,
+  syncContractsUpdateWorkspaceMemberRoleResponseSchema,
+} from "@workspace/sync-contracts"
 import type {
   SyncContractsCreateWorkspaceInvitePath,
   SyncContractsCreateWorkspaceInvitePayload,
   SyncContractsCreateWorkspaceInviteResponse,
+  SyncContractsRemoveWorkspaceMemberPath,
+  SyncContractsRemoveWorkspaceMemberResponse,
+  SyncContractsResendWorkspaceInvitePath,
+  SyncContractsResendWorkspaceInviteResponse,
+  SyncContractsRevokeWorkspaceInvitePath,
+  SyncContractsRevokeWorkspaceInviteResponse,
+  SyncContractsUpdateWorkspaceMemberRolePath,
+  SyncContractsUpdateWorkspaceMemberRolePayload,
+  SyncContractsUpdateWorkspaceMemberRoleResponse,
 } from "@workspace/sync-contracts"
 
 const workspacePeopleSyncCommandsBasePath = "/api"
-const unsupportedWorkspacePeopleSyncMutation = (_input: unknown): never => {
-  throw new Error("Workspace people sync mutation is not implemented yet.")
-}
 
 const decodeJson = async <A, I>(
   response: Response,
@@ -62,45 +74,120 @@ interface CreateWorkspacePeopleSyncMutationClientOptions {
   apiBaseUrl?: string | undefined
 }
 
+const sendWorkspacePeopleMutation = async <A, I>({
+  apiBaseUrl,
+  body,
+  method,
+  path,
+  responseSchema,
+  invalidMessage,
+}: {
+  apiBaseUrl?: string | undefined
+  body?: BodyInit | undefined
+  invalidMessage: string
+  method: "DELETE" | "PATCH" | "POST"
+  path: string
+  responseSchema: Schema.Schema<A, I, never>
+}): Promise<A> => {
+  const response = await fetchApiService(
+    `${workspacePeopleSyncCommandsBasePath}${path}`,
+    {
+      apiBaseUrl,
+      headers: body
+        ? {
+            "Content-Type": "application/json",
+          }
+        : undefined,
+      init: {
+        body,
+        method,
+      },
+    }
+  )
+
+  if (!response.ok) {
+    throw new Error(await readApiErrorMessage(response))
+  }
+
+  return decodeJson(response, responseSchema, invalidMessage)
+}
+
 const createWorkspacePeopleSyncMutationClient = ({
   apiBaseUrl,
 }: CreateWorkspacePeopleSyncMutationClientOptions = {}) => {
-  const createWorkspaceInvite = async ({
+  const createWorkspaceInvite = ({
     workspaceId,
     ...payload
   }: SyncContractsCreateWorkspaceInvitePath &
-    SyncContractsCreateWorkspaceInvitePayload): Promise<SyncContractsCreateWorkspaceInviteResponse> => {
-    const response = await fetchApiService(
-      `${workspacePeopleSyncCommandsBasePath}/workspaces/${workspaceId}/invites`,
-      {
-        apiBaseUrl,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        init: {
-          body: JSON.stringify(payload),
-          method: "POST",
-        },
-      }
-    )
+    SyncContractsCreateWorkspaceInvitePayload): Promise<SyncContractsCreateWorkspaceInviteResponse> =>
+    sendWorkspacePeopleMutation({
+      apiBaseUrl,
+      body: JSON.stringify(payload),
+      invalidMessage: "Malformed workspace invite mutation JSON.",
+      method: "POST",
+      path: `/workspaces/${workspaceId}/invites`,
+      responseSchema: syncContractsCreateWorkspaceInviteResponseSchema,
+    })
 
-    if (!response.ok) {
-      throw new Error(await readApiErrorMessage(response))
-    }
+  const resendWorkspaceInvite = ({
+    inviteId,
+    workspaceId,
+  }: SyncContractsResendWorkspaceInvitePath): Promise<SyncContractsResendWorkspaceInviteResponse> =>
+    sendWorkspacePeopleMutation({
+      apiBaseUrl,
+      invalidMessage: "Malformed workspace invite resend JSON.",
+      method: "POST",
+      path: `/workspaces/${workspaceId}/invites/${inviteId}/resend`,
+      responseSchema: syncContractsResendWorkspaceInviteResponseSchema,
+    })
 
-    return decodeJson(
-      response,
-      syncContractsCreateWorkspaceInviteResponseSchema,
-      "Malformed workspace invite mutation JSON."
-    )
-  }
+  const revokeWorkspaceInvite = ({
+    inviteId,
+    workspaceId,
+  }: SyncContractsRevokeWorkspaceInvitePath): Promise<SyncContractsRevokeWorkspaceInviteResponse> =>
+    sendWorkspacePeopleMutation({
+      apiBaseUrl,
+      invalidMessage: "Malformed workspace invite revoke JSON.",
+      method: "DELETE",
+      path: `/workspaces/${workspaceId}/invites/${inviteId}`,
+      responseSchema: syncContractsRevokeWorkspaceInviteResponseSchema,
+    })
+
+  const updateWorkspaceMemberRole = ({
+    memberId,
+    role,
+    workspaceId,
+  }: SyncContractsUpdateWorkspaceMemberRolePath &
+    SyncContractsUpdateWorkspaceMemberRolePayload): Promise<SyncContractsUpdateWorkspaceMemberRoleResponse> =>
+    sendWorkspacePeopleMutation({
+      apiBaseUrl,
+      body: JSON.stringify({
+        role,
+      }),
+      invalidMessage: "Malformed workspace member role JSON.",
+      method: "PATCH",
+      path: `/workspaces/${workspaceId}/members/${memberId}/role`,
+      responseSchema: syncContractsUpdateWorkspaceMemberRoleResponseSchema,
+    })
+
+  const removeWorkspaceMember = ({
+    memberId,
+    workspaceId,
+  }: SyncContractsRemoveWorkspaceMemberPath): Promise<SyncContractsRemoveWorkspaceMemberResponse> =>
+    sendWorkspacePeopleMutation({
+      apiBaseUrl,
+      invalidMessage: "Malformed workspace member removal JSON.",
+      method: "DELETE",
+      path: `/workspaces/${workspaceId}/members/${memberId}`,
+      responseSchema: syncContractsRemoveWorkspaceMemberResponseSchema,
+    })
 
   return {
     createWorkspaceInvite,
-    removeWorkspaceMember: unsupportedWorkspacePeopleSyncMutation,
-    resendWorkspaceInvite: unsupportedWorkspacePeopleSyncMutation,
-    revokeWorkspaceInvite: unsupportedWorkspacePeopleSyncMutation,
-    updateWorkspaceMemberRole: unsupportedWorkspacePeopleSyncMutation,
+    removeWorkspaceMember,
+    resendWorkspaceInvite,
+    revokeWorkspaceInvite,
+    updateWorkspaceMemberRole,
   }
 }
 
