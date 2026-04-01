@@ -2,6 +2,8 @@ import { createHash } from "node:crypto"
 import { join } from "node:path"
 
 const DEFAULT_SANDBOX_SLUG = "sandbox"
+const DEFAULT_ELECTRIC_INTERNAL_PORT = 3000
+const DEFAULT_ELECTRIC_STORAGE_DIR = "/var/lib/electric/persistent"
 const DEFAULT_POSTGRES_DATABASE = "app"
 const DEFAULT_POSTGRES_HOST = "postgres"
 const DEFAULT_POSTGRES_INTERNAL_PORT = 5432
@@ -20,6 +22,7 @@ interface SandboxIdentity {
 interface SandboxPorts {
   api: number
   auth: number
+  electric: number
   ingress: number
   postgres: number
   web: number
@@ -51,6 +54,7 @@ interface SandboxEnvFiles {
   api: string
   auth: string
   compose: string
+  electric?: string
   postgres: string
   web: string
 }
@@ -118,6 +122,7 @@ const deriveSandboxPorts = (hash: string): SandboxPorts => {
   return {
     api: basePort,
     auth: basePort + 1,
+    electric: basePort + 5,
     ingress: basePort + 4,
     postgres: basePort + 3,
     web: basePort + 2,
@@ -177,6 +182,12 @@ const buildSandboxEnvFiles = ({
       DATABASE_URL: databaseUrl,
       NODE_ENV: appNodeEnv,
       PORT: 3001,
+      SERVER_AUTH_BASE_URL: mode === "local" ? "http://auth:3002" : urls.auth,
+      ...(mode === "local"
+        ? {
+            ELECTRIC_URL: "http://electric:3000",
+          }
+        : {}),
     }),
     auth: stringifyEnvFile({
       BETTER_AUTH_SECRET: buildSandboxSecret(identity.hash),
@@ -209,7 +220,22 @@ const buildSandboxEnvFiles = ({
       SANDBOX_REPOSITORY_ROOT: repositoryRoot,
       SANDBOX_WEB_DOMAIN: hostedDomains.web,
       SANDBOX_WEB_PORT: ports.web,
+      ...(mode === "local"
+        ? {
+            SANDBOX_ELECTRIC_PORT: ports.electric,
+            SANDBOX_ENV_ELECTRIC_FILE: join(modeStateDirectory, "electric.env"),
+          }
+        : {}),
     }),
+    electric:
+      mode === "local"
+        ? stringifyEnvFile({
+            DATABASE_URL: databaseUrl,
+            ELECTRIC_INSECURE: "true",
+            ELECTRIC_PORT: DEFAULT_ELECTRIC_INTERNAL_PORT,
+            ELECTRIC_STORAGE_DIR: DEFAULT_ELECTRIC_STORAGE_DIR,
+          })
+        : undefined,
     postgres: stringifyEnvFile({
       POSTGRES_DB: DEFAULT_POSTGRES_DATABASE,
       POSTGRES_HOST_PORT: ports.postgres,

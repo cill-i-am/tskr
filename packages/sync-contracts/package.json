@@ -1,0 +1,33 @@
+{
+  "name": "@workspace/sync-contracts",
+  "version": "0.0.0",
+  "private": true,
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "check": "pnpm exec ultracite check package.json src tsconfig.json tsconfig.contract.json tsdown.config.ts turbo.json vitest.config.ts",
+    "dev": "sh -c 'case \"$1\" in --) shift;; esac; exec tsdown --watch \"$@\"' sh",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit && tsc --project tsconfig.contract.json --noEmit"
+  },
+  "dependencies": {
+    "@effect/platform": "^0.96.0",
+    "effect": "^3.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.1.0",
+    "tsdown": "^0.21.2",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  }
+}

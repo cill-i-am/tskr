@@ -10,12 +10,13 @@
     "dev:sandbox": "PORTLESS=0 PORT=3001 tsx watch src/index.ts",
     "build": "tsc --project tsconfig.json",
     "start": "node dist/index.js",
-    "test": "vitest run --globals src/app.test.ts",
+    "test": "vitest run --globals",
     "typecheck": "tsc --project tsconfig.json --noEmit"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.11",
     "@workspace/db": "workspace:*",
+    "@workspace/sync-contracts": "workspace:*",
     "hono": "^4.12.8"
   },
   "devDependencies": {

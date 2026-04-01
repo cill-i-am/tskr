@@ -29,7 +29,7 @@
     "test:e2e": "node scripts/e2e/run-playwright.mjs",
     "test:e2e:debug": "node scripts/e2e/run-playwright.mjs --debug",
     "test:e2e:headed": "node scripts/e2e/run-playwright.mjs --headed",
-    "test:integration": "mkdir -p .artifacts/test-results/integration && pnpm --filter @workspace/db build && pnpm --filter @workspace/email build && pnpm --filter @workspace/db db:migrate && pnpm --dir apps/auth exec vitest run --reporter=default --reporter=junit --outputFile=../../.artifacts/test-results/integration/auth.junit.xml",
+    "test:integration": "mkdir -p .artifacts/test-results/integration && pnpm --filter @workspace/db build && pnpm --filter @workspace/email build && node scripts/local-postgres-launcher.mjs -- sh -lc 'pnpm --filter @workspace/db db:migrate && pnpm --dir apps/auth exec vitest run --reporter=default --reporter=junit --outputFile=../../.artifacts/test-results/integration/auth.junit.xml'",
     "test:opensrc": "node --test scripts/lib/opensrc-sync.test.mjs scripts/lib/opensrc-package-coverage.test.mjs",
     "test:unit": "mkdir -p .artifacts/test-results/unit && pnpm test:db-infra && pnpm test:opensrc && pnpm test:ui-propagation && pnpm --dir packages/db test && pnpm --dir packages/email exec vitest run --reporter=default --reporter=junit --outputFile=../../.artifacts/test-results/unit/email.junit.xml && pnpm --dir apps/api exec vitest run --globals src/app.test.ts --reporter=default --reporter=junit --outputFile=../../.artifacts/test-results/unit/api.junit.xml && pnpm --filter @workspace/ui build && pnpm --dir apps/web exec vitest run --reporter=default --reporter=junit --outputFile=../../.artifacts/test-results/unit/web.junit.xml",
     "test:ui-propagation": "node --test scripts/lib/ui-propagation.test.mjs",

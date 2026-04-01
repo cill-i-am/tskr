@@ -273,28 +273,30 @@ const WorkspaceInvitesTable = ({
                           onError={onError}
                         />
                       </div>
-                      <div className="gap-2 flex flex-wrap items-center">
-                        <span className="text-xs tracking-wide uppercase">
-                          Accept link
-                        </span>
-                        <a
-                          className="break-all"
-                          href={invite.acceptUrl}
-                          rel="noreferrer"
-                          target="_blank"
-                        >
-                          Open accept link
-                        </a>
-                        <WorkspaceInviteCopyButton
-                          copied={isLinkCopied}
-                          copyTarget="link"
-                          disabled={disabled || isPending}
-                          invite={invite}
-                          onClearError={onClearError}
-                          onCopied={markCopiedInviteAction}
-                          onError={onError}
-                        />
-                      </div>
+                      {invite.acceptUrl ? (
+                        <div className="gap-2 flex flex-wrap items-center">
+                          <span className="text-xs tracking-wide uppercase">
+                            Accept link
+                          </span>
+                          <a
+                            className="break-all"
+                            href={invite.acceptUrl}
+                            rel="noreferrer"
+                            target="_blank"
+                          >
+                            Open accept link
+                          </a>
+                          <WorkspaceInviteCopyButton
+                            copied={isLinkCopied}
+                            copyTarget="link"
+                            disabled={disabled || isPending}
+                            invite={invite}
+                            onClearError={onClearError}
+                            onCopied={markCopiedInviteAction}
+                            onError={onError}
+                          />
+                        </div>
+                      ) : null}
                     </div>
                   ) : null}
                 </div>

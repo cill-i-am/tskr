@@ -71,7 +71,9 @@ to avoid Portless proxy loops.
 
 The repo now includes a Docker Compose sandbox workflow for isolated full-stack
 instances. Each sandbox gets its own `web`, `api`, `auth`, and `postgres`
-services, plus generated env files under `.sandbox/<name>/`.
+services, plus generated env files under `.sandbox/<name>/`. Local sandboxes
+also run the repo-owned `apps/electric` service inside the same sandbox
+topology.
 
 Create and inspect a sandbox from the repo root:
 
@@ -85,6 +87,7 @@ Start and stop the local sandbox profile:
 
 ```bash
 pnpm sandbox start "Feature Review"
+pnpm sandbox logs "Feature Review" --service electric
 pnpm sandbox stop "Feature Review"
 pnpm sandbox destroy "Feature Review"
 ```
@@ -93,6 +96,12 @@ Useful notes:
 
 - Local sandboxes keep Portless at the host level and register static aliases
   like `https://feature-review.web.tskr.localhost`.
+- Local sandbox env generation now includes
+  `.sandbox/<name>/local/electric.env` alongside the existing app env files.
+- Electric runs in the local sandbox profile for local development and also
+  deploys as its own hosted Railway service using `apps/electric/Dockerfile`.
+  Local sandboxes still use the sandbox Postgres service with logical
+  replication enabled.
 - Hosted sandboxes use the hosted Compose overlay plus the generated domain
   values in `.sandbox/<name>/hosted/compose.env`.
 - The local sandbox workflow still expects Docker and a global `portless`
@@ -181,6 +190,8 @@ copying. Keep secrets and sender identities explicit.
 Required in Railway for `api`:
 
 - `DATABASE_URL=${{Postgres.DATABASE_URL}}`
+- `ELECTRIC_URL=http://${{electric.RAILWAY_PRIVATE_DOMAIN}}:${{electric.PORT}}`
+- `ELECTRIC_SECRET=<same secret configured on Electric>`
 
 Required in Railway for `auth`:
 
@@ -197,6 +208,29 @@ Required in Railway for `auth`:
 Recommended in Railway for `web`:
 
 - `VITE_AUTH_BASE_URL=https://${{auth.RAILWAY_PUBLIC_DOMAIN}}` (optional explicit override; the app also falls back to `RAILWAY_SERVICE_AUTH_URL` during server rendering)
+
+Required in Railway for `electric`:
+
+- `DATABASE_URL=${{Postgres.DATABASE_URL}}`
+- `ELECTRIC_SECRET=<generated secret shared with api>`
+- `ELECTRIC_STORAGE_DIR=/var/lib/electric/persistent`
+- `PORT=3000`
+
+Electric service expectations in Railway:
+
+- Configure the service to use `apps/electric/railway.toml` as its config file
+  path in Railway.
+- Keep the service listening on port `3000`, which matches the pinned
+  `ELECTRIC_PORT=3000` in `apps/electric/Dockerfile`, and set Railway's `PORT`
+  variable to the same value so routing and health checks target the right
+  listener.
+- If you change Electric's listener port later, keep `PORT`, `ELECTRIC_PORT`,
+  and `api`'s `ELECTRIC_URL` port in sync.
+- Attach a persistent volume at `/var/lib/electric/persistent` so Electric can
+  keep its shape cache across restarts.
+- Keep `ELECTRIC_INSECURE` unset in hosted environments.
+- Route `api` to Electric over Railway private networking only; browsers should
+  never talk to Electric directly.
 
 Required in GitHub Actions for shared production migrations:
 
