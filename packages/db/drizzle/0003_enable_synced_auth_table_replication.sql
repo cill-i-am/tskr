@@ -34,23 +34,6 @@ BEGIN
 		FROM pg_publication_tables
 		WHERE pubname = 'electric_publication_default'
 			AND schemaname = 'auth'
-			AND tablename = 'user'
-	) THEN
-		ALTER PUBLICATION "electric_publication_default"
-			ADD TABLE "auth"."user";
-	END IF;
-END
-$$;
---> statement-breakpoint
-ALTER TABLE "auth"."user" REPLICA IDENTITY FULL;
---> statement-breakpoint
-DO $$
-BEGIN
-	IF NOT EXISTS (
-		SELECT 1
-		FROM pg_publication_tables
-		WHERE pubname = 'electric_publication_default'
-			AND schemaname = 'auth'
 			AND tablename = 'member'
 	) THEN
 		ALTER PUBLICATION "electric_publication_default"

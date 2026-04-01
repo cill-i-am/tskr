@@ -29,6 +29,13 @@
       "when": 1775000144883,
       "tag": "0003_enable_synced_auth_table_replication",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1775038097690,
+      "tag": "0004_remove_auth_user_from_synced_auth_replication",
+      "breakpoints": true
     }
   ]
 }

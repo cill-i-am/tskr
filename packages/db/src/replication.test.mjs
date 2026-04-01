@@ -14,36 +14,65 @@ test("db package exposes the proving-slice synced auth tables", () => {
   )
   assert.deepEqual(SYNCED_AUTH_REPLICATION_TABLES, [
     "auth.organization",
-    "auth.user",
     "auth.member",
     "auth.invitation",
   ])
 })
 
 test("custom migration prepares the proving-slice auth tables for replication", async () => {
-  const migration = await readFile(
+  const replicationSetupMigration = await readFile(
     new URL(
       "../drizzle/0003_enable_synced_auth_table_replication.sql",
       import.meta.url
     ),
     "utf8"
   )
+  const replicationCorrectionMigration = await readFile(
+    new URL(
+      "../drizzle/0004_remove_auth_user_from_synced_auth_replication.sql",
+      import.meta.url
+    ),
+    "utf8"
+  )
 
-  assert.match(migration, /CREATE PUBLICATION "electric_publication_default"/)
+  assert.match(
+    replicationSetupMigration,
+    /CREATE PUBLICATION "electric_publication_default"/
+  )
 
+  const publishedTables = Array.from(
+    replicationSetupMigration.matchAll(
+      /ALTER PUBLICATION "electric_publication_default"\s+ADD TABLE "(.*?)"\."(.*?)"/g
+    ),
+    ([, schemaName, relationName]) => `${schemaName}.${relationName}`
+  )
+  assert.deepEqual(publishedTables, [...SYNCED_AUTH_REPLICATION_TABLES])
   for (const tableName of SYNCED_AUTH_REPLICATION_TABLES) {
     const [schemaName, relationName] = tableName.split(".")
     const escapedTable = `"${schemaName}"\\."${relationName}"`
 
     assert.match(
-      migration,
+      replicationSetupMigration,
       new RegExp(
         `ALTER PUBLICATION "electric_publication_default"\\s+ADD TABLE ${escapedTable}`
       )
     )
     assert.match(
-      migration,
+      replicationSetupMigration,
       new RegExp(`ALTER TABLE ${escapedTable} REPLICA IDENTITY FULL`)
     )
   }
+
+  assert.doesNotMatch(
+    replicationSetupMigration,
+    /ALTER PUBLICATION "electric_publication_default"\s+ADD TABLE "auth"\."user"/
+  )
+  assert.match(
+    replicationCorrectionMigration,
+    /ALTER PUBLICATION "electric_publication_default"\s+DROP TABLE "auth"\."user"/
+  )
+  assert.match(
+    replicationCorrectionMigration,
+    /ALTER TABLE "auth"\."user" REPLICA IDENTITY DEFAULT/
+  )
 })
