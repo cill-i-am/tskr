@@ -1,10 +1,5 @@
 {
-  "$schema": "https://unpkg.com/knip@latest/schema.json",
-  "ignoreDependencies": [
-    "@fontsource-variable/geist",
-    "tailwindcss",
-    "tw-animate-css"
-  ],
+  "$schema": "https://unpkg.com/knip@6.1.1/schema.json",
   "exclude": ["binaries", "devDependencies"],
   "include": ["dependencies", "unlisted"],
   "drizzle": false,
@@ -27,6 +22,7 @@
       "project": ["src/**/*.ts"]
     },
     "apps/web": {
+      "ignoreDependencies": ["@fontsource-variable/geist", "tailwindcss"],
       "entry": [
         "e2e/specs/**/*.ts",
         "e2e/support/**/*.ts",
@@ -57,6 +53,7 @@
       "project": ["src/**/*.ts"]
     },
     "packages/ui": {
+      "ignoreDependencies": ["tw-animate-css"],
       "entry": ["src/index.ts"],
       "project": ["src/**/*.{ts,tsx}"]
     }

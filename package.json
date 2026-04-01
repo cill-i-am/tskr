@@ -20,7 +20,7 @@
     "fix": "pnpm exec ultracite fix && pnpm exec oxfmt --write .",
     "format:check": "pnpm exec oxfmt --check .",
     "format": "pnpm fix",
-    "knip": "E2E_WEB_BASE_URL=http://127.0.0.1:3000 knip",
+    "knip": "knip",
     "lint": "pnpm check",
     "opensrc:sync": "node scripts/sync-opensrc.mjs",
     "sandbox": "pnpm --filter @workspace/sandbox sandbox",
