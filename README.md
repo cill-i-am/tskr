@@ -123,7 +123,9 @@ pnpm fix
 Package-level checks run through Turbo from these root commands. `pnpm fix`
 still runs Ultracite first and then a final Oxfmt write pass so the command
 stays idempotent even when Oxlint autofixes leave formatting behind. The root
-Oxfmt config also owns import ordering and Tailwind class sorting for the repo.
+`pnpm check` now runs the root `knip` pass before the Turbo workspace checks.
+The root Oxfmt config also owns import ordering and Tailwind class sorting for
+the repo.
 Generated router output in `apps/web/src/routeTree.gen.ts` and the local
 `.agents/` skill content are intentionally excluded from the root lint/format
 pass.

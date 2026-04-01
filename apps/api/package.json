@@ -15,7 +15,6 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.19.11",
-    "@workspace/db": "workspace:*",
     "@workspace/sync-contracts": "workspace:*",
     "hono": "^4.12.8"
   },
