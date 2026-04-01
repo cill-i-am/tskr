@@ -1,14 +1,19 @@
-import { fetchApiService } from "@/domains/shared/infra/api-service-client"
+import type { SettingsAdminWorkspaceRole } from "@/domains/identity/settings-admin/contracts/settings-admin-contract"
 import {
-  awaitWorkspaceElectricTxId,
-  cleanupWorkspaceElectricCollections,
-  createWorkspaceElectricCollection,
-  preloadWorkspaceElectricCollections,
-} from "@/domains/shared/infra/sync/workspace-electric-collection"
-import type { WorkspaceElectricCollection } from "@/domains/shared/infra/sync/workspace-electric-collection"
+  fetchApiService,
+  resolveApiBaseUrl,
+} from "@/domains/shared/infra/api-service-client"
+import { Shape, ShapeStream } from "@electric-sql/client"
 import { Schema } from "effect"
-import { createContext, useContext, useEffect, useMemo, useState } from "react"
-import { z } from "zod"
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 
 import { createWorkspacePeopleSyncMutationClient } from "./workspace-people-mutation-client"
 
@@ -16,6 +21,7 @@ interface WorkspacePeopleSyncContextResponse {
   resources: {
     workspace: string
     workspaceInvites: string
+    workspaceMemberUsers: string
     workspaceMembers: string
   }
   userId: string
@@ -28,10 +34,101 @@ interface WorkspacePeopleSyncContextResponse {
   }
 }
 
+interface WorkspacePeopleSyncCollections {
+  invites: {
+    id: string
+    resource: string
+  }
+  memberUsers: {
+    id: string
+    resource: string
+  }
+  members: {
+    id: string
+    resource: string
+  }
+  workspace: {
+    id: string
+    resource: string
+  }
+}
+
+interface WorkspacePeopleSyncInvite {
+  code: string
+  email: string
+  id: string
+  role: SettingsAdminWorkspaceRole
+  status: string
+  workspaceId: string
+}
+
+interface WorkspacePeopleSyncMember {
+  email: string
+  id: string
+  image: string | null
+  isCurrentUser: boolean
+  name: string
+  role: SettingsAdminWorkspaceRole
+  userId: string
+}
+
+type WorkspacePeopleSyncStatus = "idle" | "loading" | "ready" | "error"
+
+interface LoadedWorkspacePeopleSyncData {
+  invites: WorkspacePeopleSyncInvite[]
+  members: WorkspacePeopleSyncMember[]
+  syncContext: WorkspacePeopleSyncContextResponse
+}
+
+interface WorkspacePeopleSyncValue {
+  collections: WorkspacePeopleSyncCollections | null
+  error: string | null
+  invites: WorkspacePeopleSyncInvite[]
+  members: WorkspacePeopleSyncMember[]
+  mutations: ReturnType<typeof createWorkspacePeopleSyncMutationClient>
+  refresh: () => Promise<LoadedWorkspacePeopleSyncData | null>
+  status: WorkspacePeopleSyncStatus
+  syncContext: WorkspacePeopleSyncContextResponse | null
+}
+
+interface WorkspacePeopleSyncProviderProps {
+  children: React.ReactNode
+  workspaceId: string | null
+}
+
+interface WorkspaceMemberRow {
+  id: string
+  organization_id: string
+  role: SettingsAdminWorkspaceRole
+  user_id: string
+}
+
+interface WorkspaceMemberUserRow {
+  email: string
+  id: string
+  image: string | null
+  name: string
+}
+
+interface WorkspaceInviteRow {
+  code: string
+  email: string
+  id: string
+  organization_id: string
+  role: SettingsAdminWorkspaceRole
+  status: string
+}
+
+interface WorkspacePeopleSyncController {
+  dispose: () => void
+  readCurrentData: () => LoadedWorkspacePeopleSyncData
+}
+
 const workspacePeopleSyncContextResponseSchema = Schema.Struct({
   resources: Schema.Struct({
     workspace: Schema.String,
     workspaceInvites: Schema.String,
+    workspaceMemberUsers: Schema.String,
     workspaceMembers: Schema.String,
   }),
   userId: Schema.String,
@@ -44,91 +141,210 @@ const workspacePeopleSyncContextResponseSchema = Schema.Struct({
   }),
 })
 
-const workspacePeopleWorkspaceRowSchema = z.object({
-  createdAt: z.string().optional(),
-  id: z.string(),
-  logo: z.string().nullable(),
-  metadata: z.unknown().optional(),
-  name: z.string(),
-  slug: z.string(),
-})
-
-const workspacePeopleInviteRowSchema = z.object({
-  code: z.string(),
-  createdAt: z.string().optional(),
-  email: z.string(),
-  expiresAt: z.string().optional(),
-  id: z.string(),
-  inviterId: z.string().optional(),
-  organizationId: z.string(),
-  role: z.string(),
-  status: z.string(),
-})
-
-const workspacePeopleMemberRowSchema = z.object({
-  createdAt: z.string().optional(),
-  id: z.string(),
-  organizationId: z.string(),
-  role: z.string(),
-  userId: z.string(),
-})
-
-type WorkspacePeopleInviteCollection = WorkspaceElectricCollection<
-  typeof workspacePeopleInviteRowSchema
->
-type WorkspacePeopleMemberCollection = WorkspaceElectricCollection<
-  typeof workspacePeopleMemberRowSchema
->
-type WorkspacePeopleWorkspaceCollection = WorkspaceElectricCollection<
-  typeof workspacePeopleWorkspaceRowSchema
->
-
-interface WorkspacePeopleSyncCollections {
-  invites: WorkspacePeopleInviteCollection
-  members: WorkspacePeopleMemberCollection
-  workspace: WorkspacePeopleWorkspaceCollection
-}
-
-type WorkspacePeopleSyncStatus = "idle" | "loading" | "ready" | "error"
-
-interface WorkspacePeopleSyncValue {
-  collections: WorkspacePeopleSyncCollections | null
-  error: string | null
-  mutations: ReturnType<typeof createWorkspacePeopleSyncMutationClient>
-  status: WorkspacePeopleSyncStatus
-  syncContext: WorkspacePeopleSyncContextResponse | null
-}
-
-interface WorkspacePeopleSyncProviderProps {
-  children: React.ReactNode
-  workspaceId: string | null
-}
-
 const WorkspacePeopleSyncContext =
   createContext<WorkspacePeopleSyncValue | null>(null)
 
 const createWorkspacePeopleCollections = (
   syncContext: WorkspacePeopleSyncContextResponse
 ): WorkspacePeopleSyncCollections => ({
-  invites: createWorkspaceElectricCollection({
-    collectionId: `workspace-invites:${syncContext.workspace.id}`,
-    getKey: (invite) => invite.id,
+  invites: {
+    id: `workspace-invites:${syncContext.workspace.id}`,
     resource: syncContext.resources.workspaceInvites,
-    schema: workspacePeopleInviteRowSchema,
-  }),
-  members: createWorkspaceElectricCollection({
-    collectionId: `workspace-members:${syncContext.workspace.id}`,
-    getKey: (member) => member.id,
+  },
+  memberUsers: {
+    id: `workspace-member-users:${syncContext.workspace.id}`,
+    resource: syncContext.resources.workspaceMemberUsers,
+  },
+  members: {
+    id: `workspace-members:${syncContext.workspace.id}`,
     resource: syncContext.resources.workspaceMembers,
-    schema: workspacePeopleMemberRowSchema,
-  }),
-  workspace: createWorkspaceElectricCollection({
-    collectionId: `workspace:${syncContext.workspace.id}`,
-    getKey: (workspace) => workspace.id,
+  },
+  workspace: {
+    id: `workspace:${syncContext.workspace.id}`,
     resource: syncContext.resources.workspace,
-    schema: workspacePeopleWorkspaceRowSchema,
-  }),
+  },
 })
+
+const electricFetchClient: typeof fetch = (input, init) =>
+  fetch(input, {
+    ...init,
+    credentials: "include",
+  })
+
+const describeWorkspacePeopleSyncError = (
+  nextError: unknown,
+  fallback: string
+) =>
+  nextError instanceof Error && nextError.message.length > 0
+    ? nextError.message
+    : fallback
+
+const buildWorkspaceMembers = ({
+  memberRows,
+  memberUsers,
+  userId,
+}: {
+  memberRows: WorkspaceMemberRow[]
+  memberUsers: WorkspaceMemberUserRow[]
+  userId: string
+}): WorkspacePeopleSyncMember[] => {
+  const memberUsersById = new Map(
+    memberUsers.map((memberUser) => [memberUser.id, memberUser])
+  )
+
+  return memberRows.flatMap((memberRow) => {
+    const memberUser = memberUsersById.get(memberRow.user_id)
+
+    if (!memberUser) {
+      return []
+    }
+
+    return [
+      {
+        email: memberUser.email,
+        id: memberRow.id,
+        image: memberUser.image,
+        isCurrentUser: memberUser.id === userId,
+        name: memberUser.name,
+        role: memberRow.role,
+        userId: memberUser.id,
+      },
+    ]
+  })
+}
+
+const buildWorkspaceInvites = (
+  inviteRows: WorkspaceInviteRow[]
+): WorkspacePeopleSyncInvite[] =>
+  inviteRows.map((inviteRow) => ({
+    code: inviteRow.code,
+    email: inviteRow.email,
+    id: inviteRow.id,
+    role: inviteRow.role,
+    status: inviteRow.status,
+    workspaceId: inviteRow.organization_id,
+  }))
+
+const fetchWorkspacePeopleSyncContext = async (
+  workspaceId: string
+): Promise<WorkspacePeopleSyncContextResponse> => {
+  const response = await fetchApiService(
+    `/api/sync/workspaces/${workspaceId}/context`
+  )
+
+  if (!response.ok) {
+    throw new Error(
+      `Unable to load workspace people sync context (${response.status}).`
+    )
+  }
+
+  return Schema.decodeUnknownSync(workspacePeopleSyncContextResponseSchema)(
+    await response.json()
+  )
+}
+
+const createWorkspaceShape = <A extends { id: string }>({
+  onError,
+  resource,
+}: {
+  onError: (nextError: unknown) => void
+  resource: string
+}) => {
+  const abortController = new AbortController()
+  const stream = new ShapeStream<A>({
+    fetchClient: electricFetchClient,
+    onError,
+    signal: abortController.signal,
+    url: new URL(resource, resolveApiBaseUrl()).toString(),
+  })
+  const shape = new Shape(stream)
+
+  return {
+    dispose: () => {
+      abortController.abort()
+      shape.unsubscribeAll()
+    },
+    shape,
+  }
+}
+
+const createWorkspacePeopleSyncController = async ({
+  onData,
+  onError,
+  syncContext,
+}: {
+  onData: (nextData: LoadedWorkspacePeopleSyncData) => void
+  onError: (nextError: unknown) => void
+  syncContext: WorkspacePeopleSyncContextResponse
+}): Promise<WorkspacePeopleSyncController> => {
+  const workspaceInvitesShape = createWorkspaceShape<WorkspaceInviteRow>({
+    onError,
+    resource: syncContext.resources.workspaceInvites,
+  })
+  const workspaceMemberUsersShape =
+    createWorkspaceShape<WorkspaceMemberUserRow>({
+      onError,
+      resource: syncContext.resources.workspaceMemberUsers,
+    })
+  const workspaceMembersShape = createWorkspaceShape<WorkspaceMemberRow>({
+    onError,
+    resource: syncContext.resources.workspaceMembers,
+  })
+
+  const readCurrentData = (): LoadedWorkspacePeopleSyncData => ({
+    invites: buildWorkspaceInvites(workspaceInvitesShape.shape.currentRows),
+    members: buildWorkspaceMembers({
+      memberRows: workspaceMembersShape.shape.currentRows,
+      memberUsers: workspaceMemberUsersShape.shape.currentRows,
+      userId: syncContext.userId,
+    }),
+    syncContext,
+  })
+
+  let hasLoadedInitialRows = false
+  const publishCurrentData = () => {
+    if (!hasLoadedInitialRows) {
+      return
+    }
+
+    onData(readCurrentData())
+  }
+
+  const unsubscribers = [
+    workspaceInvitesShape.shape.subscribe(publishCurrentData),
+    workspaceMemberUsersShape.shape.subscribe(publishCurrentData),
+    workspaceMembersShape.shape.subscribe(publishCurrentData),
+  ]
+
+  try {
+    await Promise.all([
+      workspaceInvitesShape.shape.rows,
+      workspaceMemberUsersShape.shape.rows,
+      workspaceMembersShape.shape.rows,
+    ])
+    hasLoadedInitialRows = true
+  } catch (nextError) {
+    for (const unsubscribe of unsubscribers) {
+      unsubscribe()
+    }
+    workspaceInvitesShape.dispose()
+    workspaceMemberUsersShape.dispose()
+    workspaceMembersShape.dispose()
+    throw nextError
+  }
+
+  return {
+    dispose: () => {
+      for (const unsubscribe of unsubscribers) {
+        unsubscribe()
+      }
+      workspaceInvitesShape.dispose()
+      workspaceMemberUsersShape.dispose()
+      workspaceMembersShape.dispose()
+    },
+    readCurrentData,
+  }
+}
 
 const WorkspacePeopleSyncProvider = ({
   children,
@@ -136,161 +352,156 @@ const WorkspacePeopleSyncProvider = ({
 }: WorkspacePeopleSyncProviderProps) => {
   const [syncContext, setSyncContext] =
     useState<WorkspacePeopleSyncContextResponse | null>(null)
-  const [collections, setCollections] =
-    useState<WorkspacePeopleSyncCollections | null>(null)
   const [status, setStatus] = useState<WorkspacePeopleSyncStatus>("idle")
   const [error, setError] = useState<string | null>(null)
+  const [members, setMembers] = useState<WorkspacePeopleSyncMember[]>([])
+  const [invites, setInvites] = useState<WorkspacePeopleSyncInvite[]>([])
+  const controllerRef = useRef<WorkspacePeopleSyncController | null>(null)
+  const sessionRef = useRef<symbol | null>(null)
+
+  const applyLoadedData = useEffectEvent(
+    (nextData: LoadedWorkspacePeopleSyncData) => {
+      setSyncContext(nextData.syncContext)
+      setMembers(nextData.members)
+      setInvites(nextData.invites)
+      setStatus("ready")
+      setError(null)
+    }
+  )
+
+  const loadWorkspaceSync = useEffectEvent(
+    async (
+      nextWorkspaceId: string,
+      preserveRows = false
+    ): Promise<LoadedWorkspacePeopleSyncData | null> => {
+      const sessionId = Symbol(nextWorkspaceId)
+      sessionRef.current = sessionId
+      controllerRef.current?.dispose()
+      controllerRef.current = null
+      setStatus("loading")
+      setError(null)
+
+      if (!preserveRows) {
+        setSyncContext(null)
+        setMembers([])
+        setInvites([])
+      }
+
+      try {
+        const nextSyncContext =
+          await fetchWorkspacePeopleSyncContext(nextWorkspaceId)
+
+        if (sessionRef.current !== sessionId) {
+          return null
+        }
+
+        const controller = await createWorkspacePeopleSyncController({
+          onData: (nextData) => {
+            if (sessionRef.current !== sessionId) {
+              return
+            }
+
+            applyLoadedData(nextData)
+          },
+          onError: (nextError) => {
+            if (sessionRef.current !== sessionId) {
+              return
+            }
+
+            setStatus("error")
+            setError(
+              describeWorkspacePeopleSyncError(
+                nextError,
+                "Unable to load workspace people sync context."
+              )
+            )
+          },
+          syncContext: nextSyncContext,
+        })
+
+        if (sessionRef.current !== sessionId) {
+          controller.dispose()
+          return null
+        }
+
+        controllerRef.current = controller
+        const nextData = controller.readCurrentData()
+        applyLoadedData(nextData)
+
+        return nextData
+      } catch (nextError) {
+        if (sessionRef.current !== sessionId) {
+          return null
+        }
+
+        if (!preserveRows) {
+          setSyncContext(null)
+          setMembers([])
+          setInvites([])
+        }
+
+        setStatus("error")
+        setError(
+          describeWorkspacePeopleSyncError(
+            nextError,
+            "Unable to load workspace people sync context."
+          )
+        )
+
+        return null
+      }
+    }
+  )
+
+  const refresh = useEffectEvent(async () => {
+    if (!workspaceId) {
+      return null
+    }
+
+    return await loadWorkspaceSync(workspaceId, true)
+  })
 
   useEffect(() => {
     if (!workspaceId) {
-      setCollections(null)
+      sessionRef.current = null
+      controllerRef.current?.dispose()
+      controllerRef.current = null
       setSyncContext(null)
       setStatus("idle")
       setError(null)
+      setMembers([])
+      setInvites([])
       return
     }
 
-    let isCancelled = false
-    let activeCollections: WorkspacePeopleSyncCollections | null = null
-
-    setCollections(null)
-    setSyncContext(null)
-    setStatus("loading")
-    setError(null)
-
-    const cleanupActiveCollections = async () => {
-      if (!activeCollections) {
-        return
-      }
-
-      const collectionsToCleanup = activeCollections
-      activeCollections = null
-      await cleanupWorkspaceElectricCollections(
-        Object.values(collectionsToCleanup)
-      )
-    }
-
-    const loadSyncContext = async () => {
-      try {
-        const response = await fetchApiService(
-          `/api/sync/workspaces/${workspaceId}/context`
-        )
-
-        if (!response.ok) {
-          throw new Error(
-            `Unable to load workspace people sync context (${response.status}).`
-          )
-        }
-
-        const payload = Schema.decodeUnknownSync(
-          workspacePeopleSyncContextResponseSchema
-        )(await response.json())
-
-        activeCollections = createWorkspacePeopleCollections(payload)
-        await preloadWorkspaceElectricCollections(
-          Object.values(activeCollections)
-        )
-
-        if (isCancelled) {
-          await cleanupActiveCollections()
-          return
-        }
-
-        if (!isCancelled) {
-          setCollections(activeCollections)
-          setSyncContext(payload)
-          setStatus("ready")
-        }
-      } catch (nextError) {
-        await cleanupActiveCollections()
-
-        if (!isCancelled) {
-          setCollections(null)
-          setSyncContext(null)
-          setStatus("error")
-          setError(
-            nextError instanceof Error
-              ? nextError.message
-              : "Unable to load workspace people sync context."
-          )
-        }
-      }
-    }
-
-    loadSyncContext()
+    loadWorkspaceSync(workspaceId)
 
     return () => {
-      isCancelled = true
-      ;(async () => {
-        try {
-          await cleanupActiveCollections()
-        } catch (cleanupError) {
-          console.error(
-            "Failed to clean up workspace people sync collections.",
-            cleanupError
-          )
-        }
-      })()
+      sessionRef.current = null
+      controllerRef.current?.dispose()
+      controllerRef.current = null
     }
   }, [workspaceId])
 
-  const rawMutations = useMemo(
-    () => createWorkspacePeopleSyncMutationClient(),
-    []
-  )
-  const mutations = useMemo(() => {
-    if (!collections) {
-      return rawMutations
-    }
+  const mutations = useMemo(() => createWorkspacePeopleSyncMutationClient(), [])
 
-    return {
-      createWorkspaceInvite: async (
-        ...args: Parameters<typeof rawMutations.createWorkspaceInvite>
-      ) =>
-        awaitWorkspaceElectricTxId(
-          collections.invites,
-          await rawMutations.createWorkspaceInvite(...args)
-        ),
-      removeWorkspaceMember: async (
-        ...args: Parameters<typeof rawMutations.removeWorkspaceMember>
-      ) =>
-        awaitWorkspaceElectricTxId(
-          collections.members,
-          await rawMutations.removeWorkspaceMember(...args)
-        ),
-      resendWorkspaceInvite: async (
-        ...args: Parameters<typeof rawMutations.resendWorkspaceInvite>
-      ) =>
-        awaitWorkspaceElectricTxId(
-          collections.invites,
-          await rawMutations.resendWorkspaceInvite(...args)
-        ),
-      revokeWorkspaceInvite: async (
-        ...args: Parameters<typeof rawMutations.revokeWorkspaceInvite>
-      ) =>
-        awaitWorkspaceElectricTxId(
-          collections.invites,
-          await rawMutations.revokeWorkspaceInvite(...args)
-        ),
-      updateWorkspaceMemberRole: async (
-        ...args: Parameters<typeof rawMutations.updateWorkspaceMemberRole>
-      ) =>
-        awaitWorkspaceElectricTxId(
-          collections.members,
-          await rawMutations.updateWorkspaceMemberRole(...args)
-        ),
-    }
-  }, [collections, rawMutations])
+  const collections = useMemo(
+    () => (syncContext ? createWorkspacePeopleCollections(syncContext) : null),
+    [syncContext]
+  )
 
   const value = useMemo(
     () => ({
       collections,
       error,
+      invites,
+      members,
       mutations,
+      refresh,
       status,
       syncContext,
     }),
-    [collections, error, mutations, status, syncContext]
+    [collections, error, invites, members, mutations, status, syncContext]
   )
 
   return (
@@ -314,8 +525,11 @@ const useWorkspacePeopleSync = () => {
 
 export { WorkspacePeopleSyncProvider, useWorkspacePeopleSync }
 export type {
+  LoadedWorkspacePeopleSyncData,
   WorkspacePeopleSyncCollections,
   WorkspacePeopleSyncContextResponse,
+  WorkspacePeopleSyncInvite,
+  WorkspacePeopleSyncMember,
   WorkspacePeopleSyncStatus,
   WorkspacePeopleSyncValue,
 }

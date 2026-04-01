@@ -9,6 +9,7 @@ import { getSettingsSnapshot } from "@/domains/identity/settings-admin/infra/get
 import { removeWorkspaceMember } from "@/domains/identity/settings-admin/infra/remove-workspace-member"
 import { resendWorkspaceInvite } from "@/domains/identity/settings-admin/infra/resend-workspace-invite"
 import { revokeWorkspaceInvite } from "@/domains/identity/settings-admin/infra/revoke-workspace-invite"
+import type * as WorkspacePeopleSyncModule from "@/domains/identity/settings-admin/infra/sync/workspace-people-sync"
 import { updateWorkspaceMemberRole } from "@/domains/identity/settings-admin/infra/update-workspace-member-role"
 import type { WorkspaceBootstrap } from "@/domains/workspaces/bootstrap/contracts/workspace-bootstrap"
 import { getWorkspaceBootstrap } from "@/domains/workspaces/bootstrap/infra/workspace-bootstrap-client"
@@ -29,6 +30,22 @@ import {
   within,
 } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
+import type { ReactNode } from "react"
+
+const useWorkspacePeopleSyncMock = vi.hoisted(() => vi.fn())
+
+vi.mock<typeof WorkspacePeopleSyncModule>(
+  import("@/domains/identity/settings-admin/infra/sync/workspace-people-sync"),
+  () => ({
+    WorkspacePeopleSyncProvider: ({
+      children,
+    }: {
+      children?: ReactNode
+      workspaceId?: string | null
+    }) => <div>{children}</div>,
+    useWorkspacePeopleSync: useWorkspacePeopleSyncMock,
+  })
+)
 
 vi.mock(
   import("@/domains/workspaces/bootstrap/infra/workspace-bootstrap-client"),
@@ -346,6 +363,120 @@ const adminSnapshot = () =>
   })
 
 let currentSnapshot: SettingsAdminSnapshot
+let currentSyncValue: ReturnType<typeof createSyncValue>
+
+const createSyncMember = (member: SettingsAdminMember) => ({
+  email: member.email,
+  id: member.id,
+  image: member.image,
+  isCurrentUser: member.isCurrentUser,
+  name: member.name,
+  role: member.role,
+  userId: member.userId,
+})
+
+const createSyncInvite = (invite: SettingsAdminWorkspaceInvite) => ({
+  code: invite.code,
+  email: invite.email,
+  id: invite.id,
+  role: invite.role,
+  status: invite.status,
+  workspaceId: invite.workspaceId,
+})
+
+const createSyncValue = (snapshot: SettingsAdminSnapshot) => {
+  const currentUser = snapshot.members.find((member) => member.isCurrentUser)
+
+  if (!currentUser) {
+    throw new Error("Expected a current user in the settings snapshot.")
+  }
+
+  return {
+    collections: null,
+    error: null,
+    invites: snapshot.pendingInvites.map(createSyncInvite),
+    members: snapshot.members.map(createSyncMember),
+    mutations: {
+      createWorkspaceInvite: vi.fn(),
+      removeWorkspaceMember: vi.fn(),
+      resendWorkspaceInvite: vi.fn(),
+      revokeWorkspaceInvite: vi.fn(),
+      updateWorkspaceMemberRole: vi.fn(),
+    },
+    refresh: vi.fn(() => {
+      currentSyncValue = createSyncValue(currentSnapshot)
+
+      return Promise.resolve({
+        invites: currentSyncValue.invites,
+        members: currentSyncValue.members,
+        syncContext: currentSyncValue.syncContext,
+      })
+    }),
+    status: "ready" as const,
+    syncContext: {
+      resources: {
+        workspace: `/api/sync/workspaces/${workspaceId}/shapes/workspace`,
+        workspaceInvites: `/api/sync/workspaces/${workspaceId}/shapes/workspace-invites`,
+        workspaceMemberUsers: `/api/sync/workspaces/${workspaceId}/shapes/workspace-member-users`,
+        workspaceMembers: `/api/sync/workspaces/${workspaceId}/shapes/workspace-members`,
+      },
+      userId: currentUser.userId,
+      viewerRole: snapshot.viewerRole,
+      workspace: {
+        id: workspaceId,
+        logo: null,
+        name: "Operations Control",
+        slug: "operations-control",
+      },
+    },
+  }
+}
+
+const syncCurrentRowsToSnapshot = () => {
+  currentSyncValue = createSyncValue(currentSnapshot)
+}
+
+const replaceSyncMember = (
+  syncValue: ReturnType<typeof createSyncValue>,
+  memberId: string,
+  nextMember: Partial<(typeof syncValue.members)[number]>
+) => {
+  const memberIndex = syncValue.members.findIndex(
+    (member) => member.id === memberId
+  )
+
+  if (memberIndex === -1) {
+    throw new Error(`Expected sync member ${memberId} to exist.`)
+  }
+
+  const nextMembers = [...syncValue.members]
+  nextMembers[memberIndex] = {
+    ...nextMembers[memberIndex],
+    ...nextMember,
+  }
+  syncValue.members = nextMembers
+}
+
+const replaceSyncInvite = (
+  syncValue: ReturnType<typeof createSyncValue>,
+  inviteId: string,
+  nextInvite: Partial<(typeof syncValue.invites)[number]>
+) => {
+  const inviteIndex = syncValue.invites.findIndex(
+    (invite) => invite.id === inviteId
+  )
+
+  if (inviteIndex === -1) {
+    throw new Error(`Expected sync invite ${inviteId} to exist.`)
+  }
+
+  const nextInvites = [...syncValue.invites]
+  nextInvites[inviteIndex] = {
+    ...nextInvites[inviteIndex],
+    ...nextInvite,
+  }
+  syncValue.invites = nextInvites
+}
 
 const withMemberRole = (
   snapshot: SettingsAdminSnapshot,
@@ -477,15 +608,19 @@ const prepareTestEnvironment = () => {
 const renderPeopleRoute = async ({
   bootstrap = ownerBootstrap,
   snapshot = ownerSnapshot(),
+  syncValue,
 }: {
   bootstrap?: WorkspaceBootstrap | null
   snapshot?: SettingsAdminSnapshot
+  syncValue?: ReturnType<typeof createSyncValue>
 } = {}) => {
   prepareTestEnvironment()
   currentSnapshot = snapshot
+  currentSyncValue = syncValue ?? createSyncValue(currentSnapshot)
   getWorkspaceBootstrapMock.mockResolvedValue(bootstrap)
   // eslint-disable-next-line require-await
   getSettingsSnapshotMock.mockImplementation(async () => currentSnapshot)
+  useWorkspacePeopleSyncMock.mockImplementation(() => currentSyncValue)
 
   const router = createTestRouter("/app/settings/people")
 
@@ -756,6 +891,7 @@ describe("people settings page", () => {
         ...currentSnapshot,
         pendingInvites: [...currentSnapshot.pendingInvites, nextInvite],
       }
+      syncCurrentRowsToSnapshot()
 
       return Promise.resolve({
         ...nextInvite,
@@ -804,6 +940,490 @@ describe("people settings page", () => {
     })
   })
 
+  it("keeps the current sync subscription alive while waiting for snapshot reconciliation", async () => {
+    const liveSyncValue = createSyncValue(ownerSnapshot())
+    const nextInvite = makeInvite({
+      email: "new-owner@example.com",
+      id: "invite_new_owner",
+      permissions: {
+        canResend: true,
+        canRevoke: true,
+      },
+      role: "owner",
+    })
+
+    createWorkspaceInviteMock.mockImplementation((input) => {
+      currentSnapshot = {
+        ...currentSnapshot,
+        pendingInvites: [...currentSnapshot.pendingInvites, nextInvite],
+      }
+      syncCurrentRowsToSnapshot()
+
+      return Promise.resolve({
+        ...nextInvite,
+        email: input.email,
+        role: input.role,
+      })
+    })
+
+    const { user } = await renderPeopleRoute({
+      syncValue: liveSyncValue,
+    })
+    const inviteForm = screen.getByRole("form", {
+      name: "Invite member",
+    })
+
+    await user.type(
+      within(inviteForm).getByLabelText("Invite email"),
+      "new-owner@example.com"
+    )
+    await user.selectOptions(
+      within(inviteForm).getByLabelText("Invite role"),
+      "owner"
+    )
+    await user.click(
+      within(inviteForm).getByRole("button", {
+        name: "Send invite",
+      })
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText("new-owner@example.com")).toBeTruthy()
+    })
+    expect(liveSyncValue.refresh).not.toHaveBeenCalled()
+  })
+
+  it("falls back to live sync rows when snapshot invalidation fails after a mutation", async () => {
+    const staleSnapshot = createSnapshot({
+      members: ownerSnapshot().members,
+      pendingInvites: [
+        makeInvite({
+          email: "stale-invite@example.com",
+          id: "invite_owner",
+          permissions: {
+            canResend: true,
+            canRevoke: true,
+          },
+          role: "owner",
+        }),
+      ],
+      permissions: {
+        canEditWorkspaceProfile: true,
+        canInviteRoles: ["owner", "admin", "dispatcher", "field_worker"],
+        canManageInvites: true,
+        canManageMembers: true,
+      },
+      viewerRole: "owner",
+    })
+    const liveSyncValue = createSyncValue(staleSnapshot)
+    const liveInvite = {
+      ...makeInvite({
+        email: "live-invite@example.com",
+        id: "invite_owner",
+        permissions: {
+          canResend: true,
+          canRevoke: true,
+        },
+        role: "dispatcher",
+      }),
+      code: "LIVE-CODE-123",
+    }
+
+    createWorkspaceInviteMock.mockImplementation(() => {
+      currentSyncValue = {
+        ...liveSyncValue,
+        invites: [liveInvite],
+      }
+
+      return Promise.resolve({
+        ...liveInvite,
+        workspaceId,
+      })
+    })
+
+    const { router, user } = await renderPeopleRoute({
+      snapshot: staleSnapshot,
+      syncValue: liveSyncValue,
+    })
+    vi.spyOn(router, "invalidate").mockRejectedValue(
+      new Error("Snapshot reload failed.")
+    )
+
+    const inviteForm = screen.getByRole("form", {
+      name: "Invite member",
+    })
+
+    await user.type(
+      within(inviteForm).getByLabelText("Invite email"),
+      "live-invite@example.com"
+    )
+    await user.selectOptions(
+      within(inviteForm).getByLabelText("Invite role"),
+      "dispatcher"
+    )
+    await user.click(
+      within(inviteForm).getByRole("button", {
+        name: "Send invite",
+      })
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText("live-invite@example.com")).toBeTruthy()
+    })
+    expect(screen.queryByText("stale-invite@example.com")).toBeNull()
+    expect(screen.getByText("Snapshot reload failed.")).toBeTruthy()
+    expect(
+      screen.getByRole("button", {
+        name: "Resend invite to live-invite@example.com",
+      })
+    ).toBeTruthy()
+    expect(
+      screen.getByRole("button", {
+        name: "Revoke invite for live-invite@example.com",
+      })
+    ).toBeTruthy()
+  })
+
+  it("falls back to live sync rows when a successful snapshot refresh stays stale", async () => {
+    const staleSnapshot = createSnapshot({
+      members: ownerSnapshot().members,
+      pendingInvites: [
+        makeInvite({
+          email: "stale-invite@example.com",
+          id: "invite_owner",
+          permissions: {
+            canResend: true,
+            canRevoke: true,
+          },
+          role: "owner",
+        }),
+      ],
+      permissions: {
+        canEditWorkspaceProfile: true,
+        canInviteRoles: ["owner", "admin", "dispatcher", "field_worker"],
+        canManageInvites: true,
+        canManageMembers: true,
+      },
+      viewerRole: "owner",
+    })
+    const liveSyncValue = createSyncValue(staleSnapshot)
+    const liveInvite = {
+      ...makeInvite({
+        email: "live-invite@example.com",
+        id: "invite_owner",
+        permissions: {
+          canResend: true,
+          canRevoke: true,
+        },
+        role: "dispatcher",
+      }),
+      code: "LIVE-CODE-123",
+    }
+
+    createWorkspaceInviteMock.mockImplementation(() => {
+      currentSyncValue = {
+        ...liveSyncValue,
+        invites: [liveInvite],
+      }
+
+      return Promise.resolve({
+        ...liveInvite,
+        workspaceId,
+      })
+    })
+
+    const { router, user } = await renderPeopleRoute({
+      snapshot: staleSnapshot,
+      syncValue: liveSyncValue,
+    })
+    vi.spyOn(router, "invalidate").mockResolvedValue()
+
+    const inviteForm = screen.getByRole("form", {
+      name: "Invite member",
+    })
+
+    await user.type(
+      within(inviteForm).getByLabelText("Invite email"),
+      "live-invite@example.com"
+    )
+    await user.selectOptions(
+      within(inviteForm).getByLabelText("Invite role"),
+      "dispatcher"
+    )
+    await user.click(
+      within(inviteForm).getByRole("button", {
+        name: "Send invite",
+      })
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText("live-invite@example.com")).toBeTruthy()
+    })
+    expect(screen.queryByText("stale-invite@example.com")).toBeNull()
+  })
+
+  it("renders sync-only people rows and removes stale snapshot rows once sync is ready", async () => {
+    const liveSnapshot = ownerSnapshot()
+    const liveSyncValue = createSyncValue(liveSnapshot)
+    liveSyncValue.members = [
+      {
+        ...liveSyncValue.members[0],
+      },
+      {
+        ...liveSyncValue.members[0],
+        email: "live-member@example.com",
+        id: "member_live",
+        isCurrentUser: false,
+        name: "Live Member",
+        role: "dispatcher",
+        userId: "user_live",
+      },
+    ]
+    liveSyncValue.invites = [
+      {
+        ...liveSyncValue.invites[0],
+        code: "LIVE-CODE-123",
+        email: "live-invite@example.com",
+        id: "invite_live",
+      },
+    ]
+    const staleSnapshot = createSnapshot({
+      members: [
+        makeMember({
+          email: "stale-member@example.com",
+          id: "member_owner",
+          isCurrentUser: true,
+          name: "Stale Member",
+          permissions: {
+            assignableRoles: [],
+            canChangeRole: false,
+            canRemove: false,
+          },
+          role: "owner",
+          userId: "user_owner",
+        }),
+      ],
+      pendingInvites: [
+        makeInvite({
+          email: "stale-invite@example.com",
+          id: "invite_owner",
+          permissions: {
+            canResend: true,
+            canRevoke: true,
+          },
+          role: "owner",
+        }),
+      ],
+      permissions: {
+        canEditWorkspaceProfile: true,
+        canInviteRoles: ["owner", "admin", "dispatcher", "field_worker"],
+        canManageInvites: true,
+        canManageMembers: true,
+      },
+      viewerRole: "owner",
+    })
+
+    await renderPeopleRoute({
+      snapshot: staleSnapshot,
+      syncValue: liveSyncValue,
+    })
+
+    expect(screen.getByText("Live Member")).toBeTruthy()
+    expect(screen.queryByText("Stale Member")).toBeNull()
+    expect(screen.getByText("live-invite@example.com")).toBeTruthy()
+    expect(screen.queryByText("stale-invite@example.com")).toBeNull()
+    expect([
+      Boolean(screen.getByLabelText("Role for Live Member")),
+      Boolean(
+        screen.getByRole("button", {
+          name: "Remove Live Member",
+        })
+      ),
+      Boolean(
+        screen.getByRole("button", {
+          name: "Resend invite to live-invite@example.com",
+        })
+      ),
+      Boolean(
+        screen.getByRole("button", {
+          name: "Revoke invite for live-invite@example.com",
+        })
+      ),
+      screen.queryByRole("link", {
+        name: "Open accept link",
+      }),
+    ]).toStrictEqual([true, true, true, true, null])
+  })
+
+  it("recomputes matched row permissions from live sync roles", async () => {
+    const staleSnapshot = adminSnapshot()
+    const liveSyncValue = createSyncValue(staleSnapshot)
+    replaceSyncMember(liveSyncValue, "member_dispatcher", {
+      role: "owner",
+    })
+    replaceSyncInvite(liveSyncValue, "invite_dispatch", {
+      role: "owner",
+    })
+
+    await renderPeopleRoute({
+      bootstrap: bootstrapWithRole("admin"),
+      snapshot: staleSnapshot,
+      syncValue: liveSyncValue,
+    })
+
+    expect(screen.queryByLabelText("Role for Alex Dispatcher")).toBeNull()
+    expect(
+      screen.queryByRole("button", {
+        name: "Remove Alex Dispatcher",
+      })
+    ).toBeNull()
+    expect(
+      screen.queryByRole("button", {
+        name: "Resend invite to dispatch@example.com",
+      })
+    ).toBeNull()
+    expect(
+      screen.queryByRole("button", {
+        name: "Revoke invite for dispatch@example.com",
+      })
+    ).toBeNull()
+  })
+
+  it("uses the live current-user role when synced rows demote the viewer", async () => {
+    const staleSnapshot = ownerSnapshot()
+    const liveSyncValue = createSyncValue(staleSnapshot)
+
+    replaceSyncMember(liveSyncValue, "member_owner", {
+      role: "dispatcher",
+    })
+
+    await renderPeopleRoute({
+      snapshot: staleSnapshot,
+      syncValue: liveSyncValue,
+    })
+
+    expect(screen.queryByLabelText("Role for Grace Hopper")).toBeNull()
+    expect(
+      screen.queryByRole("button", {
+        name: "Remove Grace Hopper",
+      })
+    ).toBeNull()
+    expect(
+      screen.queryByRole("button", {
+        name: "Resend invite to pending-owner@example.com",
+      })
+    ).toBeNull()
+    expect(
+      screen.queryByRole("button", {
+        name: "Revoke invite for pending-owner@example.com",
+      })
+    ).toBeNull()
+    expect(
+      screen.queryByRole("option", {
+        name: "Owner",
+      })
+    ).toBeNull()
+  })
+
+  it("drops management controls when the live sync state no longer includes the viewer", async () => {
+    const staleSnapshot = ownerSnapshot()
+    const liveSyncValue = createSyncValue(staleSnapshot)
+
+    liveSyncValue.members = [
+      {
+        email: "live-member@example.com",
+        id: "member_live",
+        image: null,
+        isCurrentUser: false,
+        name: "Live Member",
+        role: "dispatcher",
+        userId: "user_live",
+      },
+    ]
+    liveSyncValue.invites = [
+      {
+        code: "LIVE-CODE-123",
+        email: "live-invite@example.com",
+        id: "invite_live",
+        role: "dispatcher",
+        status: "pending",
+        workspaceId,
+      },
+    ]
+
+    await renderPeopleRoute({
+      snapshot: staleSnapshot,
+      syncValue: liveSyncValue,
+    })
+
+    expect(screen.queryByLabelText("Role for Live Member")).toBeNull()
+    expect(
+      screen.queryByRole("button", {
+        name: "Remove Live Member",
+      })
+    ).toBeNull()
+    expect(
+      screen.queryByRole("button", {
+        name: "Resend invite to live-invite@example.com",
+      })
+    ).toBeNull()
+    expect(
+      screen.queryByRole("button", {
+        name: "Revoke invite for live-invite@example.com",
+      })
+    ).toBeNull()
+    expect(
+      screen.queryByRole("option", {
+        name: "Owner",
+      })
+    ).toBeNull()
+  })
+
+  it("ignores stale sync rows from another workspace while a new snapshot is rendering", async () => {
+    const staleSyncValue = createSyncValue(ownerSnapshot())
+    staleSyncValue.members = [
+      {
+        email: "stale-live-member@example.com",
+        id: "member_live",
+        image: null,
+        isCurrentUser: false,
+        name: "Stale Live Member",
+        role: "dispatcher",
+        userId: "user_live",
+      },
+    ]
+    staleSyncValue.invites = [
+      {
+        code: "STALE-LIVE-CODE",
+        email: "stale-live-invite@example.com",
+        id: "invite_live",
+        role: "dispatcher",
+        status: "pending",
+        workspaceId,
+      },
+    ]
+
+    const nextWorkspaceSnapshot = {
+      ...ownerSnapshot(),
+      pendingInvites: [],
+      workspaceProfile: {
+        ...ownerSnapshot().workspaceProfile,
+        id: "workspace_999",
+        name: "Next Workspace",
+        slug: "next-workspace",
+      },
+    }
+
+    await renderPeopleRoute({
+      snapshot: nextWorkspaceSnapshot,
+      syncValue: staleSyncValue,
+    })
+
+    expect(screen.queryByText("Stale Live Member")).toBeNull()
+    expect(screen.queryByText("stale-live-invite@example.com")).toBeNull()
+    expect(screen.getByText("Ada Lovelace")).toBeTruthy()
+  })
+
   it("lets owners change member roles and gates pending invite actions by row permissions", async () => {
     updateWorkspaceMemberRoleMock.mockImplementation((input) => {
       currentSnapshot = withMemberRole(
@@ -811,6 +1431,7 @@ describe("people settings page", () => {
         input.memberId,
         input.role
       )
+      syncCurrentRowsToSnapshot()
 
       return Promise.resolve({
         memberId: input.memberId,
@@ -820,6 +1441,7 @@ describe("people settings page", () => {
     })
     revokeWorkspaceInviteMock.mockImplementation(({ inviteId }) => {
       currentSnapshot = withoutInvite(currentSnapshot, inviteId)
+      syncCurrentRowsToSnapshot()
 
       return Promise.resolve()
     })
@@ -1045,6 +1667,7 @@ describe("people settings page", () => {
     revokeWorkspaceInviteMock.mockImplementation(async ({ inviteId }) => {
       await revokeInvite.promise
       currentSnapshot = withoutInvite(currentSnapshot, inviteId)
+      syncCurrentRowsToSnapshot()
     })
 
     const { user } = await renderPeopleRoute({

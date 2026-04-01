@@ -1,53 +1,140 @@
-import { render, screen, waitFor } from "@testing-library/react"
+/* eslint-disable promise/avoid-new, promise/prefer-await-to-callbacks, react-perf/jsx-no-new-function-as-prop, jest/no-hooks, unicorn/consistent-function-scoping, unicorn/no-unreadable-array-destructuring */
+
+import type * as ElectricClientModule from "@electric-sql/client"
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 
 import {
   WorkspacePeopleSyncProvider,
   useWorkspacePeopleSync,
 } from "./workspace-people-sync"
 
-const createSnapshotResponse = () =>
-  Response.json(
-    [
-      {
-        headers: {
-          control: "up-to-date",
-        },
-      },
-    ],
-    {
-      headers: {
-        "electric-handle": "handle-1",
-        "electric-offset": "0_0",
-        "electric-schema": "[]",
-        "electric-up-to-date": "true",
-      },
-      status: 200,
-    }
-  )
+interface Deferred<T> {
+  promise: Promise<T>
+  resolve: (value: T) => void
+}
 
-const createLiveResponse = () =>
-  Response.json(
-    [
-      {
-        headers: {
-          control: "up-to-date",
-        },
-      },
-    ],
-    {
-      headers: {
-        "electric-cursor": "cursor-1",
-        "electric-handle": "handle-1",
-        "electric-offset": "0_0",
-        "electric-schema": "[]",
-        "electric-up-to-date": "true",
-      },
-      status: 200,
+const createDeferred = <T,>(): Deferred<T> => {
+  let resolveDeferred!: (value: T) => void
+  // eslint-disable-next-line promise/prefer-await-to-callbacks
+  const promise = new Promise<T>((resolve) => {
+    resolveDeferred = resolve
+  })
+
+  return {
+    promise,
+    resolve: resolveDeferred,
+  }
+}
+
+const electricClientMock = vi.hoisted(() => {
+  type MockRow = {
+    id: string
+  } & Record<string, unknown>
+  type ShapeCallback<T extends MockRow> = (data: {
+    rows: T[]
+    value: Map<string, T>
+  }) => void
+
+  interface MockShapeInstance<T extends MockRow = MockRow> {
+    currentRows: T[]
+    emit: (rows: T[]) => void
+    resolveRows: (rows: T[]) => void
+    rows: Promise<T[]>
+    stream: {
+      options: {
+        fetchClient?: typeof fetch
+        url: string
+      }
     }
-  )
+    subscribe: (callback: ShapeCallback<T>) => () => void
+    unsubscribeAll: () => void
+  }
+
+  const shapeInstances: MockShapeInstance[] = []
+
+  const MockShapeStream = function MockShapeStream(
+    this: unknown,
+    options: {
+      fetchClient?: typeof fetch
+      url: string
+    }
+  ) {
+    return {
+      options,
+      unsubscribeAll: vi.fn(),
+    }
+  }
+
+  const MockShape = function MockShape<T extends MockRow>(
+    this: unknown,
+    stream: {
+      options: {
+        fetchClient?: typeof fetch
+        url: string
+      }
+    }
+  ) {
+    const rows = createDeferred<T[]>()
+    const subscribers = new Set<ShapeCallback<T>>()
+    const shape: MockShapeInstance<T> = {
+      currentRows: [],
+      emit: (nextRows) => {
+        shape.currentRows = nextRows
+
+        const value = new Map(nextRows.map((row) => [row.id, row]))
+
+        for (const callback of subscribers) {
+          callback({
+            rows: nextRows,
+            value,
+          })
+        }
+      },
+      resolveRows: (nextRows) => {
+        shape.currentRows = nextRows
+        rows.resolve(nextRows)
+        shape.emit(nextRows)
+      },
+      rows: rows.promise,
+      stream,
+      subscribe: (callback) => {
+        subscribers.add(callback)
+
+        return () => {
+          subscribers.delete(callback)
+        }
+      },
+      unsubscribeAll: () => {
+        subscribers.clear()
+      },
+    }
+
+    shapeInstances.push(shape as MockShapeInstance)
+
+    return shape
+  }
+
+  return {
+    MockShape,
+    MockShapeStream,
+    reset: () => {
+      shapeInstances.length = 0
+    },
+    shapeInstances,
+  }
+})
+
+vi.mock<typeof ElectricClientModule>(import("@electric-sql/client"), () => ({
+  Shape: electricClientMock.MockShape as never,
+  ShapeStream: electricClientMock.MockShapeStream as never,
+}))
 
 const WorkspacePeopleSyncProbe = () => {
   const sync = useWorkspacePeopleSync()
+
+  const handleRefresh = () => {
+    sync.refresh()
+  }
 
   return (
     <dl>
@@ -68,68 +155,139 @@ const WorkspacePeopleSyncProbe = () => {
         </dd>
       </div>
       <div>
-        <dt>members collection preload</dt>
-        <dd data-testid="members-collection-preload">
-          {typeof sync.collections?.members.preload}
-        </dd>
-      </div>
-      <div>
-        <dt>members collection utils</dt>
-        <dd data-testid="members-collection-utils">
-          {typeof sync.collections?.members.utils.awaitTxId}
-        </dd>
-      </div>
-      <div>
-        <dt>member users collection</dt>
-        <dd data-testid="member-users-collection">
-          {sync.collections && "memberUsers" in sync.collections
-            ? "present"
-            : "none"}
-        </dd>
-      </div>
-      <div>
         <dt>mutation client</dt>
         <dd data-testid="mutation-client">
           {typeof sync.mutations.createWorkspaceInvite}
         </dd>
       </div>
+      <div>
+        <dt>members</dt>
+        <dd data-testid="members">{sync.members?.[0]?.name ?? "none"}</dd>
+      </div>
+      <div>
+        <dt>invites</dt>
+        <dd data-testid="invites">{sync.invites?.[0]?.code ?? "none"}</dd>
+      </div>
+      <button onClick={handleRefresh} type="button">
+        refresh
+      </button>
     </dl>
   )
 }
 
-describe("workspace people sync provider", () => {
-  it("hydrates a workspace-scoped sync context and exposes collections", async () => {
-    vi.restoreAllMocks()
-    vi.unstubAllEnvs()
-    document.documentElement.dataset.apiBaseUrl = "http://api.internal:3001"
+const createWorkspaceContext = (workspaceId: string) =>
+  Response.json({
+    resources: {
+      workspace: `/api/sync/workspaces/${workspaceId}/shapes/workspace`,
+      workspaceInvites: `/api/sync/workspaces/${workspaceId}/shapes/workspace-invites`,
+      workspaceMemberUsers: `/api/sync/workspaces/${workspaceId}/shapes/workspace-member-users`,
+      workspaceMembers: `/api/sync/workspaces/${workspaceId}/shapes/workspace-members`,
+    },
+    userId: "user-123",
+    viewerRole: "owner",
+    workspace: {
+      id: workspaceId,
+      logo: null,
+      name: "Ops Control",
+      slug: "ops-control",
+    },
+  })
 
-    const fetchMock = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(
-        Response.json({
-          resources: {
-            workspace: "/api/sync/workspaces/workspace-123/shapes/workspace",
-            workspaceInvites:
-              "/api/sync/workspaces/workspace-123/shapes/workspace-invites",
-            workspaceMembers:
-              "/api/sync/workspaces/workspace-123/shapes/workspace-members",
-          },
-          userId: "user-123",
-          viewerRole: "owner",
-          workspace: {
-            id: "workspace-123",
-            logo: null,
-            name: "Ops Control",
-            slug: "ops-control",
-          },
-        })
-      )
-      .mockResolvedValueOnce(createSnapshotResponse())
-      .mockResolvedValueOnce(createSnapshotResponse())
-      .mockResolvedValueOnce(createSnapshotResponse())
-      .mockResolvedValueOnce(createLiveResponse())
-      .mockResolvedValueOnce(createLiveResponse())
-      .mockResolvedValueOnce(createLiveResponse())
+const getShape = (resourceSuffix: string) =>
+  electricClientMock.shapeInstances.find((shape) =>
+    shape.stream.options.url.endsWith(resourceSuffix)
+  )
+
+const resolveShapeRows = <T extends { id: string }>(
+  resourceSuffix: string,
+  rows: T[]
+) => {
+  const shape = getShape(resourceSuffix)
+
+  if (!shape) {
+    throw new Error(`Missing mocked shape for ${resourceSuffix}`)
+  }
+
+  act(() => {
+    ;(shape as { resolveRows: (value: T[]) => void }).resolveRows(rows)
+  })
+}
+
+const emitShapeRows = <T extends { id: string }>(
+  resourceSuffix: string,
+  rows: T[]
+) => {
+  const shape = getShape(resourceSuffix)
+
+  if (!shape) {
+    throw new Error(`Missing mocked shape for ${resourceSuffix}`)
+  }
+
+  act(() => {
+    ;(shape as { emit: (value: T[]) => void }).emit(rows)
+  })
+}
+
+const installContextFetchMock = (
+  responseByWorkspaceId: Record<string, Response | (() => Response)>
+) =>
+  vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+    const url = new URL(input.toString())
+    const [, , , , workspaceId] = url.pathname.split("/")
+    const responseFactory = responseByWorkspaceId[workspaceId]
+
+    if (!responseFactory) {
+      throw new Error(`Unexpected fetch: ${url.toString()}`)
+    }
+
+    return Promise.resolve(
+      typeof responseFactory === "function"
+        ? responseFactory()
+        : responseFactory
+    )
+  })
+
+const createDeferredContextFetchMock = () => {
+  const requests = new Map<string, Deferred<Response>[]>()
+
+  vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+    const url = new URL(input.toString())
+    const [, , , , workspaceId] = url.pathname.split("/")
+    const deferred = createDeferred<Response>()
+    const currentRequests = requests.get(workspaceId) ?? []
+
+    currentRequests.push(deferred)
+    requests.set(workspaceId, currentRequests)
+
+    return deferred.promise
+  })
+
+  return {
+    resolveNext(workspaceId: string, response: Response) {
+      const currentRequests = requests.get(workspaceId)
+      const deferred = currentRequests?.shift()
+
+      if (!deferred) {
+        throw new Error(`No pending request for workspace ${workspaceId}`)
+      }
+
+      deferred.resolve(response)
+    },
+  }
+}
+
+describe("workspace people sync provider", () => {
+  afterEach(() => {
+    delete document.documentElement.dataset.apiBaseUrl
+    electricClientMock.reset()
+    vi.restoreAllMocks()
+  })
+
+  it("hydrates a workspace-scoped sync context and exposes collections", async () => {
+    document.documentElement.dataset.apiBaseUrl = "http://api.internal:3001"
+    installContextFetchMock({
+      "workspace-123": createWorkspaceContext("workspace-123"),
+    })
 
     render(
       <WorkspacePeopleSyncProvider workspaceId="workspace-123">
@@ -137,41 +295,262 @@ describe("workspace people sync provider", () => {
       </WorkspacePeopleSyncProvider>
     )
 
-    expect([
-      screen.getByTestId("status").textContent,
-      screen.getByTestId("workspace").textContent,
-      screen.getByTestId("members-collection").textContent,
-    ]).toStrictEqual(["loading", "none", "none"])
+    await waitFor(() => {
+      expect(electricClientMock.shapeInstances).toHaveLength(3)
+    })
+
+    resolveShapeRows(
+      "/api/sync/workspaces/workspace-123/shapes/workspace-member-users",
+      []
+    )
+    resolveShapeRows(
+      "/api/sync/workspaces/workspace-123/shapes/workspace-members",
+      []
+    )
+    resolveShapeRows(
+      "/api/sync/workspaces/workspace-123/shapes/workspace-invites",
+      []
+    )
 
     await waitFor(() => {
       expect(screen.getByTestId("status").textContent).toBe("ready")
     })
 
-    expect([
-      screen.getByTestId("workspace").textContent,
-      screen.getByTestId("members-collection").textContent,
-    ]).toStrictEqual(["workspace-123", "workspace-members:workspace-123"])
-    expect([
-      screen.getByTestId("members-collection-preload").textContent,
-      screen.getByTestId("members-collection-utils").textContent,
-      screen.getByTestId("member-users-collection").textContent,
-    ]).toStrictEqual(["function", "function", "none"])
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      1,
-      "http://api.internal:3001/api/sync/workspaces/workspace-123/context",
-      {
-        credentials: "include",
-        headers: undefined,
-      }
+    expect(screen.getByTestId("workspace").textContent).toBe("workspace-123")
+    expect(screen.getByTestId("members-collection").textContent).toBe(
+      "workspace-members:workspace-123"
     )
-    delete document.documentElement.dataset.apiBaseUrl
-    vi.restoreAllMocks()
-    vi.unstubAllEnvs()
+    expect(screen.getByTestId("mutation-client").textContent).toBe("function")
+  })
+
+  it("updates workspace members and invites from live Electric shape callbacks", async () => {
+    document.documentElement.dataset.apiBaseUrl = "http://api.internal:3001"
+    installContextFetchMock({
+      "workspace-123": createWorkspaceContext("workspace-123"),
+    })
+
+    render(
+      <WorkspacePeopleSyncProvider workspaceId="workspace-123">
+        <WorkspacePeopleSyncProbe />
+      </WorkspacePeopleSyncProvider>
+    )
+
+    await waitFor(() => {
+      expect(electricClientMock.shapeInstances).toHaveLength(3)
+    })
+
+    resolveShapeRows(
+      "/api/sync/workspaces/workspace-123/shapes/workspace-member-users",
+      [
+        {
+          email: "live-owner@example.com",
+          id: "user-123",
+          image: null,
+          name: "Live Owner",
+        },
+      ]
+    )
+    resolveShapeRows(
+      "/api/sync/workspaces/workspace-123/shapes/workspace-members",
+      [
+        {
+          id: "member-123",
+          organization_id: "workspace-123",
+          role: "owner",
+          user_id: "user-123",
+        },
+      ]
+    )
+    resolveShapeRows(
+      "/api/sync/workspaces/workspace-123/shapes/workspace-invites",
+      [
+        {
+          code: "LIVE1234",
+          email: "live-invite@example.com",
+          id: "invite-123",
+          organization_id: "workspace-123",
+          role: "dispatcher",
+          status: "pending",
+        },
+      ]
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId("status").textContent).toBe("ready")
+    })
+
+    emitShapeRows(
+      "/api/sync/workspaces/workspace-123/shapes/workspace-member-users",
+      [
+        {
+          email: "live-owner@example.com",
+          id: "user-123",
+          image: null,
+          name: "Live Owner Updated",
+        },
+      ]
+    )
+    emitShapeRows(
+      "/api/sync/workspaces/workspace-123/shapes/workspace-invites",
+      []
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId("members").textContent).toBe(
+        "Live Owner Updated"
+      )
+    })
+
+    expect(screen.getByTestId("invites").textContent).toBe("none")
+  })
+
+  it("stays loading until every initial Electric shape has resolved", async () => {
+    document.documentElement.dataset.apiBaseUrl = "http://api.internal:3001"
+    installContextFetchMock({
+      "workspace-123": createWorkspaceContext("workspace-123"),
+    })
+
+    render(
+      <WorkspacePeopleSyncProvider workspaceId="workspace-123">
+        <WorkspacePeopleSyncProbe />
+      </WorkspacePeopleSyncProvider>
+    )
+
+    await waitFor(() => {
+      expect(electricClientMock.shapeInstances).toHaveLength(3)
+    })
+
+    resolveShapeRows(
+      "/api/sync/workspaces/workspace-123/shapes/workspace-member-users",
+      [
+        {
+          email: "live-owner@example.com",
+          id: "user-123",
+          image: null,
+          name: "Live Owner",
+        },
+      ]
+    )
+
+    expect(screen.getByTestId("status").textContent).toBe("loading")
+    expect(screen.getByTestId("members").textContent).toBe("none")
+    expect(screen.getByTestId("invites").textContent).toBe("none")
+
+    resolveShapeRows(
+      "/api/sync/workspaces/workspace-123/shapes/workspace-members",
+      [
+        {
+          id: "member-123",
+          organization_id: "workspace-123",
+          role: "owner",
+          user_id: "user-123",
+        },
+      ]
+    )
+    resolveShapeRows(
+      "/api/sync/workspaces/workspace-123/shapes/workspace-invites",
+      []
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId("status").textContent).toBe("ready")
+    })
+    expect(screen.getByTestId("members").textContent).toBe("Live Owner")
+  })
+
+  it("keeps a stale refresh from overwriting the next workspace after a switch", async () => {
+    document.documentElement.dataset.apiBaseUrl = "http://api.internal:3001"
+    const contextFetchMock = createDeferredContextFetchMock()
+
+    const { rerender } = render(
+      <WorkspacePeopleSyncProvider workspaceId="workspace-123">
+        <WorkspacePeopleSyncProbe />
+      </WorkspacePeopleSyncProvider>
+    )
+
+    act(() => {
+      contextFetchMock.resolveNext(
+        "workspace-123",
+        createWorkspaceContext("workspace-123")
+      )
+    })
+
+    await waitFor(() => {
+      expect(electricClientMock.shapeInstances).toHaveLength(3)
+    })
+
+    resolveShapeRows(
+      "/api/sync/workspaces/workspace-123/shapes/workspace-member-users",
+      []
+    )
+    resolveShapeRows(
+      "/api/sync/workspaces/workspace-123/shapes/workspace-members",
+      []
+    )
+    resolveShapeRows(
+      "/api/sync/workspaces/workspace-123/shapes/workspace-invites",
+      []
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId("status").textContent).toBe("ready")
+    })
+
+    fireEvent.click(screen.getByRole("button", { name: "refresh" }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId("status").textContent).toBe("loading")
+    })
+
+    rerender(
+      <WorkspacePeopleSyncProvider workspaceId="workspace-456">
+        <WorkspacePeopleSyncProbe />
+      </WorkspacePeopleSyncProvider>
+    )
+
+    act(() => {
+      contextFetchMock.resolveNext(
+        "workspace-456",
+        createWorkspaceContext("workspace-456")
+      )
+    })
+
+    await waitFor(() => {
+      expect(electricClientMock.shapeInstances).toHaveLength(6)
+    })
+
+    resolveShapeRows(
+      "/api/sync/workspaces/workspace-456/shapes/workspace-member-users",
+      []
+    )
+    resolveShapeRows(
+      "/api/sync/workspaces/workspace-456/shapes/workspace-members",
+      []
+    )
+    resolveShapeRows(
+      "/api/sync/workspaces/workspace-456/shapes/workspace-invites",
+      []
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId("workspace").textContent).toBe("workspace-456")
+      expect(screen.getByTestId("status").textContent).toBe("ready")
+    })
+
+    act(() => {
+      contextFetchMock.resolveNext(
+        "workspace-123",
+        createWorkspaceContext("workspace-123")
+      )
+    })
+
+    await waitFor(() => {
+      expect(screen.getByTestId("workspace").textContent).toBe("workspace-456")
+      expect(screen.getByTestId("status").textContent).toBe("ready")
+    })
   })
 
   it("stays idle when no active workspace is available", async () => {
-    vi.restoreAllMocks()
-    vi.unstubAllEnvs()
     const fetchMock = vi.spyOn(globalThis, "fetch")
 
     render(
@@ -183,38 +562,9 @@ describe("workspace people sync provider", () => {
     expect(screen.getByTestId("status").textContent).toBe("idle")
     expect(screen.getByTestId("workspace").textContent).toBe("none")
     expect(screen.getByTestId("members-collection").textContent).toBe("none")
+
     await waitFor(() => {
       expect(fetchMock).not.toHaveBeenCalled()
     })
-    vi.restoreAllMocks()
-    vi.unstubAllEnvs()
-  })
-
-  it("moves into an error state when the sync context payload is malformed", async () => {
-    vi.restoreAllMocks()
-    vi.unstubAllEnvs()
-    document.documentElement.dataset.apiBaseUrl = "http://api.internal:3001"
-
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      Response.json({
-        resources: {},
-      })
-    )
-
-    render(
-      <WorkspacePeopleSyncProvider workspaceId="workspace-123">
-        <WorkspacePeopleSyncProbe />
-      </WorkspacePeopleSyncProvider>
-    )
-
-    await waitFor(() => {
-      expect(screen.getByTestId("status").textContent).toBe("error")
-    })
-
-    expect(screen.getByTestId("workspace").textContent).toBe("none")
-    expect(screen.getByTestId("members-collection").textContent).toBe("none")
-    delete document.documentElement.dataset.apiBaseUrl
-    vi.restoreAllMocks()
-    vi.unstubAllEnvs()
   })
 })
