@@ -182,6 +182,12 @@ const buildSandboxEnvFiles = ({
       DATABASE_URL: databaseUrl,
       NODE_ENV: appNodeEnv,
       PORT: 3001,
+      SERVER_AUTH_BASE_URL: mode === "local" ? "http://auth:3002" : urls.auth,
+      ...(mode === "local"
+        ? {
+            ELECTRIC_URL: "http://electric:3000",
+          }
+        : {}),
     }),
     auth: stringifyEnvFile({
       BETTER_AUTH_SECRET: buildSandboxSecret(identity.hash),
